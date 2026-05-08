@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Персонажи закваски</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #FDF8F3;
+      color: #3D2C1E;
+      padding: 20px;
+    }
+    h1 { text-align: center; font-size: 24px; color: #5C4033; margin: 20px 0 5px; }
+    .subtitle { text-align: center; color: #8B7355; font-size: 14px; margin-bottom: 30px; }
+
+    .variants {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      max-width: 950px;
+      margin: 0 auto;
+    }
+    .variant {
+      background: white;
+      border-radius: 24px;
+      padding: 24px 28px;
+      box-shadow: 0 4px 20px rgba(61,44,30,0.08);
+      border: 2px solid #F0E4D7;
+    }
+    .variant-header { margin-bottom: 4px; }
+    .variant-header h2 {
+      font-size: 18px;
+      color: #D4763A;
+      display: inline;
+    }
+    .tag {
+      font-size: 11px;
+      background: #FFF3E0;
+      color: #D4763A;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .desc { font-size: 13px; color: #8B7355; margin-bottom: 20px; }
+    .moods-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .mood-item { text-align: center; }
+    .mood-label {
+      font-size: 11px;
+      color: #8B7355;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+    .ch {
+      position: relative;
+      width: 100px;
+      height: 120px;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .breathe { animation: breathe 3.5s ease-in-out infinite; }
+
+    @keyframes hop {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .hop { animation: hop 2s ease-in-out infinite; }
+
+    /* ============================================= */
+    /*  1. БУЛОЧКА — яйцо с двумя шишечками сверху  */
+    /*     Вдохновение: Mametchi                     */
+    /* ============================================= */
+    .b1-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 72px; height: 76px;
+      background: #FFD966;
+      border-radius: 50% 50% 46% 46%;
+    }
+    .b1-bump {
+      position: absolute;
+      top: -10px;
+      width: 26px; height: 24px;
+      background: #E8A830;
+      border-radius: 50%;
+    }
+    .b1-bump.l { left: 10px; }
+    .b1-bump.r { right: 10px; }
+    .b1-eye {
+      position: absolute;
+      top: 26px;
+      width: 14px; height: 16px;
+      background: #2D1B0E;
+      border-radius: 50%;
+    }
+    .b1-eye::after {
+      content: '';
+      position: absolute;
+      top: 3px; right: 2px;
+      width: 6px; height: 6px;
+      background: white;
+      border-radius: 50%;
+    }
+    .b1-eye.l { left: 14px; }
+    .b1-eye.r { right: 14px; }
+    .b1-mouth {
+      position: absolute;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 12px; height: 6px;
+      border-bottom: 2.5px solid #2D1B0E;
+      border-radius: 0 0 50% 50%;
+    }
+    .b1-cheek {
+      position: absolute;
+      top: 38px;
+      width: 12px; height: 8px;
+      background: rgba(255,140,100,0.3);
+      border-radius: 50%;
+    }
+    .b1-cheek.l { left: 4px; }
+    .b1-cheek.r { right: 4px; }
+    .b1-leg {
+      position: absolute;
+      bottom: 0;
+      width: 8px; height: 12px;
+      background: #FFD966;
+      border-radius: 0 0 4px 4px;
+    }
+    .b1-leg.l { left: 22px; }
+    .b1-leg.r { right: 22px; }
+    .b1-arm {
+      position: absolute;
+      top: 42px;
+      width: 10px; height: 6px;
+      background: #FFD966;
+      border-radius: 50%;
+    }
+    .b1-arm.l { left: -2px; transform: rotate(15deg); }
+    .b1-arm.r { right: -2px; transform: rotate(-15deg); }
+
+    /* hungry */
+    .b1-eye-h {
+      position: absolute; top: 28px;
+      width: 12px; height: 14px;
+      background: #2D1B0E; border-radius: 50%;
+    }
+    .b1-eye-h::after {
+      content: ''; position: absolute; top: 3px; right: 2px;
+      width: 5px; height: 5px; background: white; border-radius: 50%;
+    }
+    .b1-eye-h.l { left: 15px; }
+    .b1-eye-h.r { right: 15px; }
+    .b1-mouth-h {
+      position: absolute;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 5px;
+      border-top: 2.5px solid #2D1B0E;
+      border-radius: 50% 50% 0 0;
+    }
+    /* sleepy */
+    .b1-eye-s {
+      position: absolute; top: 32px;
+      width: 12px; height: 3px;
+      background: #2D1B0E; border-radius: 3px;
+    }
+    .b1-eye-s.l { left: 16px; }
+    .b1-eye-s.r { right: 16px; }
+
+    /* ============================================= */
+    /*  2. ПУФИК — зелёный блоб с огромными губами  */
+    /*     Вдохновение: Kuchipatchi                  */
+    /* ============================================= */
+    .b2-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 76px; height: 72px;
+      background: #8DC879;
+      border-radius: 50%;
+    }
+    .b2-eye {
+      position: absolute;
+      top: 20px;
+      width: 6px; height: 7px;
+      background: #1A3010;
+      border-radius: 50%;
+    }
+    .b2-eye.l { left: 22px; }
+    .b2-eye.r { right: 22px; }
+    .b2-lips {
+      position: absolute;
+      bottom: 16px; left: 50%; transform: translateX(-50%);
+      width: 24px; height: 16px;
+      background: #E8946A;
+      border-radius: 50%;
+    }
+    .b2-lips::after {
+      content: '';
+      position: absolute;
+      top: 45%; left: 0; right: 0;
+      height: 2px;
+      background: #C07050;
+    }
+    .b2-cheek {
+      position: absolute;
+      top: 30px;
+      width: 10px; height: 7px;
+      background: rgba(100,180,80,0.4);
+      border-radius: 50%;
+    }
+    .b2-cheek.l { left: 8px; }
+    .b2-cheek.r { right: 8px; }
+    .b2-leg {
+      position: absolute;
+      bottom: 0;
+      width: 7px; height: 10px;
+      background: #8DC879;
+      border-radius: 0 0 3px 3px;
+    }
+    .b2-leg.l { left: 26px; }
+    .b2-leg.r { right: 26px; }
+    .b2-arm {
+      position: absolute;
+      top: 38px;
+      width: 8px; height: 5px;
+      background: #8DC879;
+      border-radius: 50%;
+    }
+    .b2-arm.l { left: -1px; }
+    .b2-arm.r { right: -1px; }
+    /* hungry */
+    .b2-lips-h {
+      position: absolute;
+      bottom: 14px; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 20px;
+      background: #E8946A;
+      border-radius: 50%;
+    }
+    .b2-lips-h::after {
+      content: ''; position: absolute;
+      top: 50%; left: 2px; right: 2px;
+      height: 2px; background: #C07050;
+    }
+    /* sleepy */
+    .b2-eye-s {
+      position: absolute; top: 24px;
+      width: 8px; height: 2px;
+      background: #1A3010; border-radius: 2px;
+    }
+    .b2-eye-s.l { left: 22px; }
+    .b2-eye-s.r { right: 22px; }
+    .b2-lips-s {
+      position: absolute;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: 18px; height: 12px;
+      background: #D8886A;
+      border-radius: 50%;
+    }
+
+    /* ============================================= */
+    /*  3. ЗАВИТУШКА — с фирменным завитком сверху   */
+    /*     Вдохновение: Memetchi                     */
+    /* ============================================= */
+    .b3-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 66px; height: 72px;
+      background: #F5A855;
+      border-radius: 48% 48% 44% 44%;
+    }
+    .b3-curl {
+      position: absolute;
+      top: -16px; left: 50%; transform: translateX(-50%);
+      width: 28px; height: 28px;
+      border: 5px solid #E08830;
+      border-bottom: none;
+      border-left: none;
+      border-radius: 0 80% 0 0;
+    }
+    .b3-curl::after {
+      content: '';
+      position: absolute;
+      top: -2px; right: -4px;
+      width: 10px; height: 10px;
+      background: #E08830;
+      border-radius: 50%;
+    }
+    .b3-eye {
+      position: absolute;
+      top: 22px;
+      width: 14px; height: 16px;
+      background: #2D1B0E;
+      border-radius: 50%;
+    }
+    .b3-eye::after {
+      content: ''; position: absolute;
+      top: 2px; right: 1px;
+      width: 6px; height: 7px;
+      background: white; border-radius: 50%;
+    }
+    /* lashes */
+    .b3-eye::before {
+      content: ''; position: absolute;
+      top: -3px; right: 0;
+      width: 14px; height: 3px;
+      border-top: 2px solid #2D1B0E;
+      border-radius: 50% 50% 0 0;
+    }
+    .b3-eye.l { left: 12px; }
+    .b3-eye.r { right: 12px; }
+    .b3-mouth {
+      position: absolute;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: 14px; height: 7px;
+      border-bottom: 2.5px solid #2D1B0E;
+      border-radius: 0 0 50% 50%;
+    }
+    .b3-cheek {
+      position: absolute; top: 36px;
+      width: 10px; height: 7px;
+      background: rgba(255,120,80,0.3);
+      border-radius: 50%;
+    }
+    .b3-cheek.l { left: 4px; }
+    .b3-cheek.r { right: 4px; }
+    .b3-leg {
+      position: absolute; bottom: 0;
+      width: 6px; height: 12px;
+      background: #F5A855;
+      border-radius: 0 0 3px 3px;
+    }
+    .b3-leg.l { left: 18px; }
+    .b3-leg.r { right: 18px; }
+    /* hungry */
+    .b3-eye-h {
+      position: absolute; top: 24px;
+      width: 12px; height: 14px;
+      background: #2D1B0E; border-radius: 50%;
+    }
+    .b3-eye-h::after {
+      content: ''; position: absolute; top: 2px; right: 1px;
+      width: 5px; height: 6px; background: white; border-radius: 50%;
+    }
+    .b3-eye-h.l { left: 13px; }
+    .b3-eye-h.r { right: 13px; }
+    .b3-mouth-h {
+      position: absolute;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 8px;
+      background: #2D1B0E;
+      border-radius: 50%;
+    }
+    .b3-curl-h {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      width: 24px; height: 24px;
+      border: 4px solid #D07828;
+      border-bottom: none;
+      border-left: none;
+      border-radius: 0 70% 0 0;
+    }
+    /* sleepy */
+    .b3-eye-s {
+      position: absolute; top: 30px;
+      width: 12px; height: 6px;
+      border-bottom: 2.5px solid #2D1B0E;
+      border-radius: 0 0 50% 50%;
+    }
+    .b3-eye-s.l { left: 14px; }
+    .b3-eye-s.r { right: 14px; }
+
+    /* ============================================= */
+    /*  4. ОБЛАЧКО — белое, пушистое, с ушками-облаками */
+    /*     Вдохновение: Lovelitchi                   */
+    /* ============================================= */
+    .b4-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 68px; height: 70px;
+      background: #FFF8F0;
+      border-radius: 50%;
+      box-shadow: 0 2px 10px rgba(180,150,130,0.15);
+    }
+    .b4-ear {
+      position: absolute;
+      top: -20px;
+      width: 22px; height: 32px;
+      background: #FFF8F0;
+      border-radius: 50% 50% 40% 40%;
+      box-shadow: 0 1px 4px rgba(180,150,130,0.12);
+    }
+    .b4-ear.l { left: 8px; transform: rotate(-8deg); }
+    .b4-ear.r { right: 8px; transform: rotate(8deg); }
+    .b4-ear-inner {
+      position: absolute;
+      top: 6px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 16px;
+      background: #FFE0D0;
+      border-radius: 50%;
+    }
+    .b4-eye {
+      position: absolute; top: 24px;
+      width: 12px; height: 14px;
+      background: #5BA8A0;
+      border-radius: 50%;
+    }
+    .b4-eye::after {
+      content: ''; position: absolute;
+      top: 2px; right: 1px;
+      width: 5px; height: 6px;
+      background: white; border-radius: 50%;
+    }
+    .b4-eye::before {
+      content: ''; position: absolute;
+      top: -2px; right: 0;
+      width: 12px; height: 3px;
+      border-top: 1.5px solid #3D6060;
+    }
+    .b4-eye.l { left: 14px; }
+    .b4-eye.r { right: 14px; }
+    .b4-mouth {
+      position: absolute;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 4px;
+      border-bottom: 2px solid #A08070;
+      border-radius: 0 0 50% 50%;
+    }
+    .b4-cheek {
+      position: absolute; top: 36px;
+      width: 10px; height: 6px;
+      background: rgba(255,180,160,0.35);
+      border-radius: 50%;
+    }
+    .b4-cheek.l { left: 6px; }
+    .b4-cheek.r { right: 6px; }
+    .b4-leg {
+      position: absolute; bottom: 0;
+      width: 6px; height: 12px;
+      background: #FFF8F0;
+      border-radius: 0 0 3px 3px;
+    }
+    .b4-leg.l { left: 22px; }
+    .b4-leg.r { right: 22px; }
+    /* hungry */
+    .b4-eye-h {
+      position: absolute; top: 26px;
+      width: 10px; height: 12px;
+      background: #5BA8A0; border-radius: 50%;
+    }
+    .b4-eye-h::after {
+      content: ''; position: absolute; top: 2px; right: 1px;
+      width: 4px; height: 5px; background: white; border-radius: 50%;
+    }
+    .b4-eye-h.l { left: 16px; }
+    .b4-eye-h.r { right: 16px; }
+    .b4-ear-h {
+      position: absolute; top: -14px;
+      width: 22px; height: 26px;
+      background: #F5EEE6;
+      border-radius: 50% 50% 40% 40%;
+    }
+    .b4-ear-h.l { left: 8px; transform: rotate(-15deg); }
+    .b4-ear-h.r { right: 8px; transform: rotate(15deg); }
+    /* sleepy */
+    .b4-eye-s {
+      position: absolute; top: 30px;
+      width: 10px; height: 2px;
+      background: #5B8880; border-radius: 2px;
+    }
+    .b4-eye-s.l { left: 16px; }
+    .b4-eye-s.r { right: 16px; }
+    .b4-ear-s {
+      position: absolute; top: -10px;
+      width: 22px; height: 22px;
+      background: #EDE6DE;
+      border-radius: 50% 50% 40% 40%;
+    }
+    .b4-ear-s.l { left: 6px; transform: rotate(-25deg); }
+    .b4-ear-s.r { right: 6px; transform: rotate(25deg); }
+
+    /* ============================================= */
+    /*  5. ЗЁРНЫШКО — коричневый, колоски на голове  */
+    /*     Вдохновение: Violetchi                    */
+    /* ============================================= */
+    .b5-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 68px; height: 72px;
+      background: #D4A056;
+      border-radius: 50% 50% 44% 44%;
+    }
+    .b5-sprout {
+      position: absolute;
+      top: -18px; left: 50%; transform: translateX(-50%);
+    }
+    .b5-leaf {
+      position: absolute;
+      width: 8px; height: 16px;
+      background: #7BA05B;
+      border-radius: 50% 50% 20% 50%;
+    }
+    .b5-leaf.l1 { left: -6px; top: 4px; transform: rotate(-25deg); }
+    .b5-leaf.r1 { right: -6px; top: 4px; transform: rotate(25deg); }
+    .b5-leaf.c { left: 50%; transform: translateX(-50%); top: 0; border-radius: 50% 50% 30% 30%; }
+    .b5-stem {
+      position: absolute;
+      left: 50%; transform: translateX(-50%);
+      width: 3px; height: 12px;
+      background: #5C8040;
+      top: 8px;
+      border-radius: 2px;
+    }
+    .b5-eye {
+      position: absolute; top: 24px;
+      width: 12px; height: 14px;
+      background: #2D1B0E; border-radius: 50%;
+    }
+    .b5-eye::after {
+      content: ''; position: absolute;
+      top: 2px; right: 2px;
+      width: 5px; height: 6px;
+      background: white; border-radius: 50%;
+    }
+    .b5-eye.l { left: 14px; }
+    .b5-eye.r { right: 14px; }
+    .b5-mouth {
+      position: absolute;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 5px;
+      border-bottom: 2.5px solid #2D1B0E;
+      border-radius: 0 0 50% 50%;
+    }
+    .b5-cheek {
+      position: absolute; top: 36px;
+      width: 10px; height: 7px;
+      background: rgba(200,120,60,0.3);
+      border-radius: 50%;
+    }
+    .b5-cheek.l { left: 6px; }
+    .b5-cheek.r { right: 6px; }
+    .b5-leg {
+      position: absolute; bottom: 0;
+      width: 7px; height: 12px;
+      background: #D4A056;
+      border-radius: 0 0 3px 3px;
+    }
+    .b5-leg.l { left: 20px; }
+    .b5-leg.r { right: 20px; }
+    .b5-arm {
+      position: absolute; top: 40px;
+      width: 8px; height: 5px;
+      background: #D4A056;
+      border-radius: 50%;
+    }
+    .b5-arm.l { left: -1px; }
+    .b5-arm.r { right: -1px; }
+    /* hungry */
+    .b5-eye-h {
+      position: absolute; top: 26px;
+      width: 10px; height: 12px;
+      background: #2D1B0E; border-radius: 50%;
+    }
+    .b5-eye-h::after {
+      content: ''; position: absolute; top: 2px; right: 1px;
+      width: 4px; height: 5px; background: white; border-radius: 50%;
+    }
+    .b5-eye-h.l { left: 16px; }
+    .b5-eye-h.r { right: 16px; }
+    .b5-leaf-h {
+      width: 7px; height: 13px;
+      background: #90A870;
+    }
+    /* sleepy */
+    .b5-eye-s {
+      position: absolute; top: 30px;
+      width: 10px; height: 2px;
+      background: #2D1B0E; border-radius: 2px;
+    }
+    .b5-eye-s.l { left: 16px; }
+    .b5-eye-s.r { right: 16px; }
+    .b5-leaf-s {
+      background: #8A9870;
+    }
+
+    /* ============================================= */
+    /*  6. ПЫШКА — розовая, в поварском колпаке      */
+    /*     Вдохновение: Chamametchi                  */
+    /* ============================================= */
+    .b6-body {
+      position: absolute;
+      bottom: 8px; left: 50%; transform: translateX(-50%);
+      width: 66px; height: 68px;
+      background: #F5C0B0;
+      border-radius: 50%;
+    }
+    .b6-hat {
+      position: absolute;
+      top: -6px; left: 50%; transform: translateX(-50%);
+      width: 44px; height: 24px;
+      background: white;
+      border-radius: 50% 50% 10% 10%;
+      z-index: 2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .b6-hat::after {
+      content: '';
+      position: absolute;
+      bottom: -3px; left: -4px; right: -4px;
+      height: 8px;
+      background: white;
+      border-radius: 3px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .b6-hat-pom {
+      position: absolute;
+      top: -16px; left: 50%; transform: translateX(-50%);
+      width: 14px; height: 14px;
+      background: white;
+      border-radius: 50%;
+      z-index: 3;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .b6-eye {
+      position: absolute; top: 26px;
+      width: 10px; height: 12px;
+      background: #2D1B0E; border-radius: 50%;
+    }
+    .b6-eye::after {
+      content: ''; position: absolute;
+      top: 2px; right: 1px;
+      width: 4px; height: 5px;
+      background: white; border-radius: 50%;
+    }
+    .b6-eye.l { left: 14px; }
+    .b6-eye.r { right: 14px; }
+    /* w-mouth like cat */
+    .b6-mouth {
+      position: absolute;
+      bottom: 16px; left: 50%; transform: translateX(-50%);
+      width: 16px; height: 6px;
+    }
+    .b6-mouth::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0;
+      width: 8px; height: 6px;
+      border-right: 1.5px solid #2D1B0E;
+      border-bottom: 2px solid #2D1B0E;
+      border-radius: 0 0 50% 0;
+    }
+    .b6-mouth::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0;
+      width: 8px; height: 6px;
+      border-left: 1.5px solid #2D1B0E;
+      border-bottom: 2px solid #2D1B0E;
+      border-radius: 0 0 0 50%;
+    }
+    .b6-cheek {
+      position: absolute; top: 34px;
+      width: 10px; height: 6px;
+      background: rgba(255,120,120,0.3);
+      border-radius: 50%;
+    }
+    .b6-cheek.l { left: 4px; }
+    .b6-cheek.r { right: 4px; }
+    .b6-leg {
+      position: absolute; bottom: 0;
+      width: 7px; height: 12px;
+      background: #F5C0B0;
+      border-radius: 0 0 4px 4px;
+    }
+    .b6-leg.l { left: 18px; }
+    .b6-leg.r { right: 18px; }
+    .b6-arm {
+      position: absolute; top: 36px;
+      width: 8px; height: 5px;
+      background: #F5C0B0;
+      border-radius: 50%;
+    }
+    .b6-arm.l { left: -1px; }
+    .b6-arm.r { right: -1px; }
+    /* hungry */
+    .b6-mouth-h {
+      position: absolute;
+      bottom: 16px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 10px;
+      border: 2px solid #2D1B0E;
+      border-radius: 50%;
+      background: transparent;
+    }
+    .b6-hat-h {
+      position: absolute;
+      top: -4px; left: 50%; transform: translateX(-50%) rotate(-8deg);
+      width: 40px; height: 20px;
+      background: #F0EBE6;
+      border-radius: 50% 50% 10% 10%;
+      z-index: 2;
+    }
+    .b6-hat-h::after {
+      content: '';
+      position: absolute;
+      bottom: -3px; left: -3px; right: -3px;
+      height: 7px;
+      background: #F0EBE6;
+      border-radius: 3px;
+    }
+    /* sleepy */
+    .b6-eye-s {
+      position: absolute; top: 30px;
+      width: 10px; height: 2px;
+      background: #2D1B0E; border-radius: 2px;
+    }
+    .b6-eye-s.l { left: 14px; }
+    .b6-eye-s.r { right: 14px; }
+    .b6-mouth-s {
+      position: absolute;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      width: 8px; height: 0;
+      border-bottom: 2px solid #2D1B0E;
+      border-radius: 0 0 50% 50%;
+    }
+    .b6-hat-s {
+      position: absolute;
+      top: -2px; left: 50%; transform: translateX(-50%) rotate(-15deg);
+      width: 38px; height: 18px;
+      background: #E8E2DC;
+      border-radius: 50% 50% 10% 10%;
+      z-index: 2;
+    }
+    .b6-hat-s::after {
+      content: '';
+      position: absolute;
+      bottom: -3px; left: -3px; right: -3px;
+      height: 6px;
+      background: #E8E2DC;
+      border-radius: 3px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 36px;
+      padding: 16px;
+      color: #8B7355;
+      font-size: 14px;
+      background: white;
+      border-radius: 16px;
+      max-width: 600px;
+      margin-left: auto; margin-right: auto;
+      box-shadow: 0 2px 10px rgba(61,44,30,0.06);
+    }
+  </style>
+</head>
+<body>
+
+<h1>Персонажи закваски</h1>
+<p class="subtitle">6 персонажей в стиле тамагочи. Каждый в 3 настроениях.</p>
+
+<div class="variants">
+
+  <!-- 1. БУЛОЧКА -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>1. Булочка</h2>
+      <span class="tag">жёлтая, с шишечками</span>
+    </div>
+    <p class="desc">Яйцевидное тело, две круглые «шишечки» на макушке (как поднявшееся тесто). Большие круглые глаза с бликами. Фишка — шишечки меняют вид по настроению.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b1-body breathe">
+            <div class="b1-bump l"></div>
+            <div class="b1-bump r"></div>
+            <div class="b1-eye l"></div>
+            <div class="b1-eye r"></div>
+            <div class="b1-mouth"></div>
+            <div class="b1-cheek l"></div>
+            <div class="b1-cheek r"></div>
+            <div class="b1-arm l"></div>
+            <div class="b1-arm r"></div>
+            <div class="b1-leg l"></div>
+            <div class="b1-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b1-body breathe">
+            <div class="b1-bump l" style="background:#D09828;"></div>
+            <div class="b1-bump r" style="background:#D09828;"></div>
+            <div class="b1-eye-h l"></div>
+            <div class="b1-eye-h r"></div>
+            <div class="b1-mouth-h"></div>
+            <div class="b1-cheek l" style="opacity:0.5;"></div>
+            <div class="b1-cheek r" style="opacity:0.5;"></div>
+            <div class="b1-arm l"></div>
+            <div class="b1-arm r"></div>
+            <div class="b1-leg l"></div>
+            <div class="b1-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b1-body" style="background:#E8D090;">
+            <div class="b1-bump l" style="background:#C8A040; height:18px; top:-6px;"></div>
+            <div class="b1-bump r" style="background:#C8A040; height:18px; top:-6px;"></div>
+            <div class="b1-eye-s l"></div>
+            <div class="b1-eye-s r"></div>
+            <div class="b1-mouth" style="bottom:22px; width:8px;"></div>
+            <div class="b1-arm l" style="transform:rotate(40deg);"></div>
+            <div class="b1-arm r" style="transform:rotate(-40deg);"></div>
+            <div class="b1-leg l"></div>
+            <div class="b1-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ПУФИК -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>2. Пуфик</h2>
+      <span class="tag">зелёный блоб с губами</span>
+    </div>
+    <p class="desc">Идеально круглый зелёный шарик. Крошечные глазки-точки наверху, зато ОГРОМНЫЕ пухлые губы. Самый простой и самый смешной. Фишка — губы.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b2-body breathe hop">
+            <div class="b2-eye l"></div>
+            <div class="b2-eye r"></div>
+            <div class="b2-lips"></div>
+            <div class="b2-cheek l"></div>
+            <div class="b2-cheek r"></div>
+            <div class="b2-arm l"></div>
+            <div class="b2-arm r"></div>
+            <div class="b2-leg l"></div>
+            <div class="b2-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b2-body breathe" style="background:#7DB869;">
+            <div class="b2-eye l"></div>
+            <div class="b2-eye r"></div>
+            <div class="b2-lips-h"></div>
+            <div class="b2-arm l"></div>
+            <div class="b2-arm r"></div>
+            <div class="b2-leg l"></div>
+            <div class="b2-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b2-body" style="background:#90B880;">
+            <div class="b2-eye-s l"></div>
+            <div class="b2-eye-s r"></div>
+            <div class="b2-lips-s"></div>
+            <div class="b2-arm l"></div>
+            <div class="b2-arm r"></div>
+            <div class="b2-leg l"></div>
+            <div class="b2-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ЗАВИТУШКА -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>3. Завитушка</h2>
+      <span class="tag">оранжевая, с завитком</span>
+    </div>
+    <p class="desc">Оранжевое тело, блестящие глаза с ресничками. На макушке — фирменный завиток (как у булки-синнабон). Фишка — завиток реагирует на настроение.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b3-body breathe">
+            <div class="b3-curl"></div>
+            <div class="b3-eye l"></div>
+            <div class="b3-eye r"></div>
+            <div class="b3-mouth"></div>
+            <div class="b3-cheek l"></div>
+            <div class="b3-cheek r"></div>
+            <div class="b3-leg l"></div>
+            <div class="b3-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b3-body breathe" style="background:#E89840;">
+            <div class="b3-curl-h"></div>
+            <div class="b3-eye-h l"></div>
+            <div class="b3-eye-h r"></div>
+            <div class="b3-mouth-h"></div>
+            <div class="b3-cheek l" style="opacity:0.5;"></div>
+            <div class="b3-cheek r" style="opacity:0.5;"></div>
+            <div class="b3-leg l"></div>
+            <div class="b3-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b3-body" style="background:#D8A868;">
+            <div class="b3-curl" style="border-color:#C08840; opacity:0.7;"></div>
+            <div class="b3-eye-s l"></div>
+            <div class="b3-eye-s r"></div>
+            <div class="b3-mouth" style="width:8px; bottom:22px;"></div>
+            <div class="b3-leg l"></div>
+            <div class="b3-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. ОБЛАЧКО -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>4. Облачко</h2>
+      <span class="tag">белое, с длинными ушками</span>
+    </div>
+    <p class="desc">Белоснежное тело, бирюзовые глаза с ресничками. Два длинных мягких ушка торчат вверх (как облачка). Фишка — ушки опускаются когда грустно/сонно.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b4-body breathe">
+            <div class="b4-ear l"><div class="b4-ear-inner"></div></div>
+            <div class="b4-ear r"><div class="b4-ear-inner"></div></div>
+            <div class="b4-eye l"></div>
+            <div class="b4-eye r"></div>
+            <div class="b4-mouth"></div>
+            <div class="b4-cheek l"></div>
+            <div class="b4-cheek r"></div>
+            <div class="b4-leg l"></div>
+            <div class="b4-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b4-body breathe" style="background:#F0E8E0;">
+            <div class="b4-ear-h l"><div class="b4-ear-inner" style="background:#F0D4C4;"></div></div>
+            <div class="b4-ear-h r"><div class="b4-ear-inner" style="background:#F0D4C4;"></div></div>
+            <div class="b4-eye-h l"></div>
+            <div class="b4-eye-h r"></div>
+            <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:8px;height:5px;border-top:2px solid #A08070;border-radius:50% 50% 0 0;"></div>
+            <div class="b4-cheek l" style="opacity:0.4;"></div>
+            <div class="b4-cheek r" style="opacity:0.4;"></div>
+            <div class="b4-leg l"></div>
+            <div class="b4-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b4-body" style="background:#EDE6DE;">
+            <div class="b4-ear-s l"></div>
+            <div class="b4-ear-s r"></div>
+            <div class="b4-eye-s l"></div>
+            <div class="b4-eye-s r"></div>
+            <div class="b4-mouth" style="border-color:#A09888;"></div>
+            <div class="b4-leg l" style="background:#EDE6DE;"></div>
+            <div class="b4-leg r" style="background:#EDE6DE;"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ЗЁРНЫШКО -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>5. Зёрнышко</h2>
+      <span class="tag">коричневое, с колоском</span>
+    </div>
+    <p class="desc">Тёплое коричневое тело цвета выпечки. На макушке — три листика (росток пшеницы). Ручки-палочки. Фишка — росток: зелёный и бодрый когда сыта, вялый когда голодна.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b5-body breathe">
+            <div class="b5-sprout">
+              <div class="b5-stem"></div>
+              <div class="b5-leaf l1"></div>
+              <div class="b5-leaf r1"></div>
+              <div class="b5-leaf c"></div>
+            </div>
+            <div class="b5-eye l"></div>
+            <div class="b5-eye r"></div>
+            <div class="b5-mouth"></div>
+            <div class="b5-cheek l"></div>
+            <div class="b5-cheek r"></div>
+            <div class="b5-arm l"></div>
+            <div class="b5-arm r"></div>
+            <div class="b5-leg l"></div>
+            <div class="b5-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b5-body breathe" style="background:#C89048;">
+            <div class="b5-sprout">
+              <div class="b5-stem" style="background:#708050;"></div>
+              <div class="b5-leaf b5-leaf-h l1" style="transform:rotate(-35deg);"></div>
+              <div class="b5-leaf b5-leaf-h r1" style="transform:rotate(35deg);"></div>
+              <div class="b5-leaf b5-leaf-h c" style="height:13px;"></div>
+            </div>
+            <div class="b5-eye-h l"></div>
+            <div class="b5-eye-h r"></div>
+            <div style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:8px;height:4px;border-top:2.5px solid #2D1B0E;border-radius:50% 50% 0 0;"></div>
+            <div class="b5-cheek l" style="opacity:0.4;"></div>
+            <div class="b5-cheek r" style="opacity:0.4;"></div>
+            <div class="b5-arm l"></div>
+            <div class="b5-arm r"></div>
+            <div class="b5-leg l" style="background:#C89048;"></div>
+            <div class="b5-leg r" style="background:#C89048;"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b5-body" style="background:#C0A070;">
+            <div class="b5-sprout">
+              <div class="b5-stem" style="background:#607040;"></div>
+              <div class="b5-leaf b5-leaf-s l1" style="transform:rotate(-45deg); top:8px;"></div>
+              <div class="b5-leaf b5-leaf-s r1" style="transform:rotate(45deg); top:8px;"></div>
+              <div class="b5-leaf b5-leaf-s c" style="height:12px;"></div>
+            </div>
+            <div class="b5-eye-s l"></div>
+            <div class="b5-eye-s r"></div>
+            <div class="b5-mouth" style="width:8px; bottom:20px;"></div>
+            <div class="b5-arm l" style="transform:rotate(0);"></div>
+            <div class="b5-arm r" style="transform:rotate(0);"></div>
+            <div class="b5-leg l" style="background:#C0A070;"></div>
+            <div class="b5-leg r" style="background:#C0A070;"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ПЫШКА -->
+  <div class="variant">
+    <div class="variant-header">
+      <h2>6. Пышка</h2>
+      <span class="tag">розовая, в поварском колпаке</span>
+    </div>
+    <p class="desc">Нежно-розовое круглое тело, глаза с бликами, кошачий w-ротик. На голове — белый поварской колпак. Фишка — колпак съезжает набок когда голодна, падает на глаза когда спит.</p>
+    <div class="moods-row">
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b6-body breathe">
+            <div class="b6-hat"></div>
+            <div class="b6-hat-pom"></div>
+            <div class="b6-eye l"></div>
+            <div class="b6-eye r"></div>
+            <div class="b6-mouth"></div>
+            <div class="b6-cheek l"></div>
+            <div class="b6-cheek r"></div>
+            <div class="b6-arm l"></div>
+            <div class="b6-arm r"></div>
+            <div class="b6-leg l"></div>
+            <div class="b6-leg r"></div>
+          </div>
+        </div>
+        <div class="mood-label">довольная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b6-body breathe" style="background:#E8B0A0;">
+            <div class="b6-hat-h"></div>
+            <div style="position:absolute;top:-12px;left:58%;width:12px;height:12px;background:#F0EBE6;border-radius:50%;z-index:3;"></div>
+            <div class="b6-eye l"></div>
+            <div class="b6-eye r"></div>
+            <div class="b6-mouth-h"></div>
+            <div class="b6-cheek l" style="opacity:0.4;"></div>
+            <div class="b6-cheek r" style="opacity:0.4;"></div>
+            <div class="b6-arm l"></div>
+            <div class="b6-arm r"></div>
+            <div class="b6-leg l" style="background:#E8B0A0;"></div>
+            <div class="b6-leg r" style="background:#E8B0A0;"></div>
+          </div>
+        </div>
+        <div class="mood-label">голодная</div>
+      </div>
+      <div class="mood-item">
+        <div class="ch">
+          <div class="b6-body" style="background:#E0C0B8;">
+            <div class="b6-hat-s"></div>
+            <div style="position:absolute;top:-8px;left:56%;width:10px;height:10px;background:#E8E2DC;border-radius:50%;z-index:3;"></div>
+            <div class="b6-eye-s l"></div>
+            <div class="b6-eye-s r"></div>
+            <div class="b6-mouth-s"></div>
+            <div class="b6-arm l" style="transform:rotate(35deg);"></div>
+            <div class="b6-arm r" style="transform:rotate(-35deg);"></div>
+            <div class="b6-leg l" style="background:#E0C0B8;"></div>
+            <div class="b6-leg r" style="background:#E0C0B8;"></div>
+          </div>
+        </div>
+        <div class="mood-label">сонная</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Напиши номер или скомбинируй: «тело от 2, глаза от 1, фишка от 5»
+</div>
+
+</body>
+</html>

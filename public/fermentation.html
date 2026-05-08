@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Брожение закваски — полный гид</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #FDF8F3;
+      color: #3D2C1E;
+      line-height: 1.7;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #5C4033;
+      text-align: center;
+      margin: 30px 0 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #8B7355;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #D4763A;
+      margin: 35px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #F0E4D7;
+    }
+
+    h3 {
+      font-size: 17px;
+      color: #5C4033;
+      margin: 25px 0 10px;
+    }
+
+    p { margin: 10px 0; font-size: 15px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 15px 0;
+      box-shadow: 0 2px 12px rgba(61,44,30,0.08);
+      border: 1px solid #F0E4D7;
+    }
+
+    .card-accent {
+      border-left: 4px solid #D4763A;
+    }
+
+    .card-green {
+      border-left: 4px solid #7BA05B;
+    }
+
+    .card-blue {
+      border-left: 4px solid #78909C;
+    }
+
+    .emoji { font-size: 24px; margin-right: 8px; }
+
+    .microbe-frame {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #F0E4D7;
+      box-shadow: 0 2px 6px rgba(61,44,30,0.12);
+      flex-shrink: 0;
+      margin-right: 10px;
+    }
+
+    .microbe-frame img {
+      width: 300%;
+      height: 300%;
+      object-fit: cover;
+      margin-left: -100%;
+      margin-top: -100%;
+    }
+
+    .microbe-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .microbe-header h3 {
+      margin: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    th {
+      background: #D4763A;
+      color: white;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    th:first-child { border-radius: 10px 0 0 0; }
+    th:last-child { border-radius: 0 10px 0 0; }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #F0E4D7;
+    }
+
+    tr:nth-child(even) { background: #FDF8F3; }
+    tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+    tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+
+    .highlight {
+      background: #FFF3E0;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 600;
+      color: #D4763A;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px;
+    }
+
+    .tag-bacteria { background: #E8F5E9; color: #2E7D32; }
+    .tag-yeast { background: #FFF3E0; color: #E65100; }
+    .tag-enzyme { background: #E3F2FD; color: #1565C0; }
+    .tag-compound { background: #F3E5F5; color: #6A1B9A; }
+
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+      margin: 20px 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, #D4763A, #E8A838, #7BA05B);
+      border-radius: 3px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin: 20px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(61,44,30,0.06);
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #D4763A;
+      border: 3px solid #FDF8F3;
+    }
+
+    .timeline-time {
+      font-size: 12px;
+      font-weight: 700;
+      color: #D4763A;
+      text-transform: uppercase;
+    }
+
+    .formula {
+      background: #F5F0EB;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin: 10px 0;
+      text-align: center;
+      color: #5C4033;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 12px; }
+      h1 { font-size: 22px; }
+    }
+
+    .sources {
+      font-size: 13px;
+      color: #8B7355;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #F0E4D7;
+    }
+
+    .sources a { color: #D4763A; text-decoration: none; }
+    .sources a:hover { text-decoration: underline; }
+    .sources li { margin: 6px 0; }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #D4763A;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<a href="/" class="back-link">&larr; Вернуться в приложение</a>
+
+<h1>Брожение закваски</h1>
+<p class="subtitle">Полный гид: микробиология, ферменты, химия и физика подъёма теста</p>
+
+<!-- ==================== УЧАСТНИКИ ==================== -->
+
+<h2>1. Кто живёт в закваске</h2>
+
+<p>Закваска — это симбиоз двух групп микроорганизмов, которые работают в паре:</p>
+
+<div class="grid-2">
+  <div class="card card-green">
+    <div class="microbe-header">
+      <div class="microbe-frame"><img src="/lactobacillus.jpg" alt="Lactobacillus под микроскопом" style="margin-left: -90%; margin-top: -40%;"></div>
+      <h3>Молочнокислые бактерии (LAB)</h3>
+    </div>
+    <p>Главные жители закваски. Их в 10-100 раз больше, чем дрожжей.</p>
+    <p><span class="tag tag-bacteria">Lactobacillus sanfranciscensis</span> <span class="tag tag-bacteria">L. plantarum</span> <span class="tag tag-bacteria">L. brevis</span> <span class="tag tag-bacteria">Leuconostoc</span></p>
+    <p><strong>Что делают:</strong> производят <span class="highlight">молочную кислоту</span> и <span class="highlight">уксусную кислоту</span>, которые дают вкус, аромат и защищают от плесени.</p>
+  </div>
+  <div class="card card-accent">
+    <div class="microbe-header">
+      <div class="microbe-frame"><img src="/yeast.jpg" alt="Saccharomyces cerevisiae под микроскопом" style="margin-left: -130%; margin-top: -130%;"></div>
+      <h3>Дрожжи</h3>
+    </div>
+    <p>Отвечают за подъём — производят CO₂ (газ, который надувает тесто).</p>
+    <p><span class="tag tag-yeast">Kazachstania humilis</span> <span class="tag tag-yeast">Saccharomyces cerevisiae</span> <span class="tag tag-yeast">Candida milleri</span></p>
+    <p><strong>Что делают:</strong> сбраживают сахара в <span class="highlight">CO₂</span> + <span class="highlight">этанол</span>. Газ поднимает тесто, спирт улетучивается при выпечке.</p>
+  </div>
+</div>
+
+<div class="card card-blue">
+  <h3>Почему они уживаются вместе?</h3>
+  <p>LAB и дрожжи не конкурируют за еду — они едят разное. <em>L. sanfranciscensis</em> питается <strong>мальтозой</strong> (дисахарид из муки), но при расщеплении выделяет <strong>глюкозу</strong>, которую не использует сам — её подбирают дрожжи. Это называется <strong>кросс-фидинг</strong> — взаимное кормление <sup>[4][6]</sup>.</p>
+  <p>Кроме того, кислая среда (pH 3.5–4.5), которую создают бактерии, подавляет патогенные микробы и коммерческие дрожжи, но «свои» дрожжи к ней адаптированы <sup>[5]</sup>.</p>
+</div>
+
+<!-- ==================== ФЕРМЕНТЫ ==================== -->
+
+<h2>2. Ферменты — невидимые работники</h2>
+
+<p>Ферменты — это белки-катализаторы. Они не живые, но без них ничего не работает. Ферменты содержатся в самой муке и вырабатываются микроорганизмами:</p>
+
+<table>
+  <tr>
+    <th>Фермент</th>
+    <th>Откуда</th>
+    <th>Что делает</th>
+    <th>Результат</th>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Амилаза</span></td>
+    <td>Мука</td>
+    <td>Расщепляет крахмал → мальтоза + глюкоза</td>
+    <td>Еда для бактерий и дрожжей</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Протеаза</span></td>
+    <td>Мука + бактерии</td>
+    <td>Расщепляет белки глютена → аминокислоты</td>
+    <td>Мягкий мякиш, аромат при выпечке (реакция Майяра)</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Фитаза</span></td>
+    <td>Бактерии + мука</td>
+    <td>Расщепляет фитиновую кислоту</td>
+    <td>Минералы (железо, цинк, магний) становятся усвояемыми</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Ксиланаза</span></td>
+    <td>Мука (особенно ржаная)</td>
+    <td>Расщепляет пентозаны (арабиноксиланы)</td>
+    <td>Влияет на структуру мякиша, водоудержание</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Липаза</span></td>
+    <td>Мука</td>
+    <td>Расщепляет жиры → жирные кислоты</td>
+    <td>Аромат, но при избытке — прогорклость</td>
+  </tr>
+</table>
+
+<div class="card card-accent">
+  <p><strong>Важно:</strong> активность ферментов зависит от <strong>температуры</strong> и <strong>кислотности</strong>. Амилаза работает лучше при 60-70°C (при выпечке!), а протеаза — при 35-45°C. В закваске при 22-28°C ферменты работают медленно, но стабильно — это даёт длительную ферментацию и глубокий вкус <sup>[6]</sup>.</p>
+</div>
+
+<!-- ==================== ХИМИЯ ==================== -->
+
+<h2>3. Химия брожения</h2>
+
+<h3>Основные реакции</h3>
+
+<div class="card">
+  <p><strong>Спиртовое брожение</strong> (дрожжи):</p>
+  <div class="formula">
+    C₆H₁₂O₆ (глюкоза) → 2 C₂H₅OH (этанол) + 2 CO₂ ↑
+  </div>
+  <p>Именно CO₂ поднимает тесто. Глютеновая сетка (в пшеничной муке) или пентозаны (в ржаной) удерживают газ внутри.</p>
+</div>
+
+<div class="card">
+  <p><strong>Гомоферментативное молочнокислое брожение</strong> (L. plantarum и др.):</p>
+  <div class="formula">
+    C₆H₁₂O₆ → 2 CH₃CHOHCOOH (молочная кислота)
+  </div>
+  <p>Мягкий, сливочный кисловатый вкус. Преобладает при <strong>высокой температуре</strong> (30°C+).</p>
+</div>
+
+<div class="card">
+  <p><strong>Гетероферментативное молочнокислое брожение</strong> (L. sanfranciscensis, L. brevis):</p>
+  <div class="formula">
+    C₆H₁₂O₆ → CH₃CHOHCOOH + C₂H₅OH + CO₂ ↑
+  </div>
+  <p>Производит и молочную кислоту, и этанол, и CO₂. Даёт более сложный, уксусный вкус. Преобладает при <strong>низкой температуре</strong> (18-22°C) <sup>[4][5]</sup>.</p>
+</div>
+
+<div class="card card-blue">
+  <h3>Соотношение кислот = вкус хлеба</h3>
+  <p><strong>QF (Quotient of Fermentation)</strong> — отношение молочной кислоты к уксусной:</p>
+  <table>
+    <tr><th>QF</th><th>Вкус</th><th>Как получить</th></tr>
+    <tr><td>QF &gt; 5</td><td>Мягкий, молочный</td><td>Тёплое брожение (28-32°C), жидкая закваска</td></tr>
+    <tr><td>QF 2-5</td><td>Сбалансированный</td><td>Средняя температура (22-26°C)</td></tr>
+    <tr><td>QF &lt; 2</td><td>Резкий, уксусный</td><td>Холодное брожение (4-18°C), густая закваска</td></tr>
+  </table>
+  <p><sup>[4][5]</sup></p>
+</div>
+
+<!-- ==================== ФАЗЫ ==================== -->
+
+<h2>4. Фазы подъёма закваски</h2>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <div class="timeline-time">Фаза 1: Лаг-фаза (0 — 1.5 ч)</div>
+    <p>Микроорганизмы «просыпаются» и адаптируются к свежей порции муки. Ферменты муки (амилаза) начинают расщеплять крахмал на простые сахара. Видимого подъёма почти нет.</p>
+    <p><span class="tag tag-enzyme">Амилаза</span> крахмал → мальтоза → <span class="tag tag-bacteria">L. sanfranciscensis</span> начинает питаться</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Фаза 2: Экспоненциальный рост (1.5 — 70% пика)</div>
+    <p>Дрожжи и бактерии активно размножаются. Производство CO₂ нарастает. Тесто начинает заметно расти. Появляются первые пузыри. Кислотность снижает pH с ~6 до ~4.5.</p>
+    <p><span class="tag tag-yeast">Дрожжи</span> сахара → CO₂ + этанол &nbsp; <span class="tag tag-bacteria">LAB</span> мальтоза → молочная кислота + глюкоза</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Фаза 3: Пик (70% — 100%)</div>
+    <p>Максимальный объём. Закваска полна пузырей, купол выпуклый. Запас сахаров истощается, кислотность достигает pH 3.5-4.0. Протеаза начинает разрушать глютен — структура слабеет.</p>
+    <p><strong>Готовность к использованию:</strong> лучше использовать на 80% подъёма (до пика), когда микробы ещё активны, но глютен ещё не разрушен <sup>[3]</sup>.</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Фаза 4: Спад (после пика)</div>
+    <p>Сахара кончились. Дрожжи замедляются. Кислотность продолжает расти. Протеаза разрушает глютеновую сетку — газ уходит, закваска опадает. Появляется жидкость на поверхности (hooch) — спирт + вода.</p>
+    <p>Закваска всё ещё жива, но ослаблена — хлеб из неё получится плоский и слишком кислый.</p>
+  </div>
+</div>
+
+<!-- ==================== ПШЕНИЧНАЯ VS РЖАНАЯ ==================== -->
+
+<h2>5. Пшеничная vs ржаная: в чём разница</h2>
+
+<p>Тип муки кардинально влияет на то, как ведёт себя закваска — и дело не только в скорости:</p>
+
+<table>
+  <tr>
+    <th>Параметр</th>
+    <th>Пшеничная</th>
+    <th>Ржаная</th>
+  </tr>
+  <tr>
+    <td><strong>Структура теста</strong></td>
+    <td>Глютеновая сетка удерживает газ</td>
+    <td>Пентозаны (арабиноксиланы) удерживают газ и воду</td>
+  </tr>
+  <tr>
+    <td><strong>Ферментная активность</strong></td>
+    <td>Умеренная</td>
+    <td>Высокая — больше амилазы, активнее расщепление крахмала</td>
+  </tr>
+  <tr>
+    <td><strong>Скорость ферментации</strong></td>
+    <td>Базовая</td>
+    <td>На 20-25% быстрее <sup>[1][3]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Газопродукция (CO₂)</strong></td>
+    <td>Высокая (100%)</td>
+    <td>Низкая (~55% от пшеничной) <sup>[1][2]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Визуальный подъём</strong></td>
+    <td>x2.5–3.0</td>
+    <td>x1.7–2.2 <sup>[1][3]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Длительность пика</strong></td>
+    <td>60-90 минут</td>
+    <td>30-60 минут (падает быстрее)</td>
+  </tr>
+  <tr>
+    <td><strong>Основные бактерии</strong></td>
+    <td>L. sanfranciscensis, L. plantarum</td>
+    <td>L. sanfranciscensis, L. pontis, L. reuteri <sup>[5]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Вкусовой профиль</strong></td>
+    <td>Мягкий, молочный</td>
+    <td>Более выраженный, с уксусными нотами</td>
+  </tr>
+</table>
+
+<div class="card card-accent">
+  <h3>Почему ржаная быстрее, но ниже?</h3>
+  <p><strong>Быстрее</strong> — потому что ржаная мука содержит больше свободных сахаров и активных ферментов. Микробам не нужно долго «раскачиваться» — еда доступна сразу <sup>[6]</sup>.</p>
+  <p><strong>Ниже</strong> — потому что в ржаной муке нет полноценного глютена. Вместо эластичной глютеновой сетки газ удерживают <span class="highlight">пентозаны</span> — водорастворимые полисахариды. Они создают вязкую гелевую структуру, которая хуже удерживает CO₂, поэтому газ выходит раньше. Визуальный подъём ржаной закваски частично обманчив — она «набухает» за счёт водоудержания пентозанов, а не за счёт газа <sup>[1][2]</sup>.</p>
+</div>
+
+<h3>Время до пика при 22°C</h3>
+
+<table>
+  <tr>
+    <th>Соотношение</th>
+    <th>Пшеничная</th>
+    <th>Ржаная</th>
+  </tr>
+  <tr><td>1:1:1</td><td>~5 ч</td><td>~3.5 ч</td></tr>
+  <tr><td>1:2:2</td><td>~7 ч</td><td>~5 ч</td></tr>
+  <tr><td>1:3:3</td><td>~9 ч</td><td>~7 ч</td></tr>
+  <tr><td>1:5:5</td><td>~12 ч</td><td>~9 ч</td></tr>
+  <tr><td>1:10:10</td><td>~17 ч</td><td>~14 ч</td></tr>
+</table>
+
+<!-- ==================== ТЕМПЕРАТУРА ==================== -->
+
+<h2>6. Влияние температуры</h2>
+
+<div class="card">
+  <p>Температура — самый мощный рычаг управления брожением. Правило:</p>
+  <div class="formula">
+    Каждые +5.5°C время до пика сокращается вдвое
+  </div>
+  <p>Это связано с правилом Аррениуса — скорость биохимических реакций удваивается при повышении температуры на ~10°C, а для закваски коэффициент ещё круче <sup>[4]</sup>.</p>
+</div>
+
+<table>
+  <tr>
+    <th>Температура</th>
+    <th>Пшеничная 1:2:2</th>
+    <th>Что происходит</th>
+  </tr>
+  <tr><td>16°C</td><td>~14 ч</td><td>Медленно, больше уксусной кислоты, сложный вкус</td></tr>
+  <tr><td>22°C</td><td>~7 ч</td><td>Сбалансированный вкус, стандарт</td></tr>
+  <tr><td>28°C</td><td>~3.5 ч</td><td>Быстро, больше молочной кислоты, мягкий вкус</td></tr>
+  <tr><td>35°C</td><td>~1.5 ч</td><td>Очень быстро, риск перекиса, бактерии доминируют</td></tr>
+  <tr><td>4°C (холодильник)</td><td>Пауза</td><td>Ферментация почти останавливается, но ферменты работают</td></tr>
+</table>
+
+<div class="card card-green">
+  <h3>Температура и вкус</h3>
+  <p><strong>Тепло (28-32°C):</strong> гомоферментативные LAB доминируют → больше <span class="highlight">молочной кислоты</span> → мягкий, йогуртовый вкус.</p>
+  <p><strong>Холод (18-22°C):</strong> гетероферментативные LAB доминируют → больше <span class="highlight">уксусной кислоты</span> → резкий, сложный, «настоящий» вкус закваски <sup>[4][5]</sup>.</p>
+  <p><strong>Холодильник (4°C):</strong> микробы спят, но ферменты (протеаза, амилаза) продолжают работать. Поэтому холодная расстойка улучшает вкус и текстуру хлеба без риска перекиса.</p>
+</div>
+
+<!-- ==================== СООТНОШЕНИЕ ==================== -->
+
+<h2>7. Влияние соотношения кормления</h2>
+
+<div class="card">
+  <p>Соотношение закваска:мука:вода определяет, сколько «еды» получат микробы и как быстро они её съедят:</p>
+  <ul style="padding-left: 20px; margin: 10px 0;">
+    <li><strong>1:1:1</strong> — много микробов, мало еды → быстрый пик (3-5 ч), быстрый спад. Подходит для выпечки через 4-6 часов.</li>
+    <li><strong>1:2:2</strong> — стандарт. Баланс скорости и силы. Пик через 5-7 ч.</li>
+    <li><strong>1:5:5</strong> — мало микробов, много еды → медленный рост, высокий пик. Для ночного цикла (9-12 ч).</li>
+    <li><strong>1:10:10</strong> — «на выходные». Очень медленно (14-17 ч). Закваска дольше держится на пике.</li>
+  </ul>
+</div>
+
+<div class="card card-blue">
+  <h3>Как соотношение влияет на вкус</h3>
+  <p>Больше муки = дольше ферментация = больше времени для работы ферментов = более сложный вкус. Закваска 1:5:5 при 20°C даст более ароматный хлеб, чем 1:1:1 при 30°C, хотя обе будут на пике <sup>[3][4]</sup>.</p>
+</div>
+
+<!-- ==================== ГИДРАТАЦИЯ ==================== -->
+
+<h2>8. Влияние гидратации</h2>
+
+<div class="card">
+  <p><strong>Гидратация закваски</strong> — отношение воды к муке в процентах:</p>
+  <table>
+    <tr><th>Гидратация</th><th>Консистенция</th><th>Эффект</th></tr>
+    <tr><td>50-60%</td><td>Густая (как тесто)</td><td>Больше уксусной кислоты, медленнее, резче вкус</td></tr>
+    <tr><td>100%</td><td>Стандарт (как густая сметана)</td><td>Баланс молочной и уксусной</td></tr>
+    <tr><td>125-150%</td><td>Жидкая</td><td>Больше молочной кислоты, мягче, быстрее</td></tr>
+  </table>
+  <p>Причина: в густой среде бактериям сложнее перемещаться, CO₂ хуже диффундирует, и гетероферментативные LAB (производящие уксусную кислоту) получают преимущество <sup>[5]</sup>.</p>
+</div>
+
+<!-- ==================== ПОЛЕЗНЫЕ ВЕЩЕСТВА ==================== -->
+
+<h2>9. Что ещё происходит при брожении</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <h3><span class="emoji">🛡️</span> Защита от плесени</h3>
+    <p>LAB производят <span class="tag tag-compound">бактериоцины</span> и <span class="tag tag-compound">органические кислоты</span>, которые подавляют рост плесени и патогенных бактерий. Хлеб на закваске хранится дольше, чем дрожжевой <sup>[5]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">🧬</span> Расщепление глютена</h3>
+    <p>Протеаза бактерий частично расщепляет глютен при длительной ферментации. Закваска не делает хлеб безглютеновым, но может снизить реактивность для людей с лёгкой чувствительностью <sup>[4]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">⚡</span> Биодоступность минералов</h3>
+    <p><span class="tag tag-enzyme">Фитаза</span> расщепляет фитиновую кислоту — «ловушку» для минералов. В обычном хлебе железо, цинк и кальций связаны и плохо усваиваются. В заквасочном — свободны <sup>[4][6]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">🍞</span> Реакция Майяра</h3>
+    <p>Аминокислоты (от протеазы) + сахара (от амилазы) при выпечке дают <span class="highlight">реакцию Майяра</span> — коричневую корку и сотни ароматических соединений. Чем дольше ферментация, тем больше «сырья» для Майяра <sup>[6]</sup>.</p>
+  </div>
+</div>
+
+<!-- ==================== ИСТОЧНИКИ ==================== -->
+
+<div class="sources">
+  <h2>Источники</h2>
+
+  <h3>Кинетика подъёма и газопродукция</h3>
+  <ol>
+    <li><strong>[1]</strong> The Sourdough Journey — <a href="https://thesourdoughjourney.com/white-wheat-or-rye-what-is-the-best-flour-to-feed-your-starter/">"White, Wheat, or Rye? What is the best flour to feed your starter?"</a> — эксперимент с CO₂-датчиком, 20°C, 1:1:1, 36ч наблюдения</li>
+    <li><strong>[2]</strong> Ya-Hsuan Hsu et al. — "Comparing fermentation gas production between wheat and apple sourdough starters using the Risograph", <em>Journal of Food Research</em>, 2013. <a href="https://www.sciencedirect.com/science/article/abs/pii/S2212429213000333">DOI</a></li>
+    <li><strong>[3]</strong> Weekend Bakery — <a href="https://www.weekendbakery.com/posts/rye-sourdough-starter-in-easy-steps/">"Rye sourdough starter in easy steps"</a>; Catchymeals — <a href="https://catchymeals.com/sourdough-starter-feeding-guide-ratios-peak-times/">"Sourdough Starter Feeding Guide"</a></li>
+  </ol>
+
+  <h3>Микробиология и биохимия</h3>
+  <ol start="4">
+    <li><strong>[4]</strong> Arora K. et al. (2021) "Thirty years of knowledge on sourdough fermentation" — <em>Trends in Food Science & Technology</em>, 108, 71–83</li>
+    <li><strong>[5]</strong> De Vuyst L. et al. (2023) "Sourdough production: fermentation strategies, microbial ecology" — <em>Critical Reviews in Food Science and Nutrition</em>, 63(15), 2447–2479</li>
+    <li><strong>[6]</strong> Gänzle M.G. (2014) "Enzymatic and bacterial conversions during sourdough fermentation" — <em>Food Microbiology</em>, 37, 2–10</li>
+  </ol>
+
+  <h3>Эмпирические данные</h3>
+  <p>King Arthur Baking (2025), Brod & Taylor, The Bread Code</p>
+</div>
+
+<div style="text-align: center; margin: 40px 0 20px; color: #8B7355; font-size: 13px;">
+  Sourdough App — 2026
+</div>
+
+</body>
+</html>

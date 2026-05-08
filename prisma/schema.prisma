@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Закваска (у пользователя может быть несколько)
+model Starter {
+  id        String   @id @default(cuid())
+  name      String   // Имя закваски (например "Ржаная")
+  flour     String   // Тип муки (ржаная, пшеничная, и т.д.)
+  createdAt DateTime @default(now())
+  notes     String?  // Заметки
+
+  feedings Feeding[]
+}
+
+// Запись о кормлении
+model Feeding {
+  id             String   @id @default(cuid())
+  starterId      String
+  starter        Starter  @relation(fields: [starterId], references: [id], onDelete: Cascade)
+  fedAt          DateTime @default(now())
+  starterAmount  Float?   // Количество закваски (г)
+  flourAmount    Float?   // Количество муки (г)
+  waterAmount    Float?   // Количество воды (г)
+  flourType      String?  // Тип муки при кормлении
+  temperature    Float?   // Температура в помещении
+  notes          String?  // Заметки (запах, консистенция, и т.д.)
+  photoUrl       String?  // Фото закваски
+  // Данные наблюдения (заполняются опционально, когда пользователь записал результат)
+  peakTimeHours  Float?   // Часов до пика
+  readyTimeHours Float?   // Часов до готовности
+  peakMultiplier Float?   // Во сколько раз увеличилась
+}
+
+// Рецепт хлеба
+model Recipe {
+  id          String   @id @default(cuid())
+  title       String   // Название рецепта
+  description String?  // Краткое описание
+  flour       String   // Тип муки
+  hydration   Int      // Процент гидратации
+  starterPct  Int      // Процент закваски
+  salt        Float?   // Соль (г)
+  steps       String   // Шаги приготовления (JSON)
+  isBuiltIn   Boolean  @default(false) // Встроенный рецепт или пользовательский
+  createdAt   DateTime @default(now())
+}
