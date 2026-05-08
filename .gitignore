@@ -52,5 +52,6 @@ next-env.d.ts
 # claude code
 /.claude/
 
-# agents
+# claude code config
 AGENTS.md
+CLAUDE.md
