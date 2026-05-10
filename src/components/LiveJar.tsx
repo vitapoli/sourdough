@@ -6,6 +6,7 @@ import {
   getCurrentRise,
   UserObservation,
 } from "@/lib/fermentation";
+import { formatTime } from "@/lib/formatTime";
 
 interface LiveJarProps {
   starterAmount: number;
@@ -30,12 +31,43 @@ export function LiveJar({
   const [showHint, setShowHint] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
+  // Динамический интервал: чаще при переходах состояний, реже в спокойные фазы
   useEffect(() => {
-    intervalRef.current = setInterval(() => setNow(new Date()), 30000); // Обновлять каждые 30 сек
+    function getInterval() {
+      if (!startTime) return 30000;
+      const elapsed = (Date.now() - startTime.getTime()) / (1000 * 60 * 60);
+      const res = calculateFermentation(
+        { starterAmount, flourAmount, waterAmount, temperature, flourType },
+        userObservations
+      );
+      const readyTime = res.readyTimeHours;
+      const peakTime = res.peakTimeHours;
+      // Только покормили — обновляем каждые 10 сек
+      if (elapsed < readyTime * 0.2) return 10000;
+      // Приближаемся к готовности — каждую минуту
+      if (elapsed < readyTime) return 60000;
+      // Между готовностью и пиком — каждые 30 сек
+      if (elapsed < peakTime) return 30000;
+      // После пика — каждую минуту
+      return 60000;
+    }
+
+    function tick() {
+      setNow(new Date());
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
+        setNow(new Date());
+        // Пересчитаем интервал при следующем тике
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => setNow(new Date()), getInterval());
+      }, getInterval());
+    }
+
+    tick();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [startTime, starterAmount, flourAmount, waterAmount, temperature, flourType, userObservations]);
 
   const result = calculateFermentation(
     { starterAmount, flourAmount, waterAmount, temperature, flourType },
@@ -49,22 +81,13 @@ export function LiveJar({
   const currentRise = startTime ? getCurrentRise(elapsedHours, result) : 1;
 
   // Проценты для отображения в баночке
-  // Адаптивная база: если пик большой — уменьшаем начальный уровень,
-  // чтобы пик помещался в банку (макс 90%), сохраняя пропорции
+  // Банка вмещает до 3.5x подъёма
+  const maxMultiplier = 3.5;
   const maxJarHeight = 90;
-  const baseHeight = Math.min(25, maxJarHeight / result.peakMultiplier) * 1.3;
+  const baseHeight = maxJarHeight / maxMultiplier;
   const currentHeight = Math.min(baseHeight * currentRise, 95);
-  const peakHeight = baseHeight * result.peakMultiplier;
+  const peakHeight = Math.min(baseHeight * result.peakMultiplier, maxJarHeight);
   const readyHeight = baseHeight * (1 + (result.peakMultiplier - 1) * 0.8);
-
-  // Форматирование времени
-  const formatTime = (hours: number) => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    if (h === 0) return `${m} мин`;
-    if (m === 0) return `${h} ч`;
-    return `${h} ч ${m} мин`;
-  };
 
   // Время до пика и готовности
   const timeToPeak = Math.max(0, result.peakTimeHours - elapsedHours);
@@ -76,8 +99,8 @@ export function LiveJar({
     status = { text: "Ожидание кормления", color: "text-brown-light" };
   } else if (elapsedHours < result.peakTimeHours * 0.2) {
     status = {
-      text: "Лаг-фаза: адаптация",
-      color: "text-blue-sleepy",
+      text: "Покормлена!",
+      color: "text-green-happy",
       hint: "Закваска «просыпается» — бактерии и дрожжи привыкают к свежей муке. Видимого подъёма пока нет, но внутри уже идёт работа.",
     };
   } else if (elapsedHours < result.readyTimeHours) {

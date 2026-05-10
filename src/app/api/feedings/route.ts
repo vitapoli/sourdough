@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       flourType: body.flourType,
       temperature: body.temperature,
       notes: body.notes,
+      ...(body.fedAt ? { fedAt: new Date(body.fedAt) } : {}),
     },
   });
   return NextResponse.json(feeding, { status: 201 });

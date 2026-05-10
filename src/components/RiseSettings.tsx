@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { UserObservation } from "@/lib/fermentation";
+import { formatTime } from "@/lib/formatTime";
 
 interface RiseSettingsProps {
   starterId: string;
@@ -9,6 +10,7 @@ interface RiseSettingsProps {
   useCustom: boolean;
   onToggleCustom: (v: boolean) => void;
   onObservationsLoaded: (obs: UserObservation[]) => void;
+  refreshKey?: number;
 }
 
 interface FeedingWithObs {
@@ -24,13 +26,7 @@ interface FeedingWithObs {
   peakMultiplier: number;
 }
 
-function formatHours(h: number): string {
-  const hours = Math.floor(h);
-  const mins = Math.round((h - hours) * 60);
-  if (hours === 0) return `${mins} мин`;
-  if (mins === 0) return `${hours} ч`;
-  return `${hours} ч ${mins} мин`;
-}
+const formatHours = formatTime;
 
 function toUserObs(f: FeedingWithObs, defaultFlourType: string): UserObservation {
   const sa = f.starterAmount || 30;
@@ -51,6 +47,7 @@ export function RiseSettings({
   useCustom,
   onToggleCustom,
   onObservationsLoaded,
+  refreshKey,
 }: RiseSettingsProps) {
   const [open, setOpen] = useState(false);
   const [feedingsWithObs, setFeedingsWithObs] = useState<FeedingWithObs[]>([]);
@@ -78,7 +75,7 @@ export function RiseSettings({
 
   useEffect(() => {
     loadObservations();
-  }, [loadObservations]);
+  }, [loadObservations, refreshKey]);
 
   function updateSelection(newSelected: Set<string>) {
     setSelectedIds(newSelected);

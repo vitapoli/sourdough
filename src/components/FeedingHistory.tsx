@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
+import { formatTime } from "@/lib/formatTime";
 
 interface Feeding {
   id: string;
@@ -23,13 +24,7 @@ interface FeedingHistoryProps {
   onChanged?: () => void;
 }
 
-function formatHours(h: number): string {
-  const hours = Math.floor(h);
-  const mins = Math.round((h - hours) * 60);
-  if (hours === 0) return `${mins} мин`;
-  if (mins === 0) return `${hours} ч`;
-  return `${hours} ч ${mins} мин`;
-}
+const formatHours = formatTime;
 
 function ObservationMiniForm({
   feeding,

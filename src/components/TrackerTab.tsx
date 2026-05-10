@@ -10,6 +10,7 @@ import { RiseSettings } from "./RiseSettings";
 import { Icon } from "./Icon";
 import { getStarterMood } from "@/lib/starterMood";
 import { UserObservation, calculateFermentation } from "@/lib/fermentation";
+import { formatTime } from "@/lib/formatTime";
 
 interface Feeding {
   id: string;
@@ -36,19 +37,10 @@ interface Starter {
 const moodBadgeColors: Record<string, string> = {
   happy: "bg-green-happy/10 text-green-happy border border-green-happy/30",
   hungry: "bg-orange-hungry/10 text-orange-hungry border border-orange-hungry/30",
-  sleepy: "bg-blue-sleepy/10 text-blue-sleepy border border-blue-sleepy/30",
   new: "bg-golden/10 text-golden border border-golden/30",
   ready: "bg-green-happy/10 text-green-happy border border-green-happy/30",
   peak: "bg-green-happy/10 text-green-happy border border-green-happy/30",
 };
-
-function formatTime(hours: number) {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (h === 0) return `${m} мин`;
-  if (m === 0) return `${h} ч`;
-  return `${h} ч ${m} мин`;
-}
 
 function FermentationTimers({ hoursAgo, peakTimeHours }: { hoursAgo: number; peakTimeHours: number }) {
   const readyTimeHours = peakTimeHours * 0.75;
@@ -97,6 +89,7 @@ export function TrackerTab() {
   }, []);
   const [useCustomCurve, setUseCustomCurve] = useState(false);
   const [userObservations, setUserObservations] = useState<UserObservation[]>([]);
+  const [obsVersion, setObsVersion] = useState(0);
 
   const loadStarters = useCallback(async () => {
     const res = await fetch("/api/starters");
@@ -201,10 +194,17 @@ export function TrackerTab() {
       }, useCustomCurve ? userObservations : undefined).peakTimeHours
     : undefined;
 
-  const realMood = getStarterMood(lastFeedingAt, peakTimeHours, now);
+  const moodResult = getStarterMood(lastFeedingAt, peakTimeHours, now);
+  const testMoodData: Record<string, { mood: string; label: string; message: string }> = {
+    new: { mood: "new", label: "Новенькая", message: "Покорми меня в первый раз!" },
+    happy: { mood: "happy", label: "Покормлена", message: "Только покормили, работаю!" },
+    ready: { mood: "ready", label: "Готова!", message: "Можно использовать в тесто!" },
+    peak: { mood: "peak", label: "На пике!", message: "Я на максимуме! Используй меня!" },
+    hungry: { mood: "hungry", label: "Голодная", message: "Пора бы подкрепиться..." },
+  };
   const { mood, label, message, hoursAgo } = testMood
-    ? { mood: testMood as import("@/lib/starterMood").Mood, label: testMood, message: `Тест: ${testMood}`, hoursAgo: realMood.hoursAgo }
-    : realMood;
+    ? { ...moodResult, ...testMoodData[testMood] }
+    : moodResult;
 
   return (
     <div className="flex flex-col items-center px-4 pt-2 pb-20 gap-3">
@@ -258,6 +258,23 @@ export function TrackerTab() {
                 <StarterJar mood={mood} name={detail.name} />
               </div>
 
+              {/* Тест-кнопки настроения */}
+              <div className="flex gap-2">
+                {(["new", "happy", "ready", "peak", "hungry"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setTestMood(testMood === m ? null : m)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      testMood === m
+                        ? "bg-terracotta text-white"
+                        : "bg-card text-brown-light border border-warm-beige"
+                    }`}
+                  >
+                    {testMoodData[m].label}
+                  </button>
+                ))}
+              </div>
+
               {/* Настроение */}
               <span
                 className={`px-3.5 py-1.5 rounded-full font-bold text-xs ${moodBadgeColors[mood]}`}
@@ -270,22 +287,6 @@ export function TrackerTab() {
                 <FermentationTimers hoursAgo={hoursAgo} peakTimeHours={peakTimeHours} />
               )}
 
-              {/* ТЕСТ — переключение состояний (убрать потом) */}
-              <div className="flex gap-1.5 flex-wrap justify-center">
-                {(["happy", "ready", "peak", "hungry", "new"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setTestMood(testMood === m ? null : m)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                      testMood === m
-                        ? "bg-terracotta text-white"
-                        : "bg-warm-beige/50 text-brown-light"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
             </>
           )}
 
@@ -335,6 +336,7 @@ export function TrackerTab() {
             useCustom={useCustomCurve}
             onToggleCustom={setUseCustomCurve}
             onObservationsLoaded={setUserObservations}
+            refreshKey={obsVersion}
           />
 
           {/* История */}
@@ -343,6 +345,7 @@ export function TrackerTab() {
             onChanged={() => {
               if (selectedId) loadDetail(selectedId);
               loadStarters();
+              setObsVersion((v) => v + 1);
             }}
           />
         </>

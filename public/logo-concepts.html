@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sourdough — варианты эмблемы</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #FDF8F3; font-family: 'Segoe UI', sans-serif; color: #5C4033; padding: 40px 20px; }
+  h1 { text-align: center; font-size: 28px; margin-bottom: 8px; }
+  p.sub { text-align: center; color: #A08060; margin-bottom: 40px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto; }
+  .card { background: white; border-radius: 24px; padding: 32px 24px; text-align: center; box-shadow: 0 4px 20px rgba(92,64,51,0.08); border: 2px solid #f0e6da; }
+  .card:hover { border-color: #C67B5C; transform: translateY(-2px); transition: all 0.2s; }
+  .icon { width: 140px; height: 140px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+  .icon svg { width: 100%; height: 100%; }
+  .name { font-weight: 800; font-size: 18px; margin-bottom: 4px; }
+  .desc { font-size: 13px; color: #A08060; }
+  .num { display: inline-block; background: #C67B5C; color: white; width: 24px; height: 24px; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 24px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Sourdough</h1>
+<p class="sub">Разные концепции — без хлеба с надрезами</p>
+
+<div class="grid">
+
+  <!-- 1. Пузырьки закваски в круге -->
+  <div class="card">
+    <span class="num">1</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="52" fill="#C67B5C"/>
+        <circle cx="38" cy="42" r="9" fill="white" opacity="0.2"/>
+        <circle cx="72" cy="35" r="7" fill="white" opacity="0.18"/>
+        <circle cx="55" cy="28" r="5" fill="white" opacity="0.22"/>
+        <circle cx="82" cy="58" r="8" fill="white" opacity="0.15"/>
+        <circle cx="30" cy="65" r="6" fill="white" opacity="0.18"/>
+        <circle cx="65" cy="52" r="4.5" fill="white" opacity="0.15"/>
+        <circle cx="48" cy="58" r="6" fill="white" opacity="0.12"/>
+        <circle cx="42" cy="80" r="5" fill="white" opacity="0.15"/>
+        <circle cx="75" cy="78" r="7" fill="white" opacity="0.12"/>
+        <circle cx="60" cy="72" r="4" fill="white" opacity="0.1"/>
+        <circle cx="88" cy="42" r="4" fill="white" opacity="0.12"/>
+        <text x="60" y="102" text-anchor="middle" font-family="Georgia, serif" font-size="11" fill="white" letter-spacing="1" opacity="0.9">sourdough</text>
+      </svg>
+    </div>
+    <p class="name">Пузырьки</p>
+    <p class="desc">Терракотовый круг с пузырьками закваски. Минимально, но считывается.</p>
+  </div>
+
+  <!-- 2. Баночка-силуэт -->
+  <div class="card">
+    <span class="num">2</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <rect x="35" y="38" width="50" height="62" rx="10" fill="#C67B5C"/>
+        <rect x="42" y="28" width="36" height="14" rx="5" fill="#D4A574"/>
+        <!-- Уровень закваски волнистый -->
+        <path d="M35 62 Q48 56, 60 62 Q72 68, 85 62 L85 90 Q85 100, 75 100 L45 100 Q35 100, 35 90 Z" fill="#F5E6D3"/>
+        <!-- Пузырьки -->
+        <circle cx="50" cy="75" r="3" fill="#C67B5C" opacity="0.2"/>
+        <circle cx="68" cy="70" r="2" fill="#C67B5C" opacity="0.2"/>
+        <circle cx="58" cy="85" r="2.5" fill="#C67B5C" opacity="0.15"/>
+      </svg>
+    </div>
+    <p class="name">Баночка</p>
+    <p class="desc">Простой силуэт банки с уровнем закваски. Иконка приложения.</p>
+  </div>
+
+  <!-- 3. Капля закваски -->
+  <div class="card">
+    <span class="num">3</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <path d="M60 12 C60 12, 22 58, 22 76 C22 98, 38 112, 60 112 C82 112, 98 98, 98 76 C98 58, 60 12, 60 12Z" fill="#E8D5C0" stroke="#C67B5C" stroke-width="3"/>
+        <!-- Пузырьки внутри -->
+        <circle cx="48" cy="72" r="6" fill="white" opacity="0.45"/>
+        <circle cx="68" cy="65" r="4.5" fill="white" opacity="0.4"/>
+        <circle cx="55" cy="90" r="5" fill="white" opacity="0.35"/>
+        <circle cx="72" cy="85" r="3.5" fill="white" opacity="0.3"/>
+        <circle cx="42" cy="58" r="3" fill="white" opacity="0.35"/>
+        <circle cx="62" cy="80" r="3" fill="white" opacity="0.25"/>
+      </svg>
+    </div>
+    <p class="name">Капля</p>
+    <p class="desc">Капля живой закваски с пузырьками. Органика и движение.</p>
+  </div>
+
+  <!-- 4. Ложка с закваской -->
+  <div class="card">
+    <span class="num">4</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <!-- Ручка ложки -->
+        <path d="M30 100 L62 42" stroke="#D4A574" stroke-width="6" stroke-linecap="round"/>
+        <!-- Черпак ложки -->
+        <ellipse cx="68" cy="36" rx="22" ry="18" fill="#E8D5C0" stroke="#C67B5C" stroke-width="3" transform="rotate(-15 68 36)"/>
+        <!-- Закваска на ложке -->
+        <ellipse cx="68" cy="34" rx="15" ry="10" fill="#F5E6D3" transform="rotate(-15 68 34)"/>
+        <!-- Пузырьки -->
+        <circle cx="62" cy="30" r="2.5" fill="white" opacity="0.5"/>
+        <circle cx="74" cy="28" r="2" fill="white" opacity="0.4"/>
+        <circle cx="68" cy="38" r="1.5" fill="white" opacity="0.4"/>
+        <!-- Капля стекает -->
+        <path d="M58 46 C58 46, 56 52, 56 55 C56 58, 58 59, 59 59 C61 59, 62 57, 62 55 C62 52, 58 46, 58 46Z" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <p class="name">Ложка</p>
+    <p class="desc">Деревянная ложка с закваской. Кормление = забота.</p>
+  </div>
+
+  <!-- 5. Два колоска обнимают круг -->
+  <div class="card">
+    <span class="num">5</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <!-- Левый колос -->
+        <path d="M30 95 Q28 60, 40 30" stroke="#D4A574" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <ellipse cx="34" cy="40" rx="7" ry="3.5" fill="#D4A574" opacity="0.6" transform="rotate(-40 34 40)"/>
+        <ellipse cx="30" cy="52" rx="7" ry="3.5" fill="#D4A574" opacity="0.5" transform="rotate(-30 30 52)"/>
+        <ellipse cx="28" cy="64" rx="7" ry="3.5" fill="#D4A574" opacity="0.5" transform="rotate(-20 28 64)"/>
+        <ellipse cx="28" cy="76" rx="6" ry="3" fill="#D4A574" opacity="0.4" transform="rotate(-15 28 76)"/>
+        <!-- Правый колос -->
+        <path d="M90 95 Q92 60, 80 30" stroke="#D4A574" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <ellipse cx="86" cy="40" rx="7" ry="3.5" fill="#D4A574" opacity="0.6" transform="rotate(40 86 40)"/>
+        <ellipse cx="90" cy="52" rx="7" ry="3.5" fill="#D4A574" opacity="0.5" transform="rotate(30 90 52)"/>
+        <ellipse cx="92" cy="64" rx="7" ry="3.5" fill="#D4A574" opacity="0.5" transform="rotate(20 92 64)"/>
+        <ellipse cx="92" cy="76" rx="6" ry="3" fill="#D4A574" opacity="0.4" transform="rotate(15 92 76)"/>
+        <!-- Центральный круг -->
+        <circle cx="60" cy="60" r="25" fill="#C67B5C"/>
+        <text x="60" y="65" text-anchor="middle" font-family="Georgia, serif" font-size="22" font-weight="700" fill="white">S</text>
+      </svg>
+    </div>
+    <p class="name">Венок</p>
+    <p class="desc">Колосья обнимают монограмму S. Традиция и ремесло.</p>
+  </div>
+
+  <!-- 6. Отпечаток пальца = закваска -->
+  <div class="card">
+    <span class="num">6</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <ellipse cx="60" cy="58" rx="40" ry="48" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.2"/>
+        <ellipse cx="60" cy="58" rx="33" ry="40" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.3"/>
+        <ellipse cx="60" cy="58" rx="26" ry="32" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.4"/>
+        <ellipse cx="60" cy="58" rx="19" ry="24" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.5"/>
+        <ellipse cx="60" cy="58" rx="12" ry="16" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.65"/>
+        <ellipse cx="60" cy="58" rx="5" ry="8" fill="none" stroke="#C67B5C" stroke-width="2.5" opacity="0.8"/>
+        <text x="60" y="112" text-anchor="middle" font-family="Georgia, serif" font-size="10" fill="#C67B5C" letter-spacing="2">SOURDOUGH</text>
+      </svg>
+    </div>
+    <p class="name">Отпечаток</p>
+    <p class="desc">Как отпечаток пальца — каждая закваска уникальна. Личное, живое.</p>
+  </div>
+
+  <!-- 7. Таймер / часы с пузырьками -->
+  <div class="card">
+    <span class="num">7</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="62" r="44" fill="none" stroke="#C67B5C" stroke-width="3"/>
+        <!-- Стрелки -->
+        <line x1="60" y1="62" x2="60" y2="32" stroke="#C67B5C" stroke-width="3.5" stroke-linecap="round"/>
+        <line x1="60" y1="62" x2="80" y2="52" stroke="#D4A574" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="60" cy="62" r="3" fill="#C67B5C"/>
+        <!-- Деления -->
+        <line x1="60" y1="22" x2="60" y2="26" stroke="#C67B5C" stroke-width="2" stroke-linecap="round"/>
+        <line x1="60" y1="98" x2="60" y2="102" stroke="#C67B5C" stroke-width="2" stroke-linecap="round"/>
+        <line x1="20" y1="62" x2="24" y2="62" stroke="#C67B5C" stroke-width="2" stroke-linecap="round"/>
+        <line x1="96" y1="62" x2="100" y2="62" stroke="#C67B5C" stroke-width="2" stroke-linecap="round"/>
+        <!-- Пузырьки вместо остальных делений -->
+        <circle cx="80" cy="28" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="40" cy="28" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="94" cy="62" r="0" fill="none"/>
+        <circle cx="40" cy="96" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="80" cy="96" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="96" cy="42" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="24" cy="42" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="96" cy="82" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="24" cy="82" r="3" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <!-- Ушко часов -->
+        <rect x="55" y="10" width="10" height="8" rx="3" fill="#D4A574" stroke="#C67B5C" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <p class="name">Часы</p>
+    <p class="desc">Трекер = время. Часы с пузырьками вместо делений. Функционально.</p>
+  </div>
+
+  <!-- 8. Сердце из теста -->
+  <div class="card">
+    <span class="num">8</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <path d="M60 100 C60 100, 15 70, 15 45 C15 25, 30 18, 42 18 C52 18, 58 26, 60 32 C62 26, 68 18, 78 18 C90 18, 105 25, 105 45 C105 70, 60 100, 60 100Z" fill="#E8D5C0" stroke="#C67B5C" stroke-width="3"/>
+        <!-- Пузырьки -->
+        <circle cx="40" cy="45" r="4" fill="white" opacity="0.4"/>
+        <circle cx="75" cy="42" r="3" fill="white" opacity="0.35"/>
+        <circle cx="55" cy="55" r="3.5" fill="white" opacity="0.3"/>
+        <circle cx="68" cy="60" r="2.5" fill="white" opacity="0.3"/>
+        <circle cx="48" cy="65" r="2" fill="white" opacity="0.25"/>
+        <circle cx="60" cy="75" r="2" fill="white" opacity="0.2"/>
+        <circle cx="82" cy="52" r="2.5" fill="white" opacity="0.25"/>
+        <circle cx="35" cy="58" r="2" fill="white" opacity="0.25"/>
+      </svg>
+    </div>
+    <p class="name">Сердце</p>
+    <p class="desc">Тесто в форме сердца с пузырьками. Закваска = любовь.</p>
+  </div>
+
+  <!-- 9. Микроскоп / бактерии -->
+  <div class="card">
+    <span class="num">9</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <circle cx="60" cy="60" r="50" fill="#FDF8F3" stroke="#C67B5C" stroke-width="2.5"/>
+        <!-- Лактобактерии — палочки -->
+        <rect x="35" y="40" width="16" height="5" rx="2.5" fill="#C67B5C" opacity="0.6" transform="rotate(-20 43 42)"/>
+        <rect x="62" y="35" width="14" height="5" rx="2.5" fill="#D4A574" opacity="0.7" transform="rotate(15 69 37)"/>
+        <rect x="45" y="60" width="18" height="5" rx="2.5" fill="#C67B5C" opacity="0.5" transform="rotate(-35 54 62)"/>
+        <rect x="68" y="58" width="12" height="4" rx="2" fill="#D4A574" opacity="0.6" transform="rotate(25 74 60)"/>
+        <rect x="30" y="70" width="14" height="4.5" rx="2" fill="#D4A574" opacity="0.5" transform="rotate(10 37 72)"/>
+        <rect x="55" y="78" width="16" height="5" rx="2.5" fill="#C67B5C" opacity="0.5" transform="rotate(-10 63 80)"/>
+        <rect x="75" y="72" width="13" height="4" rx="2" fill="#C67B5C" opacity="0.4" transform="rotate(40 81 74)"/>
+        <!-- Дрожжи — кружки -->
+        <circle cx="42" cy="52" r="4" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="78" cy="48" r="3.5" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1.5"/>
+        <circle cx="50" cy="75" r="3" fill="#E8D5C0" stroke="#D4A574" stroke-width="1.5"/>
+        <circle cx="82" cy="65" r="3" fill="#E8D5C0" stroke="#D4A574" stroke-width="1.5"/>
+        <circle cx="36" cy="85" r="2.5" fill="#E8D5C0" stroke="#D4A574" stroke-width="1"/>
+      </svg>
+    </div>
+    <p class="name">Микромир</p>
+    <p class="desc">Бактерии и дрожжи под микроскопом. Научный, но тёплый.</p>
+  </div>
+
+  <!-- 10. Горшочек с крышкой -->
+  <div class="card">
+    <span class="num">10</span>
+    <div class="icon">
+      <svg viewBox="0 0 120 120" fill="none">
+        <!-- Тело горшка -->
+        <path d="M30 50 Q28 95, 40 100 L80 100 Q92 95, 90 50 Z" fill="#E8D5C0" stroke="#C67B5C" stroke-width="3"/>
+        <!-- Крышка / тряпочка -->
+        <path d="M24 50 Q32 38, 60 36 Q88 38, 96 50" fill="#D4A574" stroke="#C67B5C" stroke-width="2.5"/>
+        <path d="M24 50 L96 50" stroke="#C67B5C" stroke-width="2.5"/>
+        <!-- Верёвочка -->
+        <ellipse cx="60" cy="50" rx="30" ry="4" fill="none" stroke="#8B7355" stroke-width="2"/>
+        <!-- Бантик -->
+        <path d="M56 46 Q52 40, 48 44 Q52 48, 56 46" fill="#8B7355"/>
+        <path d="M64 46 Q68 40, 72 44 Q68 48, 64 46" fill="#8B7355"/>
+        <circle cx="60" cy="46" r="2" fill="#8B7355"/>
+        <!-- Закваска выглядывает -->
+        <path d="M38 50 Q48 42, 60 44 Q72 42, 82 50" fill="#F5E6D3" opacity="0.5"/>
+        <!-- Пузырьки поднимаются -->
+        <circle cx="50" cy="32" r="2.5" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1"/>
+        <circle cx="65" cy="26" r="2" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1"/>
+        <circle cx="55" cy="20" r="1.5" fill="#E8D5C0" stroke="#C67B5C" stroke-width="1"/>
+      </svg>
+    </div>
+    <p class="name">Горшочек</p>
+    <p class="desc">Глиняный горшок с тряпочкой и бантиком. Домашний, бабушкин рецепт.</p>
+  </div>
+
+</div>
+
+</body>
+</html>

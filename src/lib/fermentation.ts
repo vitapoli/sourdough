@@ -201,7 +201,8 @@ export function calculateFermentation(
   const tempCoeff = temperatureCoefficient(temperature);
   const peakTime = baseTime * tempCoeff;
   const profile = getFlourProfile(flourType);
-  const multiplier = defaultPeakMultiplier[flourType] || (profile === "rye" ? 2.0 : 2.8);
+  // Точное совпадение → конкретный множитель, иначе среднее (2.4)
+  const multiplier = defaultPeakMultiplier[flourType] ?? 2.4;
 
   return {
     peakTimeHours: peakTime,
