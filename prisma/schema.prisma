@@ -46,6 +46,8 @@ model Recipe {
   hydration   Int      // Процент гидратации
   starterPct  Int      // Процент закваски
   salt        Float?   // Соль (г)
+  ingredients   String?  // Все ингредиенты (JSON: [{name, amount, unit, phase?}])
+  hydrationCalc String?  // Расчёт гидратации (JSON: {totalFlour, flourItems, totalLiquid, liquidItems, formula})
   steps       String   // Шаги приготовления (JSON)
   isBuiltIn   Boolean  @default(false) // Встроенный рецепт или пользовательский
   createdAt   DateTime @default(now())

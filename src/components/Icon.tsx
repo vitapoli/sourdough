@@ -11,7 +11,8 @@ type IconName =
   | "thermometer"
   | "notebook"
   | "spoon"
-  | "back";
+  | "back"
+  | "trash";
 
 interface IconProps {
   name: IconName;
@@ -170,6 +171,12 @@ const icons: Record<IconName, (size: number) => React.ReactElement> = {
   back: (size) => (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 6 L10 16 L20 26" />
+    </svg>
+  ),
+  trash: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8h20M12 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M26 8l-1.5 18a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2L6 8" />
+      <path d="M13 14v8M19 14v8" />
     </svg>
   ),
 };

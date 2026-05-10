@@ -95,26 +95,6 @@ export function CalculatorTab() {
 
           <div className="grid grid-cols-4 gap-2">
             <div>
-              <label className="text-xs font-medium text-brown-light">Вес, г</label>
-              <input
-                type="number"
-                min="0"
-                value={weight}
-                onChange={(e) => recalc("weight", e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-brown-light">Гидр, %</label>
-              <input
-                type="number"
-                min="0"
-                value={hydration}
-                onChange={(e) => recalc("hydration", e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
               <label className="text-xs font-medium text-brown-light">Мука, г</label>
               <input
                 type="number"
@@ -131,6 +111,26 @@ export function CalculatorTab() {
                 min="0"
                 value={water}
                 onChange={(e) => recalc("water", e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-brown-light">Вес, г</label>
+              <input
+                type="number"
+                min="0"
+                value={weight}
+                onChange={(e) => recalc("weight", e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-brown-light">Гидр, %</label>
+              <input
+                type="number"
+                min="0"
+                value={hydration}
+                onChange={(e) => recalc("hydration", e.target.value)}
                 className={inputClass}
               />
             </div>
