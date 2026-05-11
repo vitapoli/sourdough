@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const recipes = await prisma.recipe.findMany({
     orderBy: [{ isBuiltIn: "desc" }, { createdAt: "desc" }],
+    include: { variants: true },
   });
   return NextResponse.json(recipes);
 }
@@ -22,7 +23,9 @@ export async function POST(request: Request) {
         ingredients: body.ingredients || null,
         hydrationCalc: body.hydrationCalc || null,
         steps: body.steps || "[]",
+        photos: body.photos || null,
         isBuiltIn: false,
+        parentId: body.parentId || null,
       },
     });
     return NextResponse.json(recipe, { status: 201 });
@@ -47,6 +50,7 @@ export async function PUT(request: Request) {
         ingredients: body.ingredients || null,
         hydrationCalc: body.hydrationCalc || null,
         steps: body.steps || "[]",
+        photos: body.photos || null,
       },
     });
     return NextResponse.json(recipe);

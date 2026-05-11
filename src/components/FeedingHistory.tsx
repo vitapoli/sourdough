@@ -14,6 +14,7 @@ interface Feeding {
   flourType: string | null;
   temperature: number | null;
   notes: string | null;
+  photos: string | null;
   peakTimeHours: number | null;
   readyTimeHours: number | null;
   peakMultiplier: number | null;
@@ -358,6 +359,24 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
             {f.notes && (
               <p className="text-sm text-brown-light mt-1.5">{f.notes}</p>
             )}
+
+            {/* Фото кормления */}
+            {f.photos && (() => {
+              const urls: string[] = JSON.parse(f.photos);
+              return urls.length > 0 ? (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {urls.map((url, pi) => (
+                    <img
+                      key={pi}
+                      src={url}
+                      alt="Фото кормления"
+                      className="w-16 h-16 object-cover rounded-xl border border-warm-beige cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => window.open(url, "_blank")}
+                    />
+                  ))}
+                </div>
+              ) : null;
+            })()}
 
             {/* Кнопка записать результат */}
             {hasAmounts && observingId !== f.id && (

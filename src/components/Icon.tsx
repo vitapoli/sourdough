@@ -6,13 +6,19 @@ type IconName =
   | "bread"
   | "drop"
   | "wheat"
+  | "leaven"
   | "flour-bag"
   | "timer"
   | "thermometer"
   | "notebook"
   | "spoon"
   | "back"
-  | "trash";
+  | "trash"
+  | "recipe-page"
+  | "camera"
+  | "calculator"
+  | "calculator-classic"
+  | "close";
 
 interface IconProps {
   name: IconName;
@@ -79,18 +85,19 @@ const icons: Record<IconName, (size: number) => React.ReactElement> = {
 
   // Колосок — закваска %
   wheat: (size) => (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" stroke="none">
       {/* Стебель */}
-      <path d="M16 28 V12" />
-      {/* Зёрна */}
-      <path d="M16 12 c-3-1-5-4-4-6 c2 0 4 2 4 6" />
-      <path d="M16 12 c3-1 5-4 4-6 c-2 0-4 2-4 6" />
-      <path d="M16 16 c-3-1-5-4-4-6 c2 0 4 2 4 6" />
-      <path d="M16 16 c3-1 5-4 4-6 c-2 0-4 2-4 6" />
-      <path d="M16 20 c-3-1-5-4-4-6 c2 0 4 2 4 6" />
-      <path d="M16 20 c3-1 5-4 4-6 c-2 0-4 2-4 6" />
-      {/* Верхушка */}
-      <path d="M16 12 c0-3-1-5 0-7" />
+      <rect x="15" y="18" width="2" height="12" rx="1" />
+      {/* Верхний лист */}
+      <path d="M16 4 C14 7 14 10 16 12 C18 10 18 7 16 4z" />
+      {/* Левые листья */}
+      <path d="M8 8 C10 10 12 11 16 12 C14 9 11 7 8 8z" />
+      <path d="M6 14 C9 15 12 15 16 15 C13 13 9 12 6 14z" />
+      <path d="M7 20 C10 20 13 19 16 18 C13 17 10 17 7 20z" />
+      {/* Правые листья */}
+      <path d="M24 8 C22 10 20 11 16 12 C18 9 21 7 24 8z" />
+      <path d="M26 14 C23 15 20 15 16 15 C19 13 23 12 26 14z" />
+      <path d="M25 20 C22 20 19 19 16 18 C19 17 22 17 25 20z" />
     </svg>
   ),
 
@@ -173,10 +180,76 @@ const icons: Record<IconName, (size: number) => React.ReactElement> = {
       <path d="M20 6 L10 16 L20 26" />
     </svg>
   ),
+  "recipe-page": (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Лист с загнутым уголком */}
+      <path d="M7 4h12l6 6v18a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V4z" />
+      <path d="M19 4v6h6" />
+      {/* Линии текста */}
+      <path d="M11 14h10" opacity="0.6" />
+      <path d="M11 18h10" opacity="0.6" />
+      <path d="M11 22h6" opacity="0.4" />
+    </svg>
+  ),
   trash: (size) => (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M6 8h20M12 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M26 8l-1.5 18a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2L6 8" />
       <path d="M13 14v8M19 14v8" />
+    </svg>
+  ),
+  camera: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11a2 2 0 0 1 2-2h3l2-3h10l2 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V11z" />
+      <circle cx="16" cy="17" r="5" />
+      <circle cx="16" cy="17" r="2" opacity="0.3" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  calculator: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Стакан */}
+      <path d="M9 6 h14 l-2 22 H11 L9 6z" />
+      {/* Деления */}
+      <path d="M12 12 h8" opacity="0.4" />
+      <path d="M12 17 h8" opacity="0.4" />
+      <path d="M13 22 h6" opacity="0.4" />
+      {/* Жидкость */}
+      <path d="M12 17 l-0.5 7 h9 l-0.5-7z" fill="currentColor" opacity="0.15" stroke="none" />
+    </svg>
+  ),
+  "calculator-classic": (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Корпус */}
+      <rect x="7" y="4" width="18" height="24" rx="2" />
+      {/* Экран */}
+      <rect x="10" y="7" width="12" height="5" rx="1" opacity="0.3" fill="currentColor" stroke="none" />
+      {/* Кнопки */}
+      <rect x="10" y="15" width="3" height="3" rx="0.5" />
+      <rect x="14.5" y="15" width="3" height="3" rx="0.5" />
+      <rect x="19" y="15" width="3" height="3" rx="0.5" />
+      <rect x="10" y="21" width="3" height="3" rx="0.5" />
+      <rect x="14.5" y="21" width="3" height="3" rx="0.5" />
+      <rect x="19" y="21" width="3" height="3" rx="0.5" />
+    </svg>
+  ),
+  leaven: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      {/* Два параллельных стебля */}
+      <path d="M14.5 30V17" />
+      <path d="M17.5 30V17" />
+      {/* Нижняя пара зёрен */}
+      <path d="M14.5 20C8 18 8 12 14.5 10" />
+      <path d="M17.5 20C24 18 24 12 17.5 10" />
+      {/* Верхняя пара зёрен */}
+      <path d="M14.5 12C10 10.5 10 6.5 14.5 5.5" />
+      <path d="M17.5 12C22 10.5 22 6.5 17.5 5.5" />
+      {/* Верхушка */}
+      <path d="M14.5 5.5L16 2" />
+      <path d="M17.5 5.5L16 2" />
+    </svg>
+  ),
+  close: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 8l16 16M24 8L8 24" />
     </svg>
   ),
 };

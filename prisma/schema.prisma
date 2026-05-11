@@ -30,7 +30,7 @@ model Feeding {
   flourType      String?  // Тип муки при кормлении
   temperature    Float?   // Температура в помещении
   notes          String?  // Заметки (запах, консистенция, и т.д.)
-  photoUrl       String?  // Фото закваски
+  photos         String?  // Фото закваски (JSON массив URL, макс. 4)
   // Данные наблюдения (заполняются опционально, когда пользователь записал результат)
   peakTimeHours  Float?   // Часов до пика
   readyTimeHours Float?   // Часов до готовности
@@ -49,6 +49,10 @@ model Recipe {
   ingredients   String?  // Все ингредиенты (JSON: [{name, amount, unit, phase?}])
   hydrationCalc String?  // Расчёт гидратации (JSON: {totalFlour, flourItems, totalLiquid, liquidItems, formula})
   steps       String   // Шаги приготовления (JSON)
+  photos      String?  // Фото рецепта (JSON массив URL, макс. 3)
   isBuiltIn   Boolean  @default(false) // Встроенный рецепт или пользовательский
+  parentId    String?  // ID оригинального рецепта (для вариантов)
+  parent      Recipe?  @relation("RecipeVariants", fields: [parentId], references: [id], onDelete: SetNull)
+  variants    Recipe[] @relation("RecipeVariants")
   createdAt   DateTime @default(now())
 }

@@ -13,6 +13,8 @@ export function CalculatorTab() {
   const [lastEdited, setLastEdited] = useState<LastEdited>("weight");
 
   const [targetHydration, setTargetHydration] = useState("50");
+  const [showStarterCalc, setShowStarterCalc] = useState(false);
+  const [starterAmount, setStarterAmount] = useState("");
   function recalc(field: LastEdited, value: string) {
     const raw = parseFloat(value) || 0;
     const v = Math.max(0, raw);
@@ -78,10 +80,7 @@ export function CalculatorTab() {
 
   return (
     <div className="flex flex-col items-center px-4 pt-2 pb-20 gap-3 animate-fade-up">
-      <div className="flex items-center gap-2">
-        <Icon name="scales" size={28} className="text-terracotta" />
-        <h2 className="text-lg font-extrabold text-brown-dark">Калькулятор закваски</h2>
-      </div>
+      <h2 className="text-lg font-extrabold text-brown-dark">Калькулятор закваски</h2>
 
       <div className="w-full max-w-sm space-y-3">
         {/* Текущая закваска */}
@@ -172,6 +171,29 @@ export function CalculatorTab() {
               ))}
             </div>
           </div>
+
+          {/* Раскрытие: количество закваски */}
+          <button
+            type="button"
+            onClick={() => setShowStarterCalc(!showStarterCalc)}
+            className="text-xs text-terracotta font-bold hover:underline flex items-center gap-1"
+          >
+            {showStarterCalc ? "−" : "+"} Указать кол-во закваски
+          </button>
+
+          {showStarterCalc && (
+            <div className="animate-fade-up">
+              <label className="text-xs font-medium text-brown-light">Кол-во закваски, г</label>
+              <input
+                type="number"
+                min="0"
+                value={starterAmount}
+                onChange={(e) => setStarterAmount(e.target.value)}
+                placeholder="напр. 100"
+                className={inputClass}
+              />
+            </div>
+          )}
         </div>
 
         {/* Результат */}
@@ -205,6 +227,55 @@ export function CalculatorTab() {
               <p className="text-base font-bold">{resultTotal.toFixed(1)}г</p>
             </div>
           </div>
+          {/* Подсказка по закваске */}
+          {showStarterCalc && (() => {
+            const sAmount = parseFloat(starterAmount) || 0;
+            if (sAmount <= 0 || currentH <= 0 || targetH <= 0) return null;
+
+            // Текущая закваска: sAmount г при currentH%
+            const curFlour = sAmount / (1 + currentH / 100);
+            const curWater = sAmount - curFlour;
+
+            // Целевая: та же масса при targetH%
+            const tgtFlour = sAmount / (1 + targetH / 100);
+            const tgtWater = sAmount - tgtFlour;
+
+            const flourDiff = tgtFlour - curFlour;
+            const waterDiff = tgtWater - curWater;
+
+            // Практический совет: убрать закваску, добавить муку или воду
+            // Убираем R г закваски и добавляем R г муки (или воды)
+            // чтобы итого осталось sAmount г
+            const waterFrac = currentH / (100 + currentH);
+            let removeAmount = 0;
+            let addWhat = "";
+            if (Math.abs(currentH - targetH) < 0.5) {
+              // Гидратация совпадает
+            } else if (targetH < currentH) {
+              // Нужно суше — убираем закваску, добавляем муку
+              removeAmount = Math.abs(waterDiff) / waterFrac;
+              addWhat = "муки";
+            } else {
+              // Нужно влажнее — убираем закваску, добавляем воду
+              const flourFrac = 100 / (100 + currentH);
+              removeAmount = Math.abs(flourDiff) / flourFrac;
+              addWhat = "воды";
+            }
+
+            return (
+              <div className="bg-white/20 rounded-xl py-2 px-3 space-y-1 text-sm">
+                <p className="opacity-70 text-xs">{sAmount}г: {currentH}% → {targetH}%</p>
+                <p>Мука: <span className="font-bold">{Math.round(curFlour)}г → {Math.round(tgtFlour)}г</span></p>
+                <p>Вода: <span className="font-bold">{Math.round(curWater)}г → {Math.round(tgtWater)}г</span></p>
+                {Math.abs(currentH - targetH) >= 0.5 && (
+                  <p className="font-bold">→ Убери {Math.round(removeAmount)}г закваски, добавь {Math.round(removeAmount)}г {addWhat}</p>
+                )}
+                {Math.abs(currentH - targetH) < 0.5 && (
+                  <p className="font-bold">✓ Гидратация уже совпадает!</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

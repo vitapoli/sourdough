@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       temperature: body.temperature,
       notes: body.notes,
       ...(body.fedAt ? { fedAt: new Date(body.fedAt) } : {}),
+      ...(body.photos ? { photos: body.photos } : {}),
     },
   });
   return NextResponse.json(feeding, { status: 201 });
@@ -31,6 +32,7 @@ export async function PUT(request: Request) {
   if ("flourType" in body) data.flourType = body.flourType;
   if ("temperature" in body) data.temperature = body.temperature;
   if ("notes" in body) data.notes = body.notes;
+  if ("photos" in body) data.photos = body.photos;
 
   // Поля наблюдения
   if ("peakTimeHours" in body) data.peakTimeHours = body.peakTimeHours;

@@ -4,10 +4,10 @@ import { Icon } from "./Icon";
 
 export type Tab = "tracker" | "calculator" | "recipes";
 
-const tabs: { id: Tab; label: string; icon: "jar" | "scales" | "bread" }[] = [
+const tabs: { id: Tab; label: string; icon: "jar" | "calculator-classic" | "recipe-page" }[] = [
   { id: "tracker", label: "Трекер", icon: "jar" },
-  { id: "calculator", label: "Калькулятор", icon: "scales" },
-  { id: "recipes", label: "Рецепты", icon: "bread" },
+  { id: "calculator", label: "Калькулятор", icon: "calculator-classic" },
+  { id: "recipes", label: "Рецепты", icon: "recipe-page" },
 ];
 
 export function TabBar({

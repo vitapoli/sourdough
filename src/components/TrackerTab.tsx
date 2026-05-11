@@ -8,7 +8,7 @@ import { CreateStarterForm } from "./CreateStarterForm";
 import { LiveJar } from "./LiveJar";
 import { RiseSettings } from "./RiseSettings";
 import { Icon } from "./Icon";
-import { getStarterMood } from "@/lib/starterMood";
+import { getStarterMood, Mood } from "@/lib/starterMood";
 import { UserObservation, calculateFermentation } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
 
@@ -21,6 +21,7 @@ interface Feeding {
   flourType: string | null;
   temperature: number | null;
   notes: string | null;
+  photos: string | null;
   peakTimeHours: number | null;
   readyTimeHours: number | null;
   peakMultiplier: number | null;
@@ -203,7 +204,7 @@ export function TrackerTab() {
     hungry: { mood: "hungry", label: "Голодная", message: "Пора бы подкрепиться..." },
   };
   const { mood, label, message, hoursAgo } = testMood
-    ? { ...moodResult, ...testMoodData[testMood] }
+    ? { ...moodResult, ...testMoodData[testMood], mood: testMood as Mood }
     : moodResult;
 
   return (

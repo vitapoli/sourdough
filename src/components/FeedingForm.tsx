@@ -14,6 +14,7 @@ export interface FeedingData {
   flourType: string;
   notes: string;
   fedAt: Date;
+  photos?: string; // JSON массив URL
 }
 
 interface FeedingFormProps {
@@ -32,6 +33,24 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
   const [notes, setNotes] = useState("");
   const [done, setDone] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
+  function handlePhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = [...photoFiles, ...Array.from(files)].slice(0, 4);
+    setPhotoFiles(newFiles);
+    setPhotoPreviews(newFiles.map((f) => URL.createObjectURL(f)));
+    e.target.value = "";
+  }
+
+  function removePhoto(index: number) {
+    URL.revokeObjectURL(photoPreviews[index]);
+    const newFiles = photoFiles.filter((_, i) => i !== index);
+    setPhotoFiles(newFiles);
+    setPhotoPreviews(newFiles.map((f) => URL.createObjectURL(f)));
+  }
 
   async function handleFeed() {
     const data: FeedingData = {
@@ -45,6 +64,21 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
     };
 
     setLoading(true);
+
+    // Загрузить фото, если есть
+    let photosJson: string | undefined;
+    if (photoFiles.length > 0) {
+      const formData = new FormData();
+      formData.append("starterId", starterId);
+      photoFiles.forEach((f) => formData.append("photos", f));
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      const uploadData = await uploadRes.json();
+      if (uploadData.urls) {
+        photosJson = JSON.stringify(uploadData.urls);
+        data.photos = photosJson;
+      }
+    }
+
     await fetch("/api/feedings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,11 +90,14 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
         temperature: data.temperature,
         flourType,
         notes: notes || null,
+        ...(photosJson ? { photos: photosJson } : {}),
       }),
     });
     setLoading(false);
     setDone(true);
     setShowExtra(false);
+    setPhotoFiles([]);
+    setPhotoPreviews([]);
     setTimeout(() => setDone(false), 2000);
     onFed(data);
   }
@@ -156,6 +193,24 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
         </div>
       )}
 
+      {/* Фото */}
+      {photoPreviews.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {photoPreviews.map((src, i) => (
+            <div key={i} className="relative w-16 h-16">
+              <img src={src} alt="" className="w-16 h-16 object-cover rounded-xl border-2 border-warm-beige" />
+              <button
+                type="button"
+                onClick={() => removePhoto(i)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Кнопки */}
       <div className="flex gap-2">
         <button
@@ -166,6 +221,24 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           <Icon name="flour-bag" size={18} className="opacity-90" />
           {loading ? "..." : "Покормить"}
         </button>
+        <label
+          className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+            photoFiles.length > 0
+              ? "bg-terracotta/10 text-terracotta border border-terracotta/30"
+              : "bg-warm-beige/50 text-brown-light hover:text-brown border border-warm-beige"
+          } ${photoFiles.length >= 4 ? "opacity-50 pointer-events-none" : ""}`}
+        >
+          <Icon name="camera" size={16} />
+          {photoFiles.length > 0 ? photoFiles.length : ""}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotos}
+            className="hidden"
+            disabled={photoFiles.length >= 4}
+          />
+        </label>
         <button
           onClick={() => setShowExtra(!showExtra)}
           className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${

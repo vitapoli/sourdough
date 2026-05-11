@@ -10,6 +10,12 @@ const builtInRecipes = [
     hydration: 70,
     starterPct: 20,
     salt: 10,
+    ingredients: JSON.stringify([
+      { name: "Пшеничная мука", amount: "500", unit: "г" },
+      { name: "Вода", amount: "350", unit: "г" },
+      { name: "Закваска", amount: "100", unit: "г" },
+      { name: "Соль", amount: "10", unit: "г" },
+    ]),
     steps: JSON.stringify([
       "Смешать муку и воду, оставить на 30 мин (автолиз)",
       "Добавить закваску и соль, вымесить тесто",
@@ -27,6 +33,12 @@ const builtInRecipes = [
     hydration: 75,
     starterPct: 30,
     salt: 10,
+    ingredients: JSON.stringify([
+      { name: "Ржаная мука", amount: "500", unit: "г" },
+      { name: "Вода", amount: "375", unit: "г" },
+      { name: "Закваска", amount: "150", unit: "г" },
+      { name: "Соль", amount: "10", unit: "г" },
+    ]),
     steps: JSON.stringify([
       "Смешать ржаную муку, воду и закваску",
       "Добавить соль, хорошо перемешать",
@@ -43,6 +55,12 @@ const builtInRecipes = [
     hydration: 80,
     starterPct: 20,
     salt: 10,
+    ingredients: JSON.stringify([
+      { name: "Пшеничная мука", amount: "500", unit: "г" },
+      { name: "Вода", amount: "400", unit: "г" },
+      { name: "Закваска", amount: "100", unit: "г" },
+      { name: "Соль", amount: "10", unit: "г" },
+    ]),
     steps: JSON.stringify([
       "Смешать муку, воду и закваску (тесто будет очень влажным)",
       "Добавить соль через 30 мин",
@@ -60,6 +78,12 @@ const builtInRecipes = [
     hydration: 75,
     starterPct: 25,
     salt: 10,
+    ingredients: JSON.stringify([
+      { name: "Цельнозерновая мука", amount: "500", unit: "г" },
+      { name: "Вода", amount: "375", unit: "г" },
+      { name: "Закваска", amount: "125", unit: "г" },
+      { name: "Соль", amount: "10", unit: "г" },
+    ]),
     steps: JSON.stringify([
       "Замочить цельнозерновую муку в воде на 1 час",
       "Добавить закваску и соль, вымесить",
@@ -73,18 +97,35 @@ const builtInRecipes = [
 ];
 
 async function main() {
-  const existing = await prisma.recipe.count({ where: { isBuiltIn: true } });
-  if (existing > 0) {
-    console.log("Встроенные рецепты уже есть, пропускаю");
+  const existing = await prisma.recipe.findMany({ where: { isBuiltIn: true } });
+
+  if (existing.length === 0) {
+    for (const recipe of builtInRecipes) {
+      await prisma.recipe.create({
+        data: { ...recipe, isBuiltIn: true },
+      });
+    }
+    console.log(`Добавлено ${builtInRecipes.length} встроенных рецептов`);
     return;
   }
 
+  // Обновить существующие встроенные рецепты (добавить ингредиенты если нет)
+  let updated = 0;
   for (const recipe of builtInRecipes) {
-    await prisma.recipe.create({
-      data: { ...recipe, isBuiltIn: true },
-    });
+    const found = existing.find((e) => e.title === recipe.title);
+    if (found && !found.ingredients) {
+      await prisma.recipe.update({
+        where: { id: found.id },
+        data: { ingredients: recipe.ingredients },
+      });
+      updated++;
+    }
   }
-  console.log(`Добавлено ${builtInRecipes.length} встроенных рецептов`);
+  if (updated > 0) {
+    console.log(`Обновлено ${updated} встроенных рецептов (добавлены ингредиенты)`);
+  } else {
+    console.log("Встроенные рецепты актуальны");
+  }
 }
 
 main()

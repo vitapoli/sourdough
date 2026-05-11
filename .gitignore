@@ -46,6 +46,9 @@ next-env.d.ts
 *.db
 *.db-journal
 
+# uploaded files
+/public/uploads/
+
 # reference materials
 /references/
 

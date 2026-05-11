@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "Sourdough — трекер закваски",
   description: "Веди свою закваску как тамагочи. Первое русскоязычное приложение для домашних пекарей.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { TabBar, Tab } from "@/components/TabBar";
-import { TrackerTab } from "@/components/TrackerTab";
-import { SimpleTrackerTab } from "@/components/SimpleTrackerTab";
-import { CalculatorTab } from "@/components/CalculatorTab";
-import { RecipesTab } from "@/components/RecipesTab";
+
+const TrackerTab = lazy(() => import("@/components/TrackerTab").then(m => ({ default: m.TrackerTab })));
+const SimpleTrackerTab = lazy(() => import("@/components/SimpleTrackerTab").then(m => ({ default: m.SimpleTrackerTab })));
+const CalculatorTab = lazy(() => import("@/components/CalculatorTab").then(m => ({ default: m.CalculatorTab })));
+const RecipesTab = lazy(() => import("@/components/RecipesTab").then(m => ({ default: m.RecipesTab })));
 
 type TrackerMode = "simple" | "detailed";
 
@@ -24,6 +25,15 @@ function useTrackerMode(): [TrackerMode, (m: TrackerMode) => void] {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("tracker");
+  const [recipesListKey, setRecipesListKey] = useState(0);
+
+  function handleTabChange(tab: Tab) {
+    if (tab === "recipes" && activeTab === "recipes") {
+      // Повторное нажатие — вернуть к списку
+      setRecipesListKey(k => k + 1);
+    }
+    setActiveTab(tab);
+  }
   const [trackerMode, setTrackerMode] = useTrackerMode();
 
   return (
@@ -70,14 +80,16 @@ export default function Home() {
 
       {/* Контент вкладки */}
       <main className="flex-1 pb-20 animate-fade-up">
-        {activeTab === "tracker" && trackerMode === "simple" && <SimpleTrackerTab />}
-        {activeTab === "tracker" && trackerMode === "detailed" && <TrackerTab />}
-        {activeTab === "calculator" && <CalculatorTab />}
-        {activeTab === "recipes" && <RecipesTab />}
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-brown-light">Загрузка...</p></div>}>
+          {activeTab === "tracker" && trackerMode === "simple" && <SimpleTrackerTab />}
+          {activeTab === "tracker" && trackerMode === "detailed" && <TrackerTab />}
+          {activeTab === "calculator" && <CalculatorTab />}
+          {activeTab === "recipes" && <RecipesTab goToListSignal={recipesListKey} />}
+        </Suspense>
       </main>
 
       {/* Навигация */}
-      <TabBar active={activeTab} onChange={setActiveTab} />
+      <TabBar active={activeTab} onChange={handleTabChange} />
     </>
   );
 }
