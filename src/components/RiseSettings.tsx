@@ -36,7 +36,6 @@ function toUserObs(f: FeedingWithObs, defaultFlourType: string): UserObservation
     temperature: f.temperature || 22,
     flourType: f.flourType || defaultFlourType,
     peakTimeHours: f.peakTimeHours,
-    readyTimeHours: f.readyTimeHours,
     peakMultiplier: f.peakMultiplier,
   };
 }
@@ -101,17 +100,27 @@ export function RiseSettings({
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-brown-light hover:text-terracotta underline transition-colors"
-      >
-        Настройки шкалы подъёма
-        {useCustom && selectedCount > 0 && (
-          <span className="ml-1 text-green-happy no-underline">
-            (свои данные: {selectedCount})
-          </span>
-        )}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setOpen(true)}
+          className="text-xs text-brown-light hover:text-terracotta underline transition-colors"
+        >
+          Настройки шкалы подъёма
+          {useCustom && selectedCount > 0 && (
+            <span className="ml-1 text-green-happy no-underline">
+              (свои данные: {selectedCount})
+            </span>
+          )}
+        </button>
+        <span className="text-brown-light/30">|</span>
+        <a
+          href="/fermentation.html"
+          target="_blank"
+          className="text-xs text-terracotta hover:underline transition-colors"
+        >
+          Как работает брожение
+        </a>
+      </div>
     );
   }
 
@@ -237,11 +246,6 @@ export function RiseSettings({
             </p>
           </div>
 
-          <div className="border-t border-warm-beige pt-2">
-            <a href="/fermentation.html" target="_blank" className="text-xs text-terracotta hover:underline font-medium">
-              Подробнее о процессе брожения →
-            </a>
-          </div>
         </div>
         </details>
       )}
@@ -333,7 +337,6 @@ export function RiseSettings({
                     </div>
                     <div className="flex gap-4 mt-0.5 text-xs text-brown-light">
                       <span>Пик: {formatHours(f.peakTimeHours)}</span>
-                      <span>Готова: {formatHours(f.readyTimeHours)}</span>
                       <span>x{f.peakMultiplier}</span>
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -50,7 +51,11 @@ model Recipe {
   hydrationCalc String?  // Расчёт гидратации (JSON: {totalFlour, flourItems, totalLiquid, liquidItems, formula})
   steps       String   // Шаги приготовления (JSON)
   photos      String?  // Фото рецепта (JSON массив URL, макс. 3)
+  previewHidden String?  // Скрытые поля превью (JSON: ["flour","starter","hydration"])
   isBuiltIn   Boolean  @default(false) // Встроенный рецепт или пользовательский
+  pinned      Boolean  @default(false) // Закреплённый рецепт (показывается сверху)
+  hidden      Boolean  @default(false) // Скрытый рецепт (не показывается в основном списке)
+  sortOrder   Int      @default(0)     // Порядок сортировки (меньше = выше)
   parentId    String?  // ID оригинального рецепта (для вариантов)
   parent      Recipe?  @relation("RecipeVariants", fields: [parentId], references: [id], onDelete: SetNull)
   variants    Recipe[] @relation("RecipeVariants")

@@ -18,7 +18,13 @@ type IconName =
   | "camera"
   | "calculator"
   | "calculator-classic"
-  | "close";
+  | "close"
+  | "pencil"
+  | "pin"
+  | "bookmark"
+  | "bookmark-fill"
+  | "eye-off"
+  | "eye";
 
 interface IconProps {
   name: IconName;
@@ -250,6 +256,44 @@ const icons: Record<IconName, (size: number) => React.ReactElement> = {
   close: (size) => (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8 8l16 16M24 8L8 24" />
+    </svg>
+  ),
+  pin: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22L6 28" />
+      <path d="M19 4l9 9-4 1-5 5-1 4-9-9 4-1 5-5z" />
+    </svg>
+  ),
+  pencil: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Корпус карандаша */}
+      <path d="M19.5 5.5l7 7L11 28H4v-7L19.5 5.5z" />
+      {/* Разделитель ластика */}
+      <path d="M16 9l7 7" />
+    </svg>
+  ),
+  bookmark: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 4h16v24l-8-5-8 5V4z" />
+    </svg>
+  ),
+  "bookmark-fill": (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 4h16v24l-8-5-8 5V4z" />
+    </svg>
+  ),
+  "eye-off": (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 6l20 20" />
+      <path d="M10.6 10.6A12.5 12.5 0 0 0 3 16c2.7 5 7.2 8 13 8 2.1 0 4-.5 5.7-1.3" />
+      <path d="M16 8c5.8 0 10.3 3 13 8-.8 1.5-1.8 2.8-3 3.8" />
+      <path d="M19.4 19.4A4 4 0 0 1 12.6 12.6" />
+    </svg>
+  ),
+  eye: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 16c2.7-5 7.2-8 13-8s10.3 3 13 8c-2.7 5-7.2 8-13 8s-10.3-3-13-8z" />
+      <circle cx="16" cy="16" r="4" />
     </svg>
   ),
 };

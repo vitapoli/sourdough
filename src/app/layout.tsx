@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   description: "Веди свою закваску как тамагочи. Первое русскоязычное приложение для домашних пекарей.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
   appleWebApp: {

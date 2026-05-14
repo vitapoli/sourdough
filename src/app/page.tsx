@@ -40,16 +40,10 @@ export default function Home() {
     <>
       {/* Шапка */}
       <header className="text-center pt-6 pb-3">
-        <h1 className="text-2xl font-extrabold text-brown-dark tracking-tight">
+        <h1 className="text-2xl font-extrabold text-brown-dark tracking-tight leading-none">
           Sourdough
         </h1>
         <p className="text-xs text-brown-light mt-0.5">трекер закваски</p>
-        <a
-          href="/fermentation.html"
-          className="inline-block mt-2 text-xs text-terracotta hover:underline font-medium"
-        >
-          Как работает брожение? →
-        </a>
       </header>
 
       {/* Переключатель режима трекера */}

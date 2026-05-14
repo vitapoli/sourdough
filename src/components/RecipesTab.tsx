@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
+import { PhotoViewer } from "./PhotoViewer";
 
 interface Ingredient {
   name: string;
@@ -12,7 +13,36 @@ interface Ingredient {
   hydration?: number;
   pinned?: boolean;
   pinnedUnit?: "g" | "%";
+  role?: "flour" | "liquid" | "starter" | "none";
 }
+
+const FLOUR_KW = ["мука", "солод"];
+const LIQUID_KW = ["вода", "кипяток", "молоко", "кефир", "пахта", "сыворотка", "сок", "йогурт", "какао", "чай", "квас", "газировка", "чайный гриб"];
+const STARTER_KW = ["закваска", "стартер", "левен", "leaven", "материнская", "культура"];
+const IS_DRY = (n: string) => /сух[оиейая]/i.test(n);
+
+type IngRole = "flour" | "liquid" | "starter" | "none";
+
+function detectRole(name: string): IngRole {
+  const n = name.toLowerCase();
+  if (STARTER_KW.some(k => n.includes(k))) return "starter";
+  if (FLOUR_KW.some(k => n.includes(k))) return "flour";
+  if (!IS_DRY(name) && LIQUID_KW.some(k => n.includes(k))) return "liquid";
+  return "none";
+}
+
+function getRole(ing: Ingredient): IngRole {
+  return ing.role ?? detectRole(ing.name);
+}
+
+const ROLE_LABELS: Record<IngRole, string> = { flour: "Мука", liquid: "Жидкость", starter: "Закваска", none: "—" };
+const ROLE_COLORS: Record<IngRole, string> = {
+  flour: "bg-amber-100 text-amber-700 border-amber-300",
+  liquid: "bg-blue-100 text-blue-600 border-blue-300",
+  starter: "bg-green-100 text-green-700 border-green-300",
+  none: "bg-gray-100 text-gray-400 border-gray-300",
+};
+const ROLE_ORDER: IngRole[] = ["flour", "liquid", "starter", "none"];
 
 interface Recipe {
   id: string;
@@ -27,75 +57,380 @@ interface Recipe {
   steps: string;
   photos: string | null;
   isBuiltIn: boolean;
+  pinned: boolean;
+  hidden: boolean;
+  previewHidden: string | null;
   parentId: string | null;
   variants?: Recipe[];
 }
 
-function RecipeCard({
-  recipe,
-  onSelect,
-}: {
-  recipe: Recipe;
-  onSelect: (r: Recipe) => void;
-}) {
+function RecipeCardContent({ recipe }: { recipe: Recipe }) {
+  const photoUrl = recipe.photos ? (() => { const u: string[] = JSON.parse(recipe.photos); return u.length > 0 ? u[0] : null; })() : null;
+  const hasDescription = !!recipe.description;
+
+  const tags = (
+    <div className="flex gap-2 flex-wrap">
+      {(() => { const h: string[] = recipe.previewHidden ? JSON.parse(recipe.previewHidden) : []; return (<>
+      {!h.includes("flour") && (
+      <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium">
+        {recipe.flour}
+      </span>
+      )}
+      {!h.includes("hydration") && (
+      <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
+        <Icon name="drop" size={14} /> {recipe.hydration}%
+      </span>
+      )}
+      {!h.includes("starter") && (
+      <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
+        <img src="/ear.png" alt="" className="h-3.5 w-auto inline" /> {recipe.starterPct}%
+      </span>
+      )}
+      </>); })()}
+      {recipe.ingredients && (() => {
+        const ings: Ingredient[] = JSON.parse(recipe.ingredients);
+        const flourKeywords = ["мука", "солод"];
+        const totalFlour = ings
+          .filter(ing => flourKeywords.some(k => ing.name.toLowerCase().includes(k)))
+          .reduce((sum, ing) => sum + (parseFloat(ing.amount) || 0), 0);
+        return ings.filter(ing => ing.pinned).map((ing, i) => {
+          const amount = parseFloat(ing.amount) || 0;
+          const display = ing.pinnedUnit === "%" && totalFlour > 0
+            ? `${Math.round(amount / totalFlour * 100)}%`
+            : `${ing.amount}${ing.unit}`;
+          return (
+            <span key={i} className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium">
+              {ing.name} {display}
+            </span>
+          );
+        });
+      })()}
+    </div>
+  );
+
+  const hidden: string[] = recipe.previewHidden ? JSON.parse(recipe.previewHidden) : [];
+  const hasDefaultTags = !hidden.includes("flour") || !hidden.includes("hydration") || !hidden.includes("starter");
+  const hasCustomPinned = recipe.ingredients ? (() => {
+    const ings: Ingredient[] = JSON.parse(recipe.ingredients);
+    return ings.some(ing => ing.pinned);
+  })() : false;
+  const hasPinnedIngs = hasDefaultTags || hasCustomPinned;
+
+  const pinnedIcon = recipe.pinned && (
+    <span className="absolute top-3 right-3">
+      <Icon name="bookmark-fill" size={16} className="text-golden" />
+    </span>
+  );
+
+  const titleRow = (
+    <div className="flex justify-between items-start mb-1 pr-6">
+      <h3 className="font-extrabold text-brown-dark text-lg leading-tight">
+        {recipe.title}
+      </h3>
+      {recipe.isBuiltIn && (
+        <span className="text-xs bg-golden/15 text-golden px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-golden/30">
+          Базовый
+        </span>
+      )}
+    </div>
+  );
+
+  // Фото + закреплённые ингредиенты → фото напротив тегов
+  if (photoUrl && hasPinnedIngs) {
+    return (
+      <div className="w-full p-4 text-left relative">
+        {pinnedIcon}
+        {titleRow}
+        {hasDescription && (
+          <p className="text-sm text-brown-light mb-1.5 line-clamp-2">{recipe.description}</p>
+        )}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">{tags}</div>
+          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
+        </div>
+      </div>
+    );
+  }
+
+  // Фото + описание (без закреплённых) → фото напротив описания
+  if (photoUrl && hasDescription) {
+    return (
+      <div className="w-full p-4 text-left relative">
+        {pinnedIcon}
+        {titleRow}
+        <div className="flex gap-3 mb-1.5">
+          <p className="text-sm text-brown-light line-clamp-2 flex-1 min-w-0">{recipe.description}</p>
+          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
+        </div>
+        {tags}
+      </div>
+    );
+  }
+
+  // Остальное — фото напротив названия
   return (
-    <button
-      onClick={() => onSelect(recipe)}
-      className="w-full bg-card rounded-2xl p-4 card-shadow border border-warm-beige/60 text-left hover:card-shadow-lg hover:border-terracotta/30 transition-all duration-200 active:scale-[0.98]"
-    >
+    <div className="w-full p-4 text-left relative">
+      {pinnedIcon}
       <div className="flex gap-3">
-        {recipe.photos && (() => {
-          const urls: string[] = JSON.parse(recipe.photos);
-          return urls.length > 0 ? (
-            <img src={urls[0]} alt="" className="w-16 h-16 object-cover rounded-xl shrink-0" />
-          ) : null;
-        })()}
         <div className="flex-1 min-w-0">
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="font-extrabold text-brown-dark text-lg leading-tight">
-          {recipe.title}
-        </h3>
-        {recipe.isBuiltIn && (
-          <span className="text-xs bg-golden/15 text-golden px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-golden/30">
-            Базовый
-          </span>
+          {titleRow}
+          {hasDescription && (
+            <p className="text-sm text-brown-light mb-1.5 line-clamp-2">{recipe.description}</p>
+          )}
+          {tags}
+        </div>
+        {photoUrl && (
+          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
         )}
       </div>
-      {recipe.description && (
-        <p className="text-sm text-brown-light mb-3">{recipe.description}</p>
-      )}
-      <div className="flex gap-2 flex-wrap">
-        <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium">
-          {recipe.flour}
-        </span>
-        <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
-          <Icon name="drop" size={12} /> {recipe.hydration}%
-        </span>
-        <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
-          <Icon name="wheat" size={12} /> {recipe.starterPct}%
-        </span>
-        {recipe.ingredients && (() => {
-          const ings: Ingredient[] = JSON.parse(recipe.ingredients);
-          const flourKeywords = ["мука", "солод"];
-          const totalFlour = ings
-            .filter(ing => flourKeywords.some(k => ing.name.toLowerCase().includes(k)))
-            .reduce((sum, ing) => sum + (parseFloat(ing.amount) || 0), 0);
-          return ings.filter(ing => ing.pinned).map((ing, i) => {
-            const amount = parseFloat(ing.amount) || 0;
-            const display = ing.pinnedUnit === "%" && totalFlour > 0
-              ? `${Math.round(amount / totalFlour * 100)}%`
-              : `${ing.amount}${ing.unit}`;
-            return (
-              <span key={i} className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium">
-                {ing.name} {display}
-              </span>
-            );
-          });
-        })()}
+    </div>
+  );
+}
+
+function DraggableRecipeList({
+  recipes,
+  onSelect,
+  onTogglePin,
+  onToggleHide,
+  onReorder,
+}: {
+  recipes: Recipe[];
+  onSelect: (r: Recipe) => void;
+  onTogglePin: (r: Recipe) => void;
+  onToggleHide: (r: Recipe) => void;
+  onReorder: (orderedIds: string[]) => void;
+}) {
+  const [menuRecipe, setMenuRecipe] = useState<Recipe | null>(null);
+  // phase: null → "menu" (показано меню) → "drag" (перетаскивание)
+  const [phase, setPhase] = useState<null | "menu" | "drag">(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchRef = useRef<{
+    recipe: Recipe;
+    idx: number;
+    el: HTMLDivElement;
+    startY: number;
+    lastY: number;
+  } | null>(null);
+  const dragRef = useRef<{
+    currentIdx: number;
+    originalIdx: number;
+    heights: number[];
+  } | null>(null);
+  const blockClick = useRef(false);
+  const phaseRef = useRef<null | "menu" | "drag">(null);
+
+  // Блокировка скролла через non-passive listener на document
+  useEffect(() => {
+    function preventScroll(e: TouchEvent) {
+      if (phaseRef.current) e.preventDefault();
+    }
+    document.addEventListener("touchmove", preventScroll, { passive: false });
+    return () => document.removeEventListener("touchmove", preventScroll);
+  }, []);
+
+  function getChildren(): HTMLDivElement[] {
+    if (!containerRef.current) return [];
+    return Array.from(containerRef.current.children) as HTMLDivElement[];
+  }
+
+  // --- Фаза 1: touchstart → запускаем таймер long press ---
+  function handleTouchStart(e: React.TouchEvent, recipe: Recipe, idx: number) {
+    const y = e.touches[0].clientY;
+    const el = e.currentTarget as HTMLDivElement;
+    touchRef.current = { recipe, idx, el, startY: y, lastY: y };
+
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      // Показываем меню, вибрация
+      setMenuRecipe(recipe);
+      setPhase("menu");
+      phaseRef.current = "menu";
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 400);
+  }
+
+  // --- Фаза 2: touchmove ---
+  function handleTouchMove(e: React.TouchEvent) {
+    const t = touchRef.current;
+    if (!t) return;
+
+    const y = e.touches[0].clientY;
+    t.lastY = y;
+
+    // До long press: если палец ушёл далеко — отменяем (это скролл)
+    if (longPressTimer.current) {
+      if (Math.abs(y - t.startY) > 10) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+        touchRef.current = null;
+      }
+      return;
+    }
+
+    // Фаза "menu": палец двигается → переходим в drag
+    if (phase === "menu" && Math.abs(y - t.startY) > 8) {
+      setMenuRecipe(null);
+      setPhase("drag");
+      phaseRef.current = "drag";
+
+      // Инициализация drag
+      const children = getChildren();
+      const heights = children.map(c => c.getBoundingClientRect().height);
+      dragRef.current = { currentIdx: t.idx, originalIdx: t.idx, heights };
+
+      // Поднимаем карточку
+      t.el.style.transition = "none";
+      t.el.style.transform = "scale(1.03)";
+      t.el.style.boxShadow = "0 8px 30px rgba(0,0,0,0.18)";
+      t.el.style.zIndex = "30";
+      t.el.style.position = "relative";
+
+      // Обновляем startY чтобы drag начинался от текущей позиции пальца
+      t.startY = y;
+    }
+
+    // Фаза "drag": двигаем карточку
+    if (phase === "drag" || (dragRef.current)) {
+      e.preventDefault();
+      const d = dragRef.current;
+      if (!d) return;
+
+      const deltaY = y - t.startY;
+      t.el.style.transform = `translateY(${deltaY}px) scale(1.03)`;
+
+      // Вычисляем новую позицию
+      const gap = 12;
+      let accumulated = 0;
+      let newIdx = d.originalIdx;
+
+      if (deltaY > 0) {
+        for (let i = d.originalIdx + 1; i < recipes.length; i++) {
+          accumulated += d.heights[i] + gap;
+          if (deltaY > accumulated - d.heights[i] / 2) newIdx = i;
+          else break;
+        }
+      } else {
+        for (let i = d.originalIdx - 1; i >= 0; i--) {
+          accumulated -= d.heights[i] + gap;
+          if (deltaY < accumulated + d.heights[i] / 2) newIdx = i;
+          else break;
+        }
+      }
+
+      if (newIdx !== d.currentIdx) {
+        d.currentIdx = newIdx;
+        const children = getChildren();
+        for (let i = 0; i < children.length; i++) {
+          if (i === d.originalIdx) continue;
+          let shift = 0;
+          if (d.originalIdx < d.currentIdx && i > d.originalIdx && i <= d.currentIdx) {
+            shift = -(d.heights[d.originalIdx] + gap);
+          } else if (d.originalIdx > d.currentIdx && i >= d.currentIdx && i < d.originalIdx) {
+            shift = d.heights[d.originalIdx] + gap;
+          }
+          children[i].style.transition = "transform 200ms ease";
+          children[i].style.transform = shift ? `translateY(${shift}px)` : "";
+        }
+      }
+    }
+  }
+
+  // --- Фаза 3: touchend ---
+  function handleTouchEnd() {
+    // Отменяем таймер если ещё не сработал
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    const t = touchRef.current;
+    const d = dragRef.current;
+
+    // Сброс стилей
+    if (d && t) {
+      const children = getChildren();
+      for (const child of children) {
+        child.style.transition = "";
+        child.style.transform = "";
+        child.style.boxShadow = "";
+        child.style.zIndex = "";
+        child.style.position = "";
+      }
+
+      if (d.currentIdx !== d.originalIdx) {
+        const newOrder = recipes.map(r => r.id);
+        const [moved] = newOrder.splice(d.originalIdx, 1);
+        newOrder.splice(d.currentIdx, 0, moved);
+        onReorder(newOrder);
+      }
+
+      blockClick.current = true;
+      setTimeout(() => { blockClick.current = false; }, 200);
+    }
+
+    // Если фаза menu — меню уже показано, не трогаем его (пользователь нажмёт кнопку)
+    if (phase !== "menu") {
+      setPhase(null); phaseRef.current = null;
+    }
+
+    touchRef.current = null;
+    dragRef.current = null;
+  }
+
+  function handleClick(recipe: Recipe) {
+    if (!blockClick.current && !phase) onSelect(recipe);
+  }
+
+  return (
+    <>
+      <div
+        ref={containerRef}
+        className="w-full max-w-sm space-y-3 select-none"
+        style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: phase ? "none" : undefined, userSelect: "none" } as React.CSSProperties}
+      >
+        {recipes.map((r, i) => (
+          <div
+            key={r.id}
+            className={`bg-card rounded-2xl card-shadow border select-none cursor-pointer active:scale-[0.98] hover:card-shadow-lg hover:border-terracotta/30 will-change-transform ${
+              r.hidden ? "opacity-50 border-warm-beige/40" : r.pinned ? "border-golden/40" : "border-warm-beige/60"
+            }`}
+            onTouchStart={(e) => handleTouchStart(e, r, i)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onClick={() => handleClick(r)}
+            onContextMenu={(e) => { e.preventDefault(); setMenuRecipe(r); setPhase("menu"); }}
+          >
+            <RecipeCardContent recipe={r} />
+          </div>
+        ))}
       </div>
-      </div>{/* flex-1 */}
-      </div>{/* flex gap-3 */}
-    </button>
+
+      {/* Контекстное меню — появляется при долгом нажатии */}
+      {menuRecipe && phase === "menu" && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setMenuRecipe(null); setPhase(null); phaseRef.current = null; }} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl card-shadow-lg border-2 border-warm-beige overflow-hidden min-w-[220px] animate-fade-up select-none">
+            <p className="px-4 pt-3 pb-1.5 text-xs font-bold text-brown-light truncate">{menuRecipe.title}</p>
+            <button
+              onClick={() => { onTogglePin(menuRecipe); setMenuRecipe(null); setPhase(null); phaseRef.current = null; }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors"
+            >
+              <Icon name={menuRecipe.pinned ? "bookmark-fill" : "bookmark"} size={18} className={menuRecipe.pinned ? "text-golden" : ""} />
+              {menuRecipe.pinned ? "Открепить" : "Закрепить"}
+            </button>
+            <button
+              onClick={() => { onToggleHide(menuRecipe); setMenuRecipe(null); setPhase(null); phaseRef.current = null; }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
+            >
+              <Icon name={menuRecipe.hidden ? "eye" : "eye-off"} size={18} />
+              {menuRecipe.hidden ? "Показать" : "Скрыть"}
+            </button>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -115,6 +450,75 @@ function RecipeDetail({
   onSelectVariant: (r: Recipe) => void;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
+  const [viewPhotoIndex, setViewPhotoIndex] = useState(0);
+  const [printWithPhotos, setPrintWithPhotos] = useState(true);
+  const [showPrintOptions, setShowPrintOptions] = useState(false);
+
+  function handleSharePdf() {
+    const recipeSteps: string[] = JSON.parse(recipe.steps);
+    const ings: Ingredient[] = recipe.ingredients ? JSON.parse(recipe.ingredients) : [];
+
+    const photoUrls: string[] = recipe.photos ? JSON.parse(recipe.photos) : [];
+    const photoHtml = printWithPhotos && photoUrls.length > 0
+      ? `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${photoUrls.map(u => `<img src="${u}" style="width:120px;height:120px;object-fit:cover;border-radius:12px">`).join("")}</div>`
+      : "";
+
+    let html = `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>${recipe.title}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',system-ui,sans-serif;background:#FDF8F3;color:#5C4033;padding:32px 24px;max-width:500px;margin:0 auto}
+h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
+.desc{color:#8B7355;font-size:14px;margin-bottom:16px;line-height:1.5}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tag{background:#EDE5D8;color:#5C4033;padding:6px 12px;border-radius:10px;font-size:12px;font-weight:600}
+.section{background:white;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #EDE5D8}
+.section-title{font-size:14px;font-weight:800;color:#C67B5C;margin-bottom:10px}
+.ing{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #F5EDE4}
+.ing:last-child{border:none}
+.ing-name{color:#5C4033}.ing-amount{color:#8B7355;font-weight:600}
+.step{display:flex;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.5}
+.step-num{width:22px;height:22px;background:#C67B5C;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-text{color:#5C4033}
+.footer{text-align:center;margin-top:20px;font-size:11px;color:#B8A692}
+@media print{body{padding:16px}@page{margin:10mm}}
+</style></head><body>`;
+
+    html += `<h1>${recipe.title}</h1>`;
+    if (recipe.description) html += `<p class="desc">${recipe.description}</p>`;
+    html += `<div class="tags">
+      <span class="tag">${recipe.flour}</span>
+      <span class="tag"><svg style="display:inline-block;vertical-align:middle;margin-right:3px" width="12" height="12" viewBox="0 0 24 24" fill="#C67B5C"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z"/></svg>Гидратация ${recipe.hydration}%</span>
+      <span class="tag">Закваска ${recipe.starterPct}%</span>
+    </div>`;
+    html += photoHtml;
+
+    if (ings.length > 0) {
+      html += `<div class="section"><div class="section-title">Ингредиенты</div>`;
+      ings.forEach(ing => {
+        html += `<div class="ing"><span class="ing-name">${ing.name}</span><span class="ing-amount">${ing.amount}${ing.unit}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (recipeSteps.length > 0) {
+      html += `<div class="section"><div class="section-title">Приготовление</div>`;
+      recipeSteps.forEach((s, i) => {
+        html += `<div class="step"><span class="step-num">${i + 1}</span><span class="step-text">${s}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `<div class="footer">Sourdough — трекер закваски</div>`;
+    html += `</body></html>`;
+
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => w.print(), 300);
+    }
+  }
 
   async function handleDelete() {
     if (!confirm("Удалить этот рецепт?")) return;
@@ -131,8 +535,7 @@ function RecipeDetail({
   const savedStarterHydration = (() => {
     if (!recipe.ingredients) return 100;
     const ings = JSON.parse(recipe.ingredients) as Ingredient[];
-    const starterKeywords = ["закваска", "стартер", "левен"];
-    const starter = ings.find(ing => starterKeywords.some(k => ing.name.toLowerCase().includes(k)));
+    const starter = ings.find(ing => getRole(ing) === "starter");
     return starter?.hydration || 100;
   })();
   const [starterHydrationStr, setStarterHydrationStr] = useState(String(savedStarterHydration));
@@ -148,35 +551,47 @@ function RecipeDetail({
     }
 
     const ings = JSON.parse(recipe.ingredients) as Ingredient[];
-    const flourKeywords = ["мука", "солод"];
-    const liquidKeywords = ["вода", "молоко", "кефир", "пахта", "сыворотка", "сок", "йогурт"];
-    const starterKeywords = ["закваска", "стартер", "левен"];
-
     const flourItems: string[] = [];
     const liquidItems: string[] = [];
     let totalFlour = 0;
     let totalLiquid = 0;
 
+    // Считаем компенсацию воды при смене гидратации закваски
+    let calcWaterDiff = 0;
+    if (starterHydrationChanged) {
+      for (const ing of ings) {
+        if (getRole(ing) === "starter") {
+          const amount = parseFloat(ing.amount) || 0;
+          const origH = ing.hydration || 100;
+          const flour = amount / (1 + origH / 100);
+          calcWaterDiff += (amount - flour) - flour * (starterHydration / 100);
+        }
+      }
+    }
+    let calcWaterDiffApplied = false;
+
     for (const ing of ings) {
-      const nameLower = ing.name.toLowerCase();
       const amount = parseFloat(ing.amount) || 0;
       if (amount <= 0) continue;
+      const role = getRole(ing);
 
-      if (starterKeywords.some(k => nameLower.includes(k))) {
-        // Разбиваем закваску на муку и воду по её гидратации
-        const ingH = ing.hydration || starterHydration;
-        const starterFlour = amount / (1 + ingH / 100);
-        const starterWater = amount - starterFlour;
+      if (role === "starter") {
+        const origH = ing.hydration || 100;
+        const starterFlour = amount / (1 + origH / 100);
+        const starterWater = starterFlour * (starterHydration / 100);
         flourItems.push(`${ing.name} (мука) ${Math.round(starterFlour)}г`);
         liquidItems.push(`${ing.name} (вода) ${Math.round(starterWater)}г`);
         totalFlour += starterFlour;
         totalLiquid += starterWater;
-      } else if (flourKeywords.some(k => nameLower.includes(k))) {
+      } else if (role === "flour") {
         flourItems.push(`${ing.name} ${ing.amount}${ing.unit}`);
         totalFlour += amount;
-      } else if (liquidKeywords.some(k => nameLower.includes(k))) {
-        liquidItems.push(`${ing.name} ${ing.amount}${ing.unit}`);
-        totalLiquid += amount;
+      } else if (role === "liquid") {
+        const adjusted = starterHydrationChanged && !calcWaterDiffApplied
+          ? Math.round(amount + calcWaterDiff) : amount;
+        if (starterHydrationChanged && !calcWaterDiffApplied) calcWaterDiffApplied = true;
+        liquidItems.push(`${ing.name} ${adjusted}${ing.unit}`);
+        totalLiquid += adjusted;
       }
     }
 
@@ -203,14 +618,23 @@ function RecipeDetail({
       <div className="bg-card rounded-2xl p-5 card-shadow border border-warm-beige/60">
         <div className="flex items-start justify-between mb-2">
           <h2 className="text-xl font-extrabold text-brown-dark">{recipe.title}</h2>
-          {!recipe.isBuiltIn && (
-            <div className="flex gap-1">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setShowPrintOptions(!showPrintOptions)}
+              className={`transition-colors p-1 ${showPrintOptions ? "text-terracotta" : "text-brown-light hover:text-terracotta"}`}
+              title="Сохранить PDF"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 14l4 4 4-4M10 18V8M3 10V4a1 1 0 011-1h12a1 1 0 011 1v6" />
+              </svg>
+            </button>
+            {!recipe.isBuiltIn && (<>
               <button
                 onClick={onEdit}
                 className="text-brown-light hover:text-terracotta transition-colors p-1"
                 title="Редактировать"
               >
-                <Icon name="notebook" size={20} />
+                <Icon name="pencil" size={20} />
               </button>
               <button
                 onClick={handleDelete}
@@ -220,9 +644,33 @@ function RecipeDetail({
               >
                 <Icon name="trash" size={20} />
               </button>
-            </div>
-          )}
+            </>)}
+          </div>
         </div>
+
+        {showPrintOptions && (
+          <div className="bg-warm-beige/30 rounded-xl p-3 mb-3 flex items-center justify-between animate-fade-up">
+            {recipe.photos && (
+              <label className="flex items-center gap-2 text-sm text-brown cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={printWithPhotos}
+                  onChange={(e) => setPrintWithPhotos(e.target.checked)}
+                  className="accent-terracotta w-4 h-4"
+                />
+                С фото
+              </label>
+            )}
+            {!recipe.photos && <span />}
+            <button
+              onClick={() => { handleSharePdf(); setShowPrintOptions(false); }}
+              className="px-4 py-1.5 bg-terracotta text-white text-sm font-bold rounded-xl hover:brightness-110 transition-all"
+            >
+              Сохранить PDF
+            </button>
+          </div>
+        )}
+
         {recipe.description && (
           <p className="text-brown-light mb-4">{recipe.description}</p>
         )}
@@ -233,7 +681,13 @@ function RecipeDetail({
           return (
             <div className="flex gap-2 mb-4 overflow-x-auto">
               {photoUrls.map((url, i) => (
-                <img key={i} src={url} alt="" className="w-28 h-28 object-cover rounded-xl border-2 border-warm-beige/60 shrink-0" />
+                <img
+                  key={i}
+                  src={url}
+                  alt=""
+                  className="w-28 h-28 object-cover rounded-xl border-2 border-warm-beige/60 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => { setViewPhotos(photoUrls); setViewPhotoIndex(i); }}
+                />
               ))}
             </div>
           );
@@ -246,7 +700,7 @@ function RecipeDetail({
           </div>
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light flex items-center gap-1 justify-center">
-              <Icon name="leaven" size={12} /> Закваска
+              <img src="/ear.png" alt="" className="h-3.5 w-auto inline opacity-60" /> Закваска
             </p>
             <p className="text-sm font-bold text-brown">{recipe.starterPct}%</p>
           </div>
@@ -272,7 +726,7 @@ function RecipeDetail({
           })()}
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light flex items-center gap-1 justify-center">
-              <Icon name="drop" size={12} /> Гидратация
+              <Icon name="drop" size={14} /> Гидратация
               {calcData && (
                 <button
                   onClick={() => setShowDetailCalc(!showDetailCalc)}
@@ -323,40 +777,33 @@ function RecipeDetail({
           const ings = JSON.parse(recipe.ingredients) as Ingredient[];
           const recipePhases = [...new Set(ings.map(ing => ing.phase).filter(Boolean))] as string[];
           const noPhase = ings.filter(ing => !ing.phase);
-          const starterKeywords = ["закваска", "стартер", "левен"];
-          const liquidKeywords = ["вода", "молоко", "кефир", "пахта", "сыворотка", "сок", "йогурт"];
-          const isStarter = (name: string) => starterKeywords.some(k => name.toLowerCase().includes(k));
-          const isLiquid = (name: string) => liquidKeywords.some(k => name.toLowerCase().includes(k));
-
           // Считаем разницу воды при смене гидратации закваски
           let waterDiff = 0;
           if (starterHydrationChanged) {
             for (const ing of ings) {
-              if (isStarter(ing.name)) {
+              if (getRole(ing) === "starter") {
                 const amount = parseFloat(ing.amount) || 0;
                 const ingH = ing.hydration || 100;
                 const flourInStarter = amount / (1 + ingH / 100);
                 const originalWater = amount - flourInStarter;
                 const newWater = flourInStarter * (starterHydration / 100);
-                waterDiff = originalWater - newWater; // положительное = нужно добавить воды
+                waterDiff = originalWater - newWater;
               }
             }
           }
 
           let waterDiffApplied = false;
           const renderIng = (ing: Ingredient, i: number) => {
-            const starter = isStarter(ing.name);
-            const liquid = isLiquid(ing.name);
+            const role = getRole(ing);
             let displayAmount = ing.amount;
-            if (starter && starterHydrationChanged) {
+            if (role === "starter" && starterHydrationChanged) {
               const originalAmount = parseFloat(ing.amount) || 0;
               const ingH = ing.hydration || 100;
               const flourInStarter = originalAmount / (1 + ingH / 100);
               const newAmount = Math.round(flourInStarter * (1 + starterHydration / 100));
               displayAmount = String(newAmount);
             }
-            if (liquid && starterHydrationChanged && waterDiff !== 0 && !waterDiffApplied) {
-              // Компенсируем разницу воды в первом жидком ингредиенте
+            if (role === "liquid" && starterHydrationChanged && waterDiff !== 0 && !waterDiffApplied) {
               const originalAmount = parseFloat(ing.amount) || 0;
               displayAmount = String(Math.round(originalAmount + waterDiff));
               waterDiffApplied = true;
@@ -365,7 +812,7 @@ function RecipeDetail({
               <div key={i} className="flex justify-between items-center bg-warm-beige/30 rounded-lg px-3 py-1.5">
                 <span className="text-sm text-brown">
                   {ing.name}
-                  {starter && (
+                  {role === "starter" && (
                     <span className="text-[10px] text-brown-light/70 bg-warm-beige/60 rounded-full px-1.5 py-0.5 ml-1.5">{starterHydration}%</span>
                   )}
                 </span>
@@ -435,6 +882,13 @@ function RecipeDetail({
           </div>
         )}
       </div>
+      {viewPhotos && (
+        <PhotoViewer
+          photos={viewPhotos}
+          startIndex={viewPhotoIndex}
+          onClose={() => setViewPhotos(null)}
+        />
+      )}
     </div>
   );
 }
@@ -459,12 +913,18 @@ interface ScannedRecipe {
   steps?: string[];
 }
 
-function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreated: () => void; initial?: ScannedRecipe; editId?: string; initialPhotos?: string[] }) {
+function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPreviewHidden }: { onCreated: () => void; initial?: ScannedRecipe; editId?: string; initialPhotos?: string[]; initialPreviewHidden?: string[] }) {
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [flour, setFlour] = useState(initial?.flour || "Пшеничная");
   const [hydration, setHydration] = useState(String(initial?.hydration || "70"));
-  const [starterPct, setStarterPct] = useState(String(initial?.starterPct || "20"));
+
+  // Определяем, есть ли закваска в ингредиентах
+  const hasStarter = (initial?.ingredients || []).some(ing =>
+    ["закваска", "стартер", "левен", "leaven", "материнская", "культура"].some(k => ing.name.toLowerCase().includes(k))
+  );
+
+  const [starterPct, setStarterPct] = useState(hasStarter ? String(initial?.starterPct || "20") : "");
   const [salt, setSalt] = useState(initial?.salt ? String(initial.salt) : "10");
   const [showCalc, setShowCalc] = useState(false);
   const [showPhaseInput, setShowPhaseInput] = useState(false);
@@ -476,19 +936,18 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
   const [photos, setPhotos] = useState<string[]>(initialPhotos || []);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const starterKeywords = ["закваска", "стартер", "левен"];
-  const isStarter = (name: string) => starterKeywords.some(k => name.toLowerCase().includes(k));
+  const [openMenuIdx, setOpenMenuIdx] = useState<number | null>(null);
+  const [previewHidden, setPreviewHidden] = useState<string[]>(
+    initialPreviewHidden || (!hasStarter && initial?.ingredients ? ["starter"] : [])
+  );
 
   const savedStarterHydration = (() => {
-    const starter = (initial?.ingredients || []).find(ing => isStarter(ing.name));
+    if (!hasStarter) return 0;
+    const starter = (initial?.ingredients || []).find(ing => getRole(ing) === "starter");
     return starter?.hydration || 100;
   })();
-  const [starterHydrationStr, setStarterHydrationStr] = useState(String(savedStarterHydration));
+  const [starterHydrationStr, setStarterHydrationStr] = useState(hasStarter ? String(savedStarterHydration) : "");
   const starterHydration = parseInt(starterHydrationStr) || 100;
-
-  const liquidKeywords = ["вода", "молоко", "кефир", "пахта", "сыворотка", "сок", "йогурт"];
-  const isLiquid = (name: string) => liquidKeywords.some(k => name.toLowerCase().includes(k));
 
   // Запоминаем оригинальные количества закваски и первой жидкости
   const [originalAmounts] = useState(() => {
@@ -496,8 +955,8 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
     let firstLiquidIdx = -1;
     let firstLiquidAmount = 0;
     (initial?.ingredients || []).forEach((ing, i) => {
-      if (isStarter(ing.name)) starter[i] = parseFloat(ing.amount) || 0;
-      if (isLiquid(ing.name) && firstLiquidIdx === -1) {
+      if (getRole(ing) === "starter") starter[i] = parseFloat(ing.amount) || 0;
+      if (getRole(ing) === "liquid" && firstLiquidIdx === -1) {
         firstLiquidIdx = i;
         firstLiquidAmount = parseFloat(ing.amount) || 0;
       }
@@ -519,7 +978,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
     }
 
     setIngredients(prev => prev.map((ing, i) => {
-      if (isStarter(ing.name)) {
+      if (getRole(ing) === "starter") {
         const original = originalAmounts.starter[i];
         if (original === undefined) return ing;
         const flourInStarter = original / (1 + savedStarterHydration / 100);
@@ -535,17 +994,16 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
     }));
   }
 
-  function togglePin(index: number) {
-    setIngredients(prev => prev.map((ing, i) => {
-      if (i !== index) return ing;
-      if (!ing.pinned) {
-        return { ...ing, pinned: true, pinnedUnit: "g" };
-      }
-      if (ing.pinnedUnit === "g") {
-        return { ...ing, pinnedUnit: "%" };
-      }
-      return { ...ing, pinned: false, pinnedUnit: undefined };
-    }));
+  function pinAs(index: number, unit: "g" | "%") {
+    setIngredients(prev => prev.map((ing, i) =>
+      i === index ? { ...ing, pinned: true, pinnedUnit: unit } : ing
+    ));
+  }
+
+  function unpin(index: number) {
+    setIngredients(prev => prev.map((ing, i) =>
+      i === index ? { ...ing, pinned: false, pinnedUnit: undefined } : ing
+    ));
   }
 
   // Вычислить расчёт гидратации из текущих ингредиентов
@@ -555,31 +1013,27 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
       return null;
     }
 
-    const flourKeywords = ["мука", "солод"];
-    const liquidKeywords = ["вода", "молоко", "кефир", "пахта", "сыворотка", "сок", "йогурт"];
-    const starterKeywords = ["закваска", "стартер", "левен"];
-
     const flourItems: string[] = [];
     const liquidItems: string[] = [];
     let totalFlour = 0;
     let totalLiquid = 0;
 
     for (const ing of ingredients) {
-      const nameLower = ing.name.toLowerCase();
       const amount = parseFloat(ing.amount) || 0;
       if (amount <= 0) continue;
+      const role = getRole(ing);
 
-      if (starterKeywords.some(k => nameLower.includes(k))) {
+      if (role === "starter") {
         const sFlour = amount / (1 + starterHydration / 100);
         const sWater = amount - sFlour;
         flourItems.push(`${ing.name} (мука) ${Math.round(sFlour)}г`);
         liquidItems.push(`${ing.name} (вода) ${Math.round(sWater)}г`);
         totalFlour += sFlour;
         totalLiquid += sWater;
-      } else if (flourKeywords.some(k => nameLower.includes(k))) {
+      } else if (role === "flour") {
         flourItems.push(`${ing.name} ${ing.amount}${ing.unit}`);
         totalFlour += amount;
-      } else if (liquidKeywords.some(k => nameLower.includes(k))) {
+      } else if (role === "liquid") {
         liquidItems.push(`${ing.name} ${ing.amount}${ing.unit}`);
         totalLiquid += amount;
       }
@@ -614,8 +1068,6 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
     const h = parseFloat(newHydration) || 0;
     if (h <= 0 || ingredients.length === 0) return;
 
-    const flourKeywords = ["мука", "солод"];
-
     // Находим индекс первого ингредиента "вода" — его будем пересчитывать
     const mainWaterIdx = ingredients.findIndex(ing =>
       ing.name.toLowerCase().includes("вода")
@@ -627,17 +1079,17 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
 
     for (let i = 0; i < ingredients.length; i++) {
       const ing = ingredients[i];
-      const nameLower = ing.name.toLowerCase();
       const amount = parseFloat(ing.amount) || 0;
       if (amount <= 0) continue;
+      const role = getRole(ing);
 
-      if (starterKeywords.some(k => nameLower.includes(k))) {
+      if (role === "starter") {
         const sFlour = amount / (1 + starterHydration / 100);
         totalFlour += sFlour;
         otherLiquid += amount - sFlour;
-      } else if (flourKeywords.some(k => nameLower.includes(k))) {
+      } else if (role === "flour") {
         totalFlour += amount;
-      } else if (isLiquid(ing.name) && i !== mainWaterIdx) {
+      } else if (role === "liquid" && i !== mainWaterIdx) {
         otherLiquid += amount;
       }
     }
@@ -689,7 +1141,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
       .filter(Boolean);
 
     const filteredIngredients = ingredients.filter(ing => ing.name.trim()).map(ing => {
-      if (isStarter(ing.name)) {
+      if (getRole(ing) === "starter") {
         return { ...ing, hydration: starterHydration };
       }
       const { hydration: _h, ...rest } = ing;
@@ -711,6 +1163,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
         hydrationCalc: initial?.hydrationCalc ? JSON.stringify(initial.hydrationCalc) : null,
         steps: JSON.stringify(steps),
         photos: photos.length > 0 ? JSON.stringify(photos) : null,
+        previewHidden: previewHidden.length > 0 ? JSON.stringify(previewHidden) : null,
       }),
     });
 
@@ -729,7 +1182,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
   }
 
   const inputClass =
-    "w-full mt-1 px-4 py-3 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark focus:outline-none focus:border-terracotta transition-colors";
+    "w-full mt-1 px-3 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm focus:outline-none focus:border-terracotta transition-colors";
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-card rounded-2xl p-5 card-shadow border border-warm-beige/60 space-y-4 animate-fade-up">
@@ -749,13 +1202,14 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
 
       <div>
         <label className="text-sm font-medium text-brown">Описание</label>
-        <input
-          type="text"
+        <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => { setDescription(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+          onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
           placeholder="Краткое описание"
-          className={inputClass}
-        />
+          rows={1}
+          className={`${inputClass} resize-none overflow-hidden`}
+        ></textarea>
       </div>
 
       <div>
@@ -815,29 +1269,60 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
           </div>
           <input
             type="number"
-            value={hydration}
+            value={liveCalcData ? Math.round(liveCalcData.totalLiquid / liveCalcData.totalFlour * 100) : hydration}
             onChange={(e) => { setHydration(e.target.value); calcWaterFromHydration(e.target.value); }}
             className={inputClass}
           />
         </div>
       </div>
 
-      {showCalc && liveCalcData && (
+      {showCalc && (
         <div className="bg-warm-beige/40 rounded-xl p-3 text-sm space-y-2 animate-fade-up">
           <p className="font-bold text-brown-dark text-xs">Расчёт гидратации:</p>
+          <p className="text-[10px] text-brown-light">Нажми на роль, чтобы изменить</p>
+
+          {/* Ингредиенты с ролями */}
           <div className="space-y-1">
-            <p className="text-brown">
-              <span className="font-medium">Мука ({liveCalcData.totalFlour}г):</span>{" "}
-              {liveCalcData.flourItems.join(", ")}
-            </p>
-            <p className="text-brown">
-              <span className="font-medium">Жидкости ({liveCalcData.totalLiquid}г):</span>{" "}
-              {liveCalcData.liquidItems.join(", ")}
-            </p>
-            <p className="text-terracotta font-bold text-xs mt-1">
-              {liveCalcData.formula}
-            </p>
+            {ingredients.filter(ing => (parseFloat(ing.amount) || 0) > 0).map((ing, idx) => {
+              const realIdx = ingredients.indexOf(ing);
+              const role = getRole(ing);
+              const isAuto = !ing.role;
+              return (
+                <div key={realIdx} className="flex items-center justify-between gap-2 bg-white/50 rounded-lg px-2 py-1">
+                  <span className="text-xs text-brown truncate flex-1">{ing.name} — {ing.amount}{ing.unit}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = ROLE_ORDER[(ROLE_ORDER.indexOf(role) + 1) % ROLE_ORDER.length];
+                      setIngredients(prev => prev.map((v, i) => i === realIdx ? { ...v, role: next } : v));
+                    }}
+                    className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${ROLE_COLORS[role]} ${isAuto ? "border-dashed" : ""}`}
+                    title={isAuto ? "Авто" : "Вручную"}
+                  >
+                    {ROLE_LABELS[role]}
+                  </button>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Итог */}
+          {liveCalcData && (
+            <div className="space-y-1 pt-2 border-t border-warm-beige/60">
+              <p className="text-brown">
+                <span className="font-medium">Мука ({liveCalcData.totalFlour}г):</span>{" "}
+                {liveCalcData.flourItems.join(", ")}
+              </p>
+              <p className="text-brown">
+                <span className="font-medium">Жидкости ({liveCalcData.totalLiquid}г):</span>{" "}
+                {liveCalcData.liquidItems.join(", ")}
+              </p>
+              <p className="text-terracotta font-bold text-xs mt-1">
+                {liveCalcData.formula}
+              </p>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pt-2 border-t border-warm-beige/60">
             <span className="text-xs text-brown-light shrink-0">Гидратация закваски:</span>
             <input
@@ -861,7 +1346,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
         {ingredients.filter(ing => !ing.phase).length > 0 && (
           <div className="space-y-1.5">
             {ingredients.map((ing, i) => !ing.phase && (
-              <div key={i} className="flex gap-1 items-center min-w-0">
+              <div key={i} className={`flex gap-1 items-center min-w-0 rounded-xl px-1 py-0.5 transition-colors ${ing.pinned ? "bg-golden/10 ring-1 ring-golden/30" : ""}`}>
                 <input
                   type="text"
                   value={ing.name}
@@ -883,25 +1368,56 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
                   placeholder="ед"
                   className="w-10 shrink-0 px-1 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm text-center focus:outline-none focus:border-terracotta transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => togglePin(i)}
-                  className={`shrink-0 p-0.5 transition-colors text-xs font-bold rounded ${
-                    ing.pinned
-                      ? ing.pinnedUnit === "%" ? "text-terracotta" : "text-golden"
-                      : "text-brown-light/40 hover:text-brown-light"
-                  }`}
-                  title={ing.pinned ? (ing.pinnedUnit === "g" ? "В шапке (г) → нажми для %" : "В шапке (%) → нажми чтобы убрать") : "Закрепить в шапке"}
-                >
-                  {ing.pinned ? (ing.pinnedUnit === "%" ? "%" : "г") : "📌"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(i)}
-                  className="shrink-0 text-brown-light hover:text-red-500 transition-colors p-0.5"
-                >
-                  <Icon name="trash" size={14} />
-                </button>
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenuIdx(openMenuIdx === i ? null : i)}
+                    className="p-1 text-brown-light/40 hover:text-brown-light transition-colors"
+                  >
+                    <svg width={16} height={16} viewBox="0 0 32 32" fill="currentColor"><circle cx="16" cy="6" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="16" cy="26" r="3"/></svg>
+                  </button>
+                  {openMenuIdx === i && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setOpenMenuIdx(null)} />
+                      <div className="absolute right-0 top-full mt-1 bg-card border-2 border-warm-beige rounded-xl overflow-hidden card-shadow-lg z-30 min-w-[160px] animate-fade-up">
+                        <button
+                          type="button"
+                          onClick={() => { pinAs(i, "g"); setOpenMenuIdx(null); }}
+                          className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium transition-colors ${ing.pinned && ing.pinnedUnit === "g" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
+                        >
+                          <Icon name="pin" size={14} />
+                          В шапку (г)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { pinAs(i, "%"); setOpenMenuIdx(null); }}
+                          className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium border-t border-warm-beige/60 transition-colors ${ing.pinned && ing.pinnedUnit === "%" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
+                        >
+                          <Icon name="pin" size={14} />
+                          В шапку (%)
+                        </button>
+                        {ing.pinned && (
+                          <button
+                            type="button"
+                            onClick={() => { unpin(i); setOpenMenuIdx(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-brown-light hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
+                          >
+                            <Icon name="close" size={14} />
+                            Открепить
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { removeIngredient(i); setOpenMenuIdx(null); }}
+                          className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-t border-warm-beige/60"
+                        >
+                          <Icon name="trash" size={14} />
+                          Удалить
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -923,7 +1439,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
               </button>
             </div>
             {ingredients.map((ing, i) => ing.phase === phase && (
-              <div key={i} className="flex gap-1 items-center min-w-0">
+              <div key={i} className={`flex gap-1 items-center min-w-0 rounded-xl px-1 py-0.5 transition-colors ${ing.pinned ? "bg-golden/10 ring-1 ring-golden/30" : ""}`}>
                 <input
                   type="text"
                   value={ing.name}
@@ -945,25 +1461,56 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
                   placeholder="ед"
                   className="w-10 shrink-0 px-1 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm text-center focus:outline-none focus:border-terracotta transition-colors"
                 />
-                <button
-                  type="button"
-                  onClick={() => togglePin(i)}
-                  className={`shrink-0 p-0.5 transition-colors text-xs font-bold rounded ${
-                    ing.pinned
-                      ? ing.pinnedUnit === "%" ? "text-terracotta" : "text-golden"
-                      : "text-brown-light/40 hover:text-brown-light"
-                  }`}
-                  title={ing.pinned ? (ing.pinnedUnit === "g" ? "В шапке (г) → нажми для %" : "В шапке (%) → нажми чтобы убрать") : "Закрепить в шапке"}
-                >
-                  {ing.pinned ? (ing.pinnedUnit === "%" ? "%" : "г") : "📌"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(i)}
-                  className="shrink-0 text-brown-light hover:text-red-500 transition-colors p-0.5"
-                >
-                  <Icon name="trash" size={14} />
-                </button>
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenuIdx(openMenuIdx === i ? null : i)}
+                    className="p-1 text-brown-light/40 hover:text-brown-light transition-colors"
+                  >
+                    <svg width={16} height={16} viewBox="0 0 32 32" fill="currentColor"><circle cx="16" cy="6" r="3"/><circle cx="16" cy="16" r="3"/><circle cx="16" cy="26" r="3"/></svg>
+                  </button>
+                  {openMenuIdx === i && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setOpenMenuIdx(null)} />
+                      <div className="absolute right-0 top-full mt-1 bg-card border-2 border-warm-beige rounded-xl overflow-hidden card-shadow-lg z-30 min-w-[160px] animate-fade-up">
+                        <button
+                          type="button"
+                          onClick={() => { pinAs(i, "g"); setOpenMenuIdx(null); }}
+                          className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium transition-colors ${ing.pinned && ing.pinnedUnit === "g" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
+                        >
+                          <Icon name="pin" size={14} />
+                          В шапку (г)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { pinAs(i, "%"); setOpenMenuIdx(null); }}
+                          className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium border-t border-warm-beige/60 transition-colors ${ing.pinned && ing.pinnedUnit === "%" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
+                        >
+                          <Icon name="pin" size={14} />
+                          В шапку (%)
+                        </button>
+                        {ing.pinned && (
+                          <button
+                            type="button"
+                            onClick={() => { unpin(i); setOpenMenuIdx(null); }}
+                            className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-brown-light hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
+                          >
+                            <Icon name="close" size={14} />
+                            Открепить
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { removeIngredient(i); setOpenMenuIdx(null); }}
+                          className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-t border-warm-beige/60"
+                        >
+                          <Icon name="trash" size={14} />
+                          Удалить
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
             <button
@@ -1089,6 +1636,32 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos }: { onCreate
             />
           </label>
         )}
+      </div>
+
+      {/* Превью-поля */}
+      <div>
+        <label className="text-sm font-medium text-brown">Показывать в превью</label>
+        <div className="flex gap-2 mt-1.5 flex-wrap">
+          {([["flour", "Мука"], ["starter", "Закваска"], ["hydration", "Гидратация"]] as const).map(([key, label]) => {
+            const hidden = previewHidden.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPreviewHidden(prev =>
+                  hidden ? prev.filter(k => k !== key) : [...prev, key]
+                )}
+                className={`px-3 py-1.5 text-sm font-medium rounded-xl border-2 transition-all ${
+                  hidden
+                    ? "border-warm-beige/60 text-brown-light/40 bg-warm-beige/20"
+                    : "border-golden/40 text-golden bg-golden/10"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <button
@@ -1290,6 +1863,41 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
   const [converting, setConverting] = useState<Recipe | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
+
+  async function handleTogglePin(recipe: Recipe) {
+    const newPinned = !recipe.pinned;
+    await fetch("/api/recipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: recipe.id, pinned: newPinned }),
+    });
+    setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, pinned: newPinned } : r));
+  }
+
+  async function handleToggleHide(recipe: Recipe) {
+    const newHidden = !recipe.hidden;
+    await fetch("/api/recipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: recipe.id, hidden: newHidden }),
+    });
+    setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, hidden: newHidden } : r));
+  }
+
+  function handleReorder(orderedIds: string[]) {
+    // Сразу обновляем локальный порядок
+    setRecipes(prev => {
+      const map = new Map(prev.map(r => [r.id, r]));
+      return orderedIds.map(id => map.get(id)!).concat(prev.filter(r => !orderedIds.includes(r.id)));
+    });
+    // Сохраняем на сервер в фоне
+    fetch("/api/recipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reorder: orderedIds }),
+    });
+  }
 
   // При повторном нажатии на вкладку — вернуться к списку
   useEffect(() => {
@@ -1310,6 +1918,34 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
     loadRecipes();
   }, [loadRecipes]);
 
+  // Сжатие фото перед отправкой — телефонные фото слишком большие для Gemini API
+  function compressImage(file: File, maxSize = 1600, quality = 0.8): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const scale = maxSize / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not supported")); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error("Не удалось загрузить изображение"));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function handleScanPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -1318,8 +1954,16 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
     setScanError("");
 
     const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append("photo", files[i]);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await compressImage(files[i]);
+        formData.append("photo", compressed, files[i].name || `photo-${i}.jpg`);
+      }
+    } catch (err) {
+      setScanError("Ошибка при обработке фото: " + String(err));
+      setScanning(false);
+      e.target.value = "";
+      return;
     }
 
     try {
@@ -1327,6 +1971,15 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
         method: "POST",
         body: formData,
       });
+
+      if (!res.ok) {
+        let msg = `Ошибка сервера (${res.status})`;
+        try { const err = await res.json(); msg = err.error + (err.details ? ": " + err.details : ""); } catch {}
+        setScanError(msg);
+        setScanning(false);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.error) {
@@ -1337,6 +1990,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
 
       setScanned(data);
       setShowAdd(true);
+      setShowList(false);
     } catch (err) {
       setScanError("Ошибка при распознавании: " + String(err));
     }
@@ -1358,8 +2012,6 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
 
   return (
     <div className="flex flex-col items-center px-4 py-4 gap-4 pb-24 animate-fade-up">
-      <Icon name="recipe-page" size={40} className="text-terracotta" />
-      <h2 className="text-xl font-extrabold text-brown-dark">Рецепты</h2>
 
       {converting && (
         <RecipeConverter
@@ -1402,6 +2054,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
               steps: JSON.parse(editing.steps),
             }}
             initialPhotos={editing.photos ? JSON.parse(editing.photos) : undefined}
+            initialPreviewHidden={editing.previewHidden ? JSON.parse(editing.previewHidden) : undefined}
             onCreated={() => {
               loadRecipes();
               setEditing(null);
@@ -1476,17 +2129,37 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
             <p className="text-red-500 text-sm text-center">{scanError}</p>
           )}
 
-          <div className="w-full max-w-sm space-y-3">
-            {recipes.filter((r) => !r.parentId).map((r) => (
-              <RecipeCard key={r.id} recipe={r} onSelect={(r) => { setSelected(r); setShowList(false); }} />
-            ))}
-          </div>
+          {(() => {
+            const visible = recipes.filter(r => !r.parentId && (showHidden || !r.hidden)).sort((a, b) => Number(b.pinned) - Number(a.pinned));
+            const hiddenCount = recipes.filter(r => !r.parentId && r.hidden).length;
+            return (
+              <>
+                <DraggableRecipeList
+                  recipes={visible}
+                  onSelect={(r) => { setSelected(r); setShowList(false); }}
+                  onTogglePin={handleTogglePin}
+                  onToggleHide={handleToggleHide}
+                  onReorder={handleReorder}
+                />
 
-          {recipes.length === 0 && (
-            <p className="text-brown-light text-center py-8">
-              Пока нет рецептов. Добавь свой первый!
-            </p>
-          )}
+                {hiddenCount > 0 && (
+                  <button
+                    onClick={() => setShowHidden(!showHidden)}
+                    className="flex items-center gap-1.5 text-sm text-brown-light hover:text-brown transition-colors"
+                  >
+                    <Icon name={showHidden ? "eye-off" : "eye"} size={16} />
+                    {showHidden ? "Скрыть спрятанные" : `Показать скрытые (${hiddenCount})`}
+                  </button>
+                )}
+
+                {visible.length === 0 && !hiddenCount && (
+                  <p className="text-brown-light text-center py-8">
+                    Пока нет рецептов. Добавь свой первый!
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
     </div>

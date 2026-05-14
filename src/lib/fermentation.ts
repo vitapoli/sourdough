@@ -102,7 +102,6 @@ export interface UserObservation {
   temperature: number;
   flourType: string;
   peakTimeHours: number;
-  readyTimeHours: number;
   peakMultiplier: number;
 }
 
@@ -127,17 +126,14 @@ function calculateFromUserData(
   // Нормализуем время к 22°C, потом пересчитываем на нужную температуру
   const closestTempCoeff = temperatureCoefficient(closest.temperature);
   const peakAt22 = closest.peakTimeHours / closestTempCoeff;
-  const readyAt22 = closest.readyTimeHours / closestTempCoeff;
 
   // Корректировка по разнице в соотношении
   const ratioDiff = ratio / closest.ratio;
   const adjustedPeakAt22 = peakAt22 * Math.pow(ratioDiff, 0.7);
-  const adjustedReadyAt22 = readyAt22 * Math.pow(ratioDiff, 0.7);
 
   // Применяем целевую температуру
   const targetTempCoeff = temperatureCoefficient(temperature);
   const peakTime = adjustedPeakAt22 * targetTempCoeff;
-  const readyTime = adjustedReadyAt22 * targetTempCoeff;
 
   // Среднее значение множителя из наблюдений той же муки
   const sameFlourObs = observations.filter((o) => o.flourType === flourType);
@@ -150,7 +146,7 @@ function calculateFromUserData(
     peakTimeHours: peakTime,
     peakMultiplier: avgMultiplier,
     readyAtPercent: 80,
-    readyTimeHours: readyTime,
+    readyTimeHours: peakTime * 0.75,
     lagPhaseEnd: 0.2,
     plateauStart: 0.8,
     source: "user",

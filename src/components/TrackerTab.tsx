@@ -44,30 +44,17 @@ const moodBadgeColors: Record<string, string> = {
 };
 
 function FermentationTimers({ hoursAgo, peakTimeHours }: { hoursAgo: number; peakTimeHours: number }) {
-  const readyTimeHours = peakTimeHours * 0.75;
   const timeToPeak = Math.max(0, peakTimeHours - hoursAgo);
-  const timeToReady = Math.max(0, readyTimeHours - hoursAgo);
 
   return (
-    <div className="w-full max-w-sm bg-card rounded-2xl p-3 shadow-sm border border-warm-beige">
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div>
-          <p className="text-[10px] text-brown-light">Прошло</p>
-          <p className="text-sm font-bold text-brown">{formatTime(hoursAgo)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-green-happy font-medium">До готовности</p>
-          <p className="text-sm font-bold text-green-happy">
-            {timeToReady > 0 ? formatTime(timeToReady) : "Готова!"}
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] text-brown-light">До пика</p>
-          <p className="text-sm font-bold text-golden">
-            {timeToPeak > 0 ? formatTime(timeToPeak) : "На пике"}
-          </p>
-        </div>
-      </div>
+    <div className="flex items-center gap-3 text-sm">
+      <span className="text-brown-light">
+        Прошло <span className="font-bold text-brown">{formatTime(hoursAgo)}</span>
+      </span>
+      <span className="text-brown-light/40">|</span>
+      <span className="text-brown-light">
+        До пика <span className="font-bold text-golden">{timeToPeak > 0 ? formatTime(timeToPeak) : "На пике"}</span>
+      </span>
     </div>
   );
 }
@@ -81,7 +68,6 @@ export function TrackerTab() {
   const [liveData, setLiveData] = useState<FeedingData | null>(null);
   const [showLive, setShowLive] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [testMood, setTestMood] = useState<string | null>(null);
 
   // Обновляем время каждые 30 сек чтобы mood и таймеры пересчитывались
   useEffect(() => {
@@ -196,19 +182,10 @@ export function TrackerTab() {
     : undefined;
 
   const moodResult = getStarterMood(lastFeedingAt, peakTimeHours, now);
-  const testMoodData: Record<string, { mood: string; label: string; message: string }> = {
-    new: { mood: "new", label: "Новенькая", message: "Покорми меня в первый раз!" },
-    happy: { mood: "happy", label: "Покормлена", message: "Только покормили, работаю!" },
-    ready: { mood: "ready", label: "Готова!", message: "Можно использовать в тесто!" },
-    peak: { mood: "peak", label: "На пике!", message: "Я на максимуме! Используй меня!" },
-    hungry: { mood: "hungry", label: "Голодная", message: "Пора бы подкрепиться..." },
-  };
-  const { mood, label, message, hoursAgo } = testMood
-    ? { ...moodResult, ...testMoodData[testMood], mood: testMood as Mood }
-    : moodResult;
+  const { mood, label, message, hoursAgo } = moodResult;
 
   return (
-    <div className="flex flex-col items-center px-4 pt-2 pb-20 gap-3">
+    <div className="flex flex-col items-center px-4 pt-2 pb-20 gap-2">
       {/* Переключатель заквасок */}
       <div className="flex gap-1.5 flex-wrap justify-center">
         {starters.map((s) => (
@@ -259,31 +236,7 @@ export function TrackerTab() {
                 <StarterJar mood={mood} name={detail.name} />
               </div>
 
-              {/* Тест-кнопки настроения */}
-              <div className="flex gap-2">
-                {(["new", "happy", "ready", "peak", "hungry"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setTestMood(testMood === m ? null : m)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                      testMood === m
-                        ? "bg-terracotta text-white"
-                        : "bg-card text-brown-light border border-warm-beige"
-                    }`}
-                  >
-                    {testMoodData[m].label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Настроение */}
-              <span
-                className={`px-3.5 py-1.5 rounded-full font-bold text-xs ${moodBadgeColors[mood]}`}
-              >
-                {message}
-              </span>
-
-              {/* Таймеры: прошло / до готовности / до пика */}
+              {/* Таймеры: прошло / до пика */}
               {hoursAgo !== null && peakTimeHours && (
                 <FermentationTimers hoursAgo={hoursAgo} peakTimeHours={peakTimeHours} />
               )}

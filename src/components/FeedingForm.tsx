@@ -123,35 +123,38 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
     <div className="w-full max-w-sm bg-card rounded-2xl p-3.5 card-shadow border border-warm-beige/60 space-y-2.5 animate-fade-up">
       {/* Пропорции — всегда видны */}
       <div className="grid grid-cols-4 gap-2">
-        <div>
-          <label className="text-[10px] font-medium text-brown-light text-center block">Закваска</label>
+        <div className="flex flex-col">
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Закваска</label>
           <input
             type="number"
+            inputMode="decimal"
             value={starterAmount}
             onChange={(e) => setStarterAmount(e.target.value)}
             className={inputClass}
           />
         </div>
-        <div>
-          <label className="text-[10px] font-medium text-brown-light text-center block">Мука, г</label>
+        <div className="flex flex-col">
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Мука, г</label>
           <input
             type="number"
+            inputMode="decimal"
             value={flourAmount}
             onChange={(e) => setFlourAmount(e.target.value)}
             className={inputClass}
           />
         </div>
-        <div>
-          <label className="text-[10px] font-medium text-brown-light text-center block">Вода, г</label>
+        <div className="flex flex-col">
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Вода, г</label>
           <input
             type="number"
+            inputMode="decimal"
             value={waterAmount}
             onChange={(e) => setWaterAmount(e.target.value)}
             className={inputClass}
           />
         </div>
-        <div>
-          <label className="text-[10px] font-medium text-brown-light text-center block">Соотн.</label>
+        <div className="flex flex-col">
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Соотн.</label>
           <div className="px-3 py-2 rounded-xl bg-warm-beige/50 text-sm font-bold text-terracotta text-center">
             {ratio}
           </div>
@@ -215,7 +218,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
       <div className="flex gap-2">
         <button
           onClick={handleFeed}
-          disabled={loading}
+          disabled={loading || sa <= 0 || fa <= 0 || wa <= 0}
           className="flex-1 py-2.5 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <Icon name="flour-bag" size={18} className="opacity-90" />

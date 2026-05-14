@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { formatTime } from "@/lib/formatTime";
+import { PhotoViewer } from "./PhotoViewer";
 
 interface Feeding {
   id: string;
@@ -38,14 +39,10 @@ function ObservationMiniForm({
 }) {
   const [peakH, setPeakH] = useState(feeding.peakTimeHours ? String(Math.floor(feeding.peakTimeHours)) : "");
   const [peakM, setPeakM] = useState(feeding.peakTimeHours ? String(Math.round((feeding.peakTimeHours % 1) * 60)) : "");
-  const [readyH, setReadyH] = useState(feeding.readyTimeHours ? String(Math.floor(feeding.readyTimeHours)) : "");
-  const [readyM, setReadyM] = useState(feeding.readyTimeHours ? String(Math.round((feeding.readyTimeHours % 1) * 60)) : "");
   const [mult, setMult] = useState(feeding.peakMultiplier ? String(feeding.peakMultiplier) : "");
   const [saving, setSaving] = useState(false);
 
   const peakTotal = (parseFloat(peakH) || 0) + (parseFloat(peakM) || 0) / 60;
-  const readyTotal = (parseFloat(readyH) || 0) + (parseFloat(readyM) || 0) / 60;
-  const readyOverPeak = readyTotal > 0 && peakTotal > 0 && readyTotal > peakTotal;
 
   function setMinClamped(setter: (v: string) => void, value: string) {
     const num = parseInt(value);
@@ -55,14 +52,13 @@ function ObservationMiniForm({
   async function handleSave() {
     if (peakTotal === 0 || !mult) return;
     setSaving(true);
-    const readyFinal = readyTotal > 0 ? readyTotal : peakTotal * 0.75;
     await fetch("/api/feedings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: feeding.id,
         peakTimeHours: peakTotal,
-        readyTimeHours: readyFinal,
+        readyTimeHours: peakTotal * 0.75,
         peakMultiplier: parseFloat(mult),
       }),
     });
@@ -98,17 +94,6 @@ function ObservationMiniForm({
         <input type="number" value={peakM} onChange={(e) => setMinClamped(setPeakM, e.target.value)} placeholder="0" min="0" max="59" className={inputClass} />
         <span className="text-[10px] text-brown-light">мин</span>
       </div>
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-xs text-brown-light">Готова:</span>
-        <input type="number" value={readyH} onChange={(e) => setReadyH(e.target.value)} placeholder="" min="0" max="99" className={inputClass} />
-        <span className="text-[10px] text-brown-light">ч</span>
-        <input type="number" value={readyM} onChange={(e) => setMinClamped(setReadyM, e.target.value)} placeholder="" min="0" max="59" className={inputClass} />
-        <span className="text-[10px] text-brown-light">мин</span>
-        <span className="text-[10px] text-brown-light/60 ml-1">(необяз.)</span>
-      </div>
-      {readyOverPeak && (
-        <p className="text-[10px] text-orange-hungry">Готовность не может быть позже пика</p>
-      )}
       <div className="flex items-center gap-1.5">
         <span className="text-xs text-brown-light">Подъём:</span>
         <input type="number" value={mult} onChange={(e) => setMult(e.target.value)} placeholder="2.5" step="0.1" min="1" className={`${inputClass} w-16`} />
@@ -117,7 +102,7 @@ function ObservationMiniForm({
       <div className="flex gap-2">
         <button
           onClick={handleSave}
-          disabled={saving || peakTotal === 0 || !mult || readyOverPeak}
+          disabled={saving || peakTotal === 0 || !mult}
           className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs hover:bg-terracotta-light transition-all disabled:opacity-50"
         >
           {saving ? "..." : "Сохранить"}
@@ -231,6 +216,8 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [observingId, setObservingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
+  const [viewPhotoIndex, setViewPhotoIndex] = useState(0);
 
   async function handleDelete(id: string) {
     setDeletingId(id);
@@ -329,6 +316,11 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
                   {f.waterAmount && `${f.waterAmount}г воды`}
                 </span>
               )}
+              {f.starterAmount && f.flourAmount && (
+                <span className="text-xs text-terracotta bg-terracotta/10 px-2.5 py-1 rounded-lg font-medium">
+                  1:{f.flourAmount / f.starterAmount % 1 === 0 ? (f.flourAmount / f.starterAmount).toFixed(0) : (f.flourAmount / f.starterAmount).toFixed(1)}:{(f.waterAmount || 0) / f.starterAmount % 1 === 0 ? ((f.waterAmount || 0) / f.starterAmount).toFixed(0) : ((f.waterAmount || 0) / f.starterAmount).toFixed(1)}
+                </span>
+              )}
               {f.flourType && (
                 <span className="text-xs text-brown-light bg-warm-beige/70 px-2.5 py-1 rounded-lg font-medium">
                   {f.flourType}
@@ -346,9 +338,6 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
               <div className="flex gap-3 mt-1.5 text-xs">
                 <span className="text-golden bg-golden/10 px-2 py-0.5 rounded-lg font-medium">
                   пик: {formatHours(f.peakTimeHours!)}
-                </span>
-                <span className="text-green-happy bg-green-happy/10 px-2 py-0.5 rounded-lg font-medium">
-                  готова: {formatHours(f.readyTimeHours!)}
                 </span>
                 <span className="text-terracotta bg-terracotta/10 px-2 py-0.5 rounded-lg font-medium">
                   x{f.peakMultiplier}
@@ -370,8 +359,8 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
                       key={pi}
                       src={url}
                       alt="Фото кормления"
-                      className="w-16 h-16 object-cover rounded-xl border border-warm-beige cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => window.open(url, "_blank")}
+                      className="w-16 h-16 object-cover rounded-xl border border-warm-beige cursor-pointer hover:opacity-80 transition-opacity opacity-75 brightness-90 saturate-[0.85]"
+                      onClick={() => { setViewPhotos(urls); setViewPhotoIndex(pi); }}
                     />
                   ))}
                 </div>
@@ -399,6 +388,15 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
           </div>
         );
       })}
+
+      {/* Просмотр фото */}
+      {viewPhotos && (
+        <PhotoViewer
+          photos={viewPhotos}
+          startIndex={viewPhotoIndex}
+          onClose={() => setViewPhotos(null)}
+        />
+      )}
     </div>
   );
 }

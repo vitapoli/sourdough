@@ -106,7 +106,7 @@ export function LiveJar({
   } else if (elapsedHours < result.readyTimeHours) {
     status = { text: "Активный рост", color: "text-golden" };
   } else if (elapsedHours < result.peakTimeHours) {
-    status = { text: "Готова к использованию!", color: "text-green-happy" };
+    status = { text: "Активно пузырюсь и поднимаюсь", color: "text-green-happy" };
   } else if (elapsedHours < result.peakTimeHours * 1.1) {
     status = { text: "На пике!", color: "text-green-happy" };
   } else {
@@ -228,17 +228,11 @@ export function LiveJar({
       {/* Таймеры */}
       {startTime && (
         <div className="w-full bg-card rounded-2xl p-4 shadow-sm border border-warm-beige">
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-2 gap-2 text-center">
             <div>
               <p className="text-xs text-brown-light">Прошло</p>
               <p className="text-lg font-bold text-brown">
                 {formatTime(elapsedHours)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-green-happy font-medium">До готовности</p>
-              <p className="text-lg font-bold text-green-happy">
-                {timeToReady > 0 ? formatTime(timeToReady) : "Готова!"}
               </p>
             </div>
             <div>
@@ -263,7 +257,7 @@ export function LiveJar({
             {result.source === "user" ? "по моим данным" : "общие данные"}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-3 gap-3 text-sm">
           <div>
             <span className="text-brown-light">Пик через: </span>
             <span className="font-bold text-brown">
@@ -274,12 +268,6 @@ export function LiveJar({
             <span className="text-brown-light">Подъём: </span>
             <span className="font-bold text-brown">
               x{result.peakMultiplier.toFixed(1)}
-            </span>
-          </div>
-          <div>
-            <span className="text-brown-light">Готова через: </span>
-            <span className="font-bold text-green-happy">
-              {formatTime(result.readyTimeHours)}
             </span>
           </div>
           <div>
