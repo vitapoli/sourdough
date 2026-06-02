@@ -26,10 +26,15 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
   const body = await request.json();
+  const name = (body.name || "").trim();
+  const flour = (body.flour || "").trim();
+  if (!name || name.length > 30) return NextResponse.json({ error: "Имя должно содержать менее 30 символов" }, { status: 400 });
+  if (flour.length > 30) return NextResponse.json({ error: "Тип муки должен содержать менее 30 символов" }, { status: 400 });
+
   const starter = await prisma.starter.create({
     data: {
-      name: body.name,
-      flour: body.flour,
+      name,
+      flour,
       notes: body.notes,
       userId: session.user.id,
     },

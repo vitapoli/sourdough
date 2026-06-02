@@ -8,11 +8,13 @@ export async function POST(request: Request) {
   const email = validateEmail(body.email || "");
   if (!email) return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
 
-  const name = validateName(body.name || "");
-  if (!name) return NextResponse.json({ error: "Имя от 1 до 50 символов" }, { status: 400 });
+  const nameResult = validateName(body.name || "");
+  if ("error" in nameResult) return NextResponse.json({ error: nameResult.error }, { status: 400 });
+  const name = nameResult.value;
 
-  if (!validatePassword(body.password || "")) {
-    return NextResponse.json({ error: "Пароль минимум 6 символов" }, { status: 400 });
+  const passwordError = validatePassword(body.password || "");
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });

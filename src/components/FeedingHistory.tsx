@@ -23,6 +23,7 @@ interface Feeding {
 
 interface FeedingHistoryProps {
   feedings: Feeding[];
+  starterId: string;
   onChanged?: () => void;
 }
 
@@ -129,10 +130,12 @@ function ObservationMiniForm({
 
 function EditFeedingForm({
   feeding,
+  starterId,
   onSaved,
   onCancel,
 }: {
   feeding: Feeding;
+  starterId: string;
   onSaved: () => void;
   onCancel: () => void;
 }) {
@@ -144,8 +147,51 @@ function EditFeedingForm({
   const [notes, setNotes] = useState(feeding.notes ?? "");
   const [saving, setSaving] = useState(false);
 
+  const existingPhotos: string[] = feeding.photos ? JSON.parse(feeding.photos) : [];
+  const [keepPhotos, setKeepPhotos] = useState<string[]>(existingPhotos);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+
+  const totalPhotos = keepPhotos.length + newFiles.length;
+
+  function handleAddPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files) return;
+    const allowed = 4 - totalPhotos;
+    const added = Array.from(files).slice(0, allowed);
+    const updated = [...newFiles, ...added];
+    setNewFiles(updated);
+    setNewPreviews(updated.map((f) => URL.createObjectURL(f)));
+    e.target.value = "";
+  }
+
+  function removeExisting(url: string) {
+    setKeepPhotos(keepPhotos.filter((u) => u !== url));
+  }
+
+  function removeNew(index: number) {
+    URL.revokeObjectURL(newPreviews[index]);
+    const updated = newFiles.filter((_, i) => i !== index);
+    setNewFiles(updated);
+    setNewPreviews(updated.map((f) => URL.createObjectURL(f)));
+  }
+
   async function handleSave() {
     setSaving(true);
+
+    let allPhotos = [...keepPhotos];
+
+    if (newFiles.length > 0) {
+      const formData = new FormData();
+      formData.append("starterId", starterId);
+      newFiles.forEach((f) => formData.append("photos", f));
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.urls) allPhotos = [...allPhotos, ...data.urls];
+      } catch {}
+    }
+
     await fetch("/api/feedings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -157,6 +203,7 @@ function EditFeedingForm({
         flourType: flourType || null,
         temperature: temperature ? parseFloat(temperature) : null,
         notes: notes || null,
+        photos: allPhotos.length > 0 ? JSON.stringify(allPhotos) : null,
       }),
     });
     setSaving(false);
@@ -200,6 +247,34 @@ function EditFeedingForm({
         <label className="text-xs font-medium text-brown">Заметки</label>
         <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Запах, консистенция..." className={inputClass} />
       </div>
+
+      {/* Фото */}
+      <div>
+        <label className="text-xs font-medium text-brown">Фото</label>
+        <div className="flex gap-2 flex-wrap mt-1">
+          {keepPhotos.map((url, i) => (
+            <div key={url} className="relative w-16 h-16">
+              <img src={url} alt="" className="w-16 h-16 object-cover rounded-xl border-2 border-warm-beige" />
+              <button type="button" onClick={() => removeExisting(url)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">×</button>
+            </div>
+          ))}
+          {newPreviews.map((src, i) => (
+            <div key={i} className="relative w-16 h-16">
+              <img src={src} alt="" className="w-16 h-16 object-cover rounded-xl border-2 border-terracotta/30" />
+              <button type="button" onClick={() => removeNew(i)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">×</button>
+            </div>
+          ))}
+          {totalPhotos < 4 && (
+            <label className="w-16 h-16 flex items-center justify-center rounded-xl border-2 border-dashed border-warm-beige text-brown-light hover:border-terracotta hover:text-terracotta cursor-pointer transition-colors">
+              <Icon name="camera" size={20} />
+              <input type="file" accept="image/*" multiple onChange={handleAddPhotos} className="hidden" />
+            </label>
+          )}
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-terracotta text-white font-bold rounded-xl text-sm hover:bg-terracotta-light transition-all disabled:opacity-50">
           {saving ? "..." : "Сохранить"}
@@ -212,7 +287,7 @@ function EditFeedingForm({
   );
 }
 
-export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
+export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistoryProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [observingId, setObservingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -257,6 +332,7 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
             <EditFeedingForm
               key={f.id}
               feeding={f}
+              starterId={starterId}
               onSaved={() => { setEditingId(null); onChanged?.(); }}
               onCancel={() => setEditingId(null)}
             />
@@ -373,7 +449,7 @@ export function FeedingHistory({ feedings, onChanged }: FeedingHistoryProps) {
                 onClick={() => setObservingId(f.id)}
                 className="mt-2 text-[11px] text-terracotta hover:underline font-medium"
               >
-                {hasObservation ? "Изменить результат" : "Записать результат подъёма"}
+                {hasObservation ? "Изменить результат" : "Записать результат"}
               </button>
             )}
 

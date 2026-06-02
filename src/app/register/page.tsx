@@ -17,6 +17,27 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
+    const trimmedName = name.trim();
+    if (trimmedName.length < 1) {
+      setError("Введите имя");
+      return;
+    }
+    if (trimmedName.length > 30) {
+      setError("Имя должно содержать менее 30 символов");
+      return;
+    }
+    if (!/^[a-zA-Zа-яА-ЯёЁ\s\-]+$/.test(trimmedName)) {
+      setError("Имя должно состоять только из букв");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Пароль минимум 6 символов");
+      return;
+    }
+    if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password) || !/[0-9]/.test(password)) {
+      setError("Пароль должен содержать как буквы так и цифры");
+      return;
+    }
     if (password !== confirm) {
       setError("Пароли не совпадают");
       return;

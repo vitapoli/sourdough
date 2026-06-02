@@ -79,12 +79,18 @@ export function validateEmail(email: string): string | null {
   return trimmed;
 }
 
-export function validateName(name: string): string | null {
+export function validateName(name: string): { value: string } | { error: string } {
   const trimmed = name.trim();
-  if (trimmed.length < 1 || trimmed.length > 50) return null;
-  return trimmed;
+  if (trimmed.length < 1) return { error: "Введите имя" };
+  if (trimmed.length > 30) return { error: "Имя должно содержать менее 30 символов" };
+  if (!/^[a-zA-Zа-яА-ЯёЁ\s\-]+$/.test(trimmed)) return { error: "Имя должно состоять только из букв" };
+  return { value: trimmed };
 }
 
-export function validatePassword(password: string): boolean {
-  return password.length >= 6;
+export function validatePassword(password: string): string | null {
+  if (password.length < 6) return "Пароль минимум 6 символов";
+  if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password) || !/[0-9]/.test(password)) {
+    return "Пароль должен содержать как буквы так и цифры";
+  }
+  return null;
 }

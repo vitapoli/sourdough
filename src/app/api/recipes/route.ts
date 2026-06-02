@@ -15,7 +15,11 @@ export async function GET() {
       ],
     },
     orderBy: [{ pinned: "desc" }, { sortOrder: "asc" }, { isBuiltIn: "desc" }, { createdAt: "desc" }],
-    include: { variants: true },
+    include: {
+      variants: {
+        where: { userId: session.user.id },
+      },
+    },
   });
   return NextResponse.json(recipes);
 }

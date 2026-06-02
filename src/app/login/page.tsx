@@ -91,6 +91,12 @@ export default function LoginPage() {
           >
             {loading ? "Вхожу..." : "Войти"}
           </button>
+
+          <p className="text-center">
+            <a href="/forgot-password" className="text-xs text-brown-light hover:text-terracotta transition-colors">
+              Забыл пароль?
+            </a>
+          </p>
         </form>
 
         <p className="text-center text-sm text-brown-light mt-4">

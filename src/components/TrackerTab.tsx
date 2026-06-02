@@ -296,6 +296,7 @@ export function TrackerTab() {
           {/* История */}
           <FeedingHistory
             feedings={detail.feedings}
+            starterId={selectedId!}
             onChanged={() => {
               if (selectedId) loadDetail(selectedId);
               loadStarters();

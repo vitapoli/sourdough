@@ -16,11 +16,12 @@ model User {
   password  String   // scrypt hash
   createdAt DateTime @default(now())
 
-  starters Starter[]
-  recipes  Recipe[]
-  sessions Session[]
-  likes    Like[]
-  comments Comment[]
+  starters       Starter[]
+  recipes        Recipe[]
+  sessions       Session[]
+  likes          Like[]
+  comments       Comment[]
+  passwordResets PasswordReset[]
 }
 
 // Сессия авторизации
@@ -28,6 +29,16 @@ model Session {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// Токен сброса пароля
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 }

@@ -53,7 +53,7 @@ export function RiseSettings({
   const [open, setOpen] = useState(false);
   const [feedingsWithObs, setFeedingsWithObs] = useState<FeedingWithObs[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showHelp, setShowHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false); // подсказка "как добавить данные"
 
   const onObservationsLoadedRef = useRef(onObservationsLoaded);
   onObservationsLoadedRef.current = onObservationsLoaded;
@@ -90,12 +90,9 @@ export function RiseSettings({
     updateSelection(next);
   }
 
-  function selectAll() {
-    updateSelection(new Set(feedingsWithObs.map((o) => o.id)));
-  }
-
-  function selectNone() {
-    updateSelection(new Set());
+  function toggleAll() {
+    const allSelected = feedingsWithObs.every((o) => selectedIds.has(o.id));
+    updateSelection(allSelected ? new Set() : new Set(feedingsWithObs.map((o) => o.id)));
   }
 
   const selectedCount = feedingsWithObs.filter((o) => selectedIds.has(o.id)).length;
@@ -252,40 +249,21 @@ export function RiseSettings({
         </details>
       )}
 
+
       {/* Подсказка */}
       <button
         onClick={() => setShowHelp(!showHelp)}
         className="text-xs text-terracotta hover:underline font-medium"
       >
-        {showHelp ? "Скрыть подсказки" : "Что такое «готовность» и «пик»?"}
+        {showHelp ? "Скрыть подсказку" : "Как добавить свои данные?"}
       </button>
 
       {showHelp && (
-        <div className="bg-golden/10 rounded-xl p-4 space-y-3 text-sm text-brown animate-fade-up">
-          <div>
-            <p className="font-bold text-golden">Готовность к использованию</p>
-            <p>
-              Закваска достигла ~80% от максимального подъёма. Поверхность
-              куполообразная, много пузырьков. Тест: ложка закваски плавает в воде.
-              В этот момент в ней максимум силы для подъёма теста.
-            </p>
-          </div>
-          <div>
-            <p className="font-bold text-terracotta">Пик</p>
-            <p>
-              Максимальный объём. Поверхность начинает выравниваться или слегка
-              проседать в центре. После пика закваска начинает опадать — дрожжи
-              съели весь корм. Можно использовать, но сила подъёма уже чуть слабее.
-            </p>
-          </div>
-          <div>
-            <p className="font-bold text-orange-hungry">После пика</p>
-            <p>
-              Закваска опадает, появляется жидкость сверху (hooch). Кислотность
-              растёт. Хлеб получится более кислый и хуже поднимется.
-              Лучше покормить и подождать заново.
-            </p>
-          </div>
+        <div className="bg-golden/10 rounded-xl p-4 text-sm text-brown animate-fade-up space-y-1.5">
+          <p>1. Покормите закваску и запишите кормление</p>
+          <p>2. Когда закваска достигнет пика — откройте это кормление в истории</p>
+          <p>3. Укажите время до пика и во сколько раз она поднялась</p>
+          <p>4. Данные появятся здесь — чем больше наблюдений, тем точнее расчёт</p>
         </div>
       )}
 
@@ -294,10 +272,9 @@ export function RiseSettings({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <p className="text-sm font-medium text-brown">Мои наблюдения:</p>
-            <div className="flex gap-2">
-              <button onClick={selectAll} className="text-[10px] text-terracotta hover:underline">Все</button>
-              <button onClick={selectNone} className="text-[10px] text-brown-light hover:underline">Ни одного</button>
-            </div>
+            <button onClick={toggleAll} className="text-[10px] text-terracotta hover:underline">
+              Все
+            </button>
           </div>
 
           {feedingsWithObs.map((f) => {
@@ -351,7 +328,7 @@ export function RiseSettings({
 
       {feedingsWithObs.length === 0 && useCustom && (
         <p className="text-xs text-brown-light text-center py-2">
-          Пока нет наблюдений. Записать результат подъёма можно в истории кормлений.
+          Пока нет наблюдений. Записать результат можно в истории кормлений.
         </p>
       )}
     </div>

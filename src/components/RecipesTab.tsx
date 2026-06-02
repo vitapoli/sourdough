@@ -238,7 +238,7 @@ function DraggableRecipeList({
     return Array.from(containerRef.current.children) as HTMLDivElement[];
   }
 
-  // --- Фаза 1: touchstart → запускаем таймер long press ---
+  // --- Фаза 1: touchstart / mousedown → запускаем таймер long press ---
   function handleTouchStart(e: React.TouchEvent, recipe: Recipe, idx: number) {
     const y = e.touches[0].clientY;
     const el = e.currentTarget as HTMLDivElement;
@@ -246,12 +246,32 @@ function DraggableRecipeList({
 
     longPressTimer.current = setTimeout(() => {
       longPressTimer.current = null;
-      // Показываем меню, вибрация
+      e.preventDefault();
+      window.getSelection()?.removeAllRanges();
       setMenuRecipe(recipe);
       setPhase("menu");
       phaseRef.current = "menu";
       if (navigator.vibrate) navigator.vibrate(30);
     }, 400);
+  }
+
+  function handleMouseDown(e: React.MouseEvent, recipe: Recipe) {
+    if (e.button !== 0) return; // только левая кнопка
+    longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      blockClick.current = true;
+      setTimeout(() => { blockClick.current = false; }, 300);
+      setMenuRecipe(recipe);
+      setPhase("menu");
+      phaseRef.current = "menu";
+    }, 500);
+  }
+
+  function handleMouseUp() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   }
 
   // --- Фаза 2: touchmove ---
@@ -374,7 +394,7 @@ function DraggableRecipeList({
     }
 
     // Если фаза menu — меню уже показано, не трогаем его (пользователь нажмёт кнопку)
-    if (phase !== "menu") {
+    if (phaseRef.current !== "menu") {
       setPhase(null); phaseRef.current = null;
     }
 
@@ -399,10 +419,14 @@ function DraggableRecipeList({
             className={`bg-card rounded-2xl card-shadow border select-none cursor-pointer active:scale-[0.98] hover:card-shadow-lg hover:border-terracotta/30 will-change-transform ${
               r.hidden ? "opacity-50 border-warm-beige/40" : r.pinned ? "border-golden/40" : "border-warm-beige/60"
             }`}
+            style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none" }}
             onTouchStart={(e) => handleTouchStart(e, r, i)}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
+            onMouseDown={(e) => handleMouseDown(e, r)}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
             onClick={() => handleClick(r)}
             onContextMenu={(e) => { e.preventDefault(); setMenuRecipe(r); setPhase("menu"); }}
           >
@@ -1892,12 +1916,12 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
 
   async function handleToggleHide(recipe: Recipe) {
     const newHidden = !recipe.hidden;
-    await fetch("/api/recipes", {
+    setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, hidden: newHidden } : r));
+    fetch("/api/recipes", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: recipe.id, hidden: newHidden }),
     });
-    setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, hidden: newHidden } : r));
   }
 
   async function handleTogglePublic(recipe: Recipe) {

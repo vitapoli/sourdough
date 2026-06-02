@@ -12,9 +12,20 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
   const [flour, setFlour] = useState("Ржаная");
   const [loading, setLoading] = useState(false);
 
+  const [error, setError] = useState("");
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
     if (!name.trim()) return;
+    if (name.trim().length > 30) {
+      setError("Имя должно содержать менее 30 символов");
+      return;
+    }
+    if (flour.trim().length > 30) {
+      setError("Тип муки должен содержать менее 30 символов");
+      return;
+    }
 
     setLoading(true);
     await fetch("/api/starters", {
@@ -32,6 +43,10 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
       <h2 className="text-xl font-semibold text-brown-dark text-center">
         Создай свою закваску
       </h2>
+
+      {error && (
+        <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
+      )}
 
       <div>
         <label className="text-sm text-brown-light">Имя закваски</label>
