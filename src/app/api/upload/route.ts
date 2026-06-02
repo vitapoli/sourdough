@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { getSession } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   const formData = await request.formData();
   const files = formData.getAll("photos") as File[];
   const starterId = formData.get("starterId") as string;

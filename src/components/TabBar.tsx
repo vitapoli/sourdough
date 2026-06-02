@@ -2,12 +2,13 @@
 
 import { Icon } from "./Icon";
 
-export type Tab = "tracker" | "calculator" | "recipes";
+export type Tab = "tracker" | "calculator" | "recipes" | "community";
 
-const tabs: { id: Tab; label: string; icon: "jar" | "calculator-classic" | "recipe-page" }[] = [
+const tabs: { id: Tab; label: string; icon: "jar" | "calculator-classic" | "recipe-page" | "community" }[] = [
   { id: "tracker", label: "Трекер", icon: "jar" },
   { id: "calculator", label: "Калькулятор", icon: "calculator-classic" },
   { id: "recipes", label: "Рецепты", icon: "recipe-page" },
+  { id: "community", label: "Пекари", icon: "community" },
 ];
 
 export function TabBar({
@@ -32,7 +33,7 @@ export function TabBar({
           >
             <Icon name={tab.icon} size={24} />
             <span
-              className={`text-[11px] font-semibold ${
+              className={`text-[10px] font-semibold ${
                 active === tab.id ? "text-terracotta" : ""
               }`}
             >

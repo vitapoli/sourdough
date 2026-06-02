@@ -8,9 +8,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Пользователь
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String   // scrypt hash
+  createdAt DateTime @default(now())
+
+  starters Starter[]
+  recipes  Recipe[]
+  sessions Session[]
+  likes    Like[]
+  comments Comment[]
+}
+
+// Сессия авторизации
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
 // Закваска (у пользователя может быть несколько)
 model Starter {
   id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String   // Имя закваски (например "Ржаная")
   flour     String   // Тип муки (ржаная, пшеничная, и т.д.)
   createdAt DateTime @default(now())
@@ -41,6 +67,8 @@ model Feeding {
 // Рецепт хлеба
 model Recipe {
   id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String   // Название рецепта
   description String?  // Краткое описание
   flour       String   // Тип муки
@@ -56,8 +84,34 @@ model Recipe {
   pinned      Boolean  @default(false) // Закреплённый рецепт (показывается сверху)
   hidden      Boolean  @default(false) // Скрытый рецепт (не показывается в основном списке)
   sortOrder   Int      @default(0)     // Порядок сортировки (меньше = выше)
+  isPublic    Boolean  @default(false) // Опубликован в сообществе
   parentId    String?  // ID оригинального рецепта (для вариантов)
   parent      Recipe?  @relation("RecipeVariants", fields: [parentId], references: [id], onDelete: SetNull)
   variants    Recipe[] @relation("RecipeVariants")
+  likes       Like[]
+  comments    Comment[]
   createdAt   DateTime @default(now())
+}
+
+// Лайк рецепта
+model Like {
+  id        String   @id @default(cuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([recipeId, userId])
+}
+
+// Комментарий к рецепту
+model Comment {
+  id        String   @id @default(cuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
 }

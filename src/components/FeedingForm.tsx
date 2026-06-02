@@ -68,14 +68,20 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
     // Загрузить фото, если есть
     let photosJson: string | undefined;
     if (photoFiles.length > 0) {
-      const formData = new FormData();
-      formData.append("starterId", starterId);
-      photoFiles.forEach((f) => formData.append("photos", f));
-      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-      const uploadData = await uploadRes.json();
-      if (uploadData.urls) {
-        photosJson = JSON.stringify(uploadData.urls);
-        data.photos = photosJson;
+      try {
+        const formData = new FormData();
+        formData.append("starterId", starterId);
+        photoFiles.forEach((f) => formData.append("photos", f));
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+        const uploadData = await uploadRes.json();
+        if (uploadData.urls) {
+          photosJson = JSON.stringify(uploadData.urls);
+          data.photos = photosJson;
+        } else {
+          alert("Не удалось загрузить фото: " + (uploadData.error || "неизвестная ошибка"));
+        }
+      } catch (err) {
+        alert("Ошибка загрузки фото: " + String(err));
       }
     }
 

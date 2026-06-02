@@ -24,7 +24,14 @@ type IconName =
   | "bookmark"
   | "bookmark-fill"
   | "eye-off"
-  | "eye";
+  | "eye"
+  | "community"
+  | "heart"
+  | "heart-fill"
+  | "comment"
+  | "save"
+  | "search"
+  | "globe";
 
 interface IconProps {
   name: IconName;
@@ -294,6 +301,55 @@ const icons: Record<IconName, (size: number) => React.ReactElement> = {
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 16c2.7-5 7.2-8 13-8s10.3 3 13 8c-2.7 5-7.2 8-13 8s-10.3-3-13-8z" />
       <circle cx="16" cy="16" r="4" />
+    </svg>
+  ),
+  // Сообщество — два человечка
+  community: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="10" r="4" />
+      <path d="M4 26c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+      <circle cx="22" cy="10" r="3" />
+      <path d="M22 18c3.3 0 6 2.7 6 6" />
+    </svg>
+  ),
+  // Сердце — пустое
+  heart: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 28S4 20 4 12a6 6 0 0 1 12 0 6 6 0 0 1 12 0c0 8-12 16-12 16z" />
+    </svg>
+  ),
+  // Сердце — заполненное
+  "heart-fill": (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 28S4 20 4 12a6 6 0 0 1 12 0 6 6 0 0 1 12 0c0 8-12 16-12 16z" />
+    </svg>
+  ),
+  // Комментарий — облачко
+  comment: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6h24a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H10l-6 4V8a2 2 0 0 1 2-2z" />
+    </svg>
+  ),
+  // Сохранить — стрелка вниз в лоток
+  save: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 4v16M10 14l6 6 6-6" />
+      <path d="M4 22v4a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-4" />
+    </svg>
+  ),
+  // Поиск — лупа
+  search: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="14" cy="14" r="8" />
+      <path d="M20 20l7 7" />
+    </svg>
+  ),
+  // Глобус — индикатор публичного рецепта
+  globe: (size) => (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="16" cy="16" r="12" />
+      <path d="M4 16h24" />
+      <path d="M16 4c4 4 6 8 6 12s-2 8-6 12c-4-4-6-8-6-12s2-8 6-12" />
     </svg>
   ),
 };

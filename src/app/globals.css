@@ -127,6 +127,14 @@ h1, h2, h3, h4 {
   to { opacity: 1; }
 }
 
+/* Блокировка выделения текста в списке рецептов (долгое нажатие = перетаскивание) */
+.no-callout {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
 /* Safe area для iPhone */
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {

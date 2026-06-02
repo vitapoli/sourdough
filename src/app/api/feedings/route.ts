@@ -1,9 +1,18 @@
 import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 // Добавить кормление
 export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
   const body = await request.json();
+  // Проверяем что закваска принадлежит пользователю
+  const starter = await prisma.starter.findUnique({ where: { id: body.starterId } });
+  if (!starter || starter.userId !== session.user.id) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
   const feeding = await prisma.feeding.create({
     data: {
       starterId: body.starterId,
@@ -22,6 +31,9 @@ export async function POST(request: Request) {
 
 // Обновить кормление (включая данные наблюдения)
 export async function PUT(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
   const body = await request.json();
   const data: Record<string, unknown> = {};
 
@@ -48,6 +60,8 @@ export async function PUT(request: Request) {
 
 // Удалить кормление
 export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {

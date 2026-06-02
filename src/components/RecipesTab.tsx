@@ -59,6 +59,7 @@ interface Recipe {
   isBuiltIn: boolean;
   pinned: boolean;
   hidden: boolean;
+  isPublic: boolean;
   previewHidden: string | null;
   parentId: string | null;
   variants?: Recipe[];
@@ -116,9 +117,10 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
   })() : false;
   const hasPinnedIngs = hasDefaultTags || hasCustomPinned;
 
-  const pinnedIcon = recipe.pinned && (
-    <span className="absolute top-3 right-3">
-      <Icon name="bookmark-fill" size={16} className="text-golden" />
+  const pinnedIcon = (recipe.pinned || recipe.isPublic) && (
+    <span className="absolute top-3 right-3 flex gap-1">
+      {recipe.isPublic && <Icon name="globe" size={16} className="text-terracotta" />}
+      {recipe.pinned && <Icon name="bookmark-fill" size={16} className="text-golden" />}
     </span>
   );
 
@@ -192,12 +194,14 @@ function DraggableRecipeList({
   onSelect,
   onTogglePin,
   onToggleHide,
+  onTogglePublic,
   onReorder,
 }: {
   recipes: Recipe[];
   onSelect: (r: Recipe) => void;
   onTogglePin: (r: Recipe) => void;
   onToggleHide: (r: Recipe) => void;
+  onTogglePublic: (r: Recipe) => void;
   onReorder: (orderedIds: string[]) => void;
 }) {
   const [menuRecipe, setMenuRecipe] = useState<Recipe | null>(null);
@@ -386,8 +390,8 @@ function DraggableRecipeList({
     <>
       <div
         ref={containerRef}
-        className="w-full max-w-sm space-y-3 select-none"
-        style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none", touchAction: phase ? "none" : undefined, userSelect: "none" } as React.CSSProperties}
+        className="w-full max-w-sm space-y-3 select-none no-callout"
+        style={{ touchAction: phase ? "none" : undefined } as React.CSSProperties}
       >
         {recipes.map((r, i) => (
           <div
@@ -427,6 +431,15 @@ function DraggableRecipeList({
               <Icon name={menuRecipe.hidden ? "eye" : "eye-off"} size={18} />
               {menuRecipe.hidden ? "Показать" : "Скрыть"}
             </button>
+            {!menuRecipe.isBuiltIn && (
+            <button
+              onClick={() => { onTogglePublic(menuRecipe); setMenuRecipe(null); setPhase(null); phaseRef.current = null; }}
+              className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
+            >
+              <Icon name="globe" size={18} className={menuRecipe.isPublic ? "text-terracotta" : ""} />
+              {menuRecipe.isPublic ? "Снять с публикации" : "Опубликовать"}
+            </button>
+            )}
           </div>
         </>
       )}
@@ -1122,9 +1135,11 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
       const data = await res.json();
       if (data.urls) {
         setPhotos(prev => [...prev, ...data.urls].slice(0, 3));
+      } else {
+        alert("Не удалось загрузить фото: " + (data.error || "неизвестная ошибка"));
       }
     } catch (err) {
-      console.error("Photo upload error:", err);
+      alert("Ошибка загрузки фото: " + String(err));
     }
     setUploadingPhoto(false);
     e.target.value = "";
@@ -1885,6 +1900,16 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
     setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, hidden: newHidden } : r));
   }
 
+  async function handleTogglePublic(recipe: Recipe) {
+    const newPublic = !recipe.isPublic;
+    await fetch("/api/recipes", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: recipe.id, isPublic: newPublic }),
+    });
+    setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, isPublic: newPublic } : r));
+  }
+
   function handleReorder(orderedIds: string[]) {
     // Сразу обновляем локальный порядок
     setRecipes(prev => {
@@ -2139,6 +2164,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
                   onSelect={(r) => { setSelected(r); setShowList(false); }}
                   onTogglePin={handleTogglePin}
                   onToggleHide={handleToggleHide}
+                  onTogglePublic={handleTogglePublic}
                   onReorder={handleReorder}
                 />
 

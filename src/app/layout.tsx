@@ -16,7 +16,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Sourdough — трекер закваски",
-  description: "Веди свою закваску как тамагочи. Первое русскоязычное приложение для домашних пекарей.",
+  description: "Живая закваска — умный трекер. Первое русскоязычное приложение для домашних пекарей.",
   manifest: "/manifest.json",
   icons: {
     apple: "/apple-touch-icon.png",
@@ -25,6 +25,28 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Sourdough",
+  },
+  openGraph: {
+    title: "Sourdough — трекер закваски",
+    description: "Живая закваска — умный трекер. Рецепты и калькулятор для домашних пекарей.",
+    url: "https://sourdough.viosay.fun",
+    siteName: "Sourdough",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sourdough — трекер закваски для домашних пекарей",
+      },
+    ],
+    locale: "ru_RU",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sourdough — трекер закваски",
+    description: "Живая закваска — умный трекер. Рецепты и калькулятор для домашних пекарей.",
+    images: ["/og-image.png"],
   },
 };
 
