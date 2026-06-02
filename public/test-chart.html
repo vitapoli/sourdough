@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тестирование расчёта закваски</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, sans-serif; background: #faf6f1; color: #3d2c1e; padding: 16px; }
+  h1 { font-size: 18px; text-align: center; margin-bottom: 12px; }
+  .container { max-width: 540px; margin: 0 auto; }
+
+  /* Форма ввода */
+  .panel { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 16px; }
+  .panel h2 { font-size: 14px; margin-bottom: 10px; color: #8b7355; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .field { flex: 1; }
+  .field label { display: block; font-size: 11px; color: #8b7355; margin-bottom: 3px; }
+  .field input, .field select {
+    width: 100%; padding: 7px 8px; border: 2px solid #e8ddd0; border-radius: 10px;
+    background: #faf6f1; font-size: 14px; font-weight: 600; color: #3d2c1e; text-align: center;
+    outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: #c4956a; }
+  .info { font-size: 12px; color: #8b7355; background: #faf6f1; padding: 8px 10px; border-radius: 8px; margin-top: 8px; }
+  .info b { color: #3d2c1e; }
+
+  /* Таблица наблюдений */
+  .obs-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .obs-table th { text-align: left; color: #8b7355; font-weight: 500; padding: 4px 6px; border-bottom: 1px solid #e8ddd0; }
+  .obs-table td { padding: 4px 6px; border-bottom: 1px solid #f0e8dc; }
+  .obs-table input {
+    width: 100%; padding: 4px; border: 1px solid #e8ddd0; border-radius: 6px;
+    font-size: 12px; text-align: center; background: #faf6f1; outline: none;
+  }
+  .obs-table input:focus { border-color: #c4956a; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn {
+    padding: 6px 14px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-add { background: #e8ddd0; color: #3d2c1e; }
+  .btn-add:hover { background: #ddd0c0; }
+  .btn-del { background: none; color: #c4956a; font-size: 16px; padding: 2px 6px; cursor: pointer; border: none; }
+  .btn-del:hover { color: #e07a3a; }
+
+  /* График */
+  .chart-wrap { position: relative; }
+  canvas { width: 100%; height: 240px; display: block; }
+  .legend { display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: #8b7355; }
+  .legend span { display: flex; align-items: center; gap: 4px; }
+  .legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Тестирование расчёта закваски</h1>
+
+  <!-- Ввод параметров кормления -->
+  <div class="panel">
+    <h2>Новое кормление</h2>
+    <div class="row">
+      <div class="field">
+        <label>Закваска, г</label>
+        <input type="number" id="starter" value="10" min="1" step="1">
+      </div>
+      <div class="field">
+        <label>Мука, г</label>
+        <input type="number" id="flour" value="20" min="1" step="1">
+      </div>
+      <div class="field">
+        <label>Вода, г</label>
+        <input type="number" id="water" value="30" min="1" step="1">
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Температура, °C</label>
+        <input type="number" id="temp" value="22" min="0" max="45" step="1">
+      </div>
+      <div class="field">
+        <label>Тип муки</label>
+        <select id="flourType">
+          <option>Пшеничная</option>
+          <option>Ржаная</option>
+        </select>
+      </div>
+    </div>
+    <div class="info" id="calcInfo"></div>
+  </div>
+
+  <!-- Наблюдения -->
+  <div class="panel">
+    <h2>Мои наблюдения (история кормлений с результатом)</h2>
+    <table class="obs-table">
+      <thead>
+        <tr>
+          <th>Закв.</th>
+          <th>Мука</th>
+          <th>Вода</th>
+          <th>°C</th>
+          <th>Пик, ч</th>
+          <th>Подъём</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="obsBody"></tbody>
+    </table>
+    <div class="btn-row">
+      <button class="btn btn-add" id="addObs">+ Добавить наблюдение</button>
+    </div>
+  </div>
+
+  <!-- График -->
+  <div class="panel">
+    <h2>График подъёма</h2>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#c4956a"></span> подъём</span>
+      <span><span class="dot" style="background:#e07a3a"></span> пик</span>
+      <span><span class="dot" style="background:#6b9e3a"></span> готова 80%</span>
+      <span><span class="dot" style="background:#7ba4c4"></span> без наблюдений</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Движок расчёта (копия из fermentation.ts) ---
+
+const peakTimeAt22 = {
+  wheat: { 0.1: 1.5, 0.2: 2, 0.5: 3.5, 1: 5, 2: 7, 3: 9, 5: 12, 10: 17 },
+  rye:   { 0.1: 1, 0.2: 1.5, 0.5: 2.5, 1: 3.5, 2: 5, 3: 7, 5: 9, 10: 14 },
+};
+
+function getProfile(type) { return type.toLowerCase().includes('ржан') ? 'rye' : 'wheat'; }
+function tempCoeff(t) { return Math.pow(0.5, (t - 22) / 5.5); }
+function hydrCoeff(h) { return Math.pow(100 / Math.max(30, Math.min(300, h)), 0.35); }
+
+function interpolate(ratio, flourType) {
+  const data = peakTimeAt22[getProfile(flourType)];
+  const keys = [0.1, 0.2, 0.5, 1, 2, 3, 5, 10];
+  if (ratio <= keys[0]) return data[keys[0]];
+  if (ratio >= keys[keys.length - 1]) return data[keys[keys.length - 1]];
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (ratio >= keys[i] && ratio <= keys[i + 1]) {
+      const t = (ratio - keys[i]) / (keys[i + 1] - keys[i]);
+      return data[keys[i]] + t * (data[keys[i + 1]] - data[keys[i]]);
+    }
+  }
+  return data[1];
+}
+
+function calcFromUser(obs, ratio, hydration, temp, flourType) {
+  let rel = obs.filter(o => o.flourType === flourType);
+  if (!rel.length) rel = obs;
+
+  const estimates = rel.map(o => {
+    const norm = o.peakTimeHours / tempCoeff(o.temperature) / hydrCoeff(o.hydration);
+    const adj = norm * (interpolate(ratio, flourType) / interpolate(o.ratio, flourType));
+    const peakTime = adj * tempCoeff(temp) * hydrCoeff(hydration);
+
+    const dR = Math.abs(o.ratio - ratio) / Math.max(ratio, 0.1);
+    const dT = Math.abs(o.temperature - temp) / 10;
+    const dH = Math.abs(o.hydration - hydration) / 100;
+    const dist = Math.sqrt(dR * dR + dT * dT + dH * dH);
+    const weight = 1 / (dist + 0.05);
+
+    return { peakTime, mult: o.peakMultiplier, weight };
+  });
+
+  const totalW = estimates.reduce((s, e) => s + e.weight, 0);
+  const peakTime = estimates.reduce((s, e) => s + e.peakTime * e.weight, 0) / totalW;
+  const mult = estimates.reduce((s, e) => s + e.mult * e.weight, 0) / totalW;
+  return { peakTimeHours: peakTime, peakMultiplier: mult, readyTimeHours: peakTime * 0.75, source: 'user' };
+}
+
+function calcGeneral(ratio, hydration, temp, flourType) {
+  const base = interpolate(ratio, flourType);
+  const peak = base * tempCoeff(temp) * hydrCoeff(hydration);
+  const mult = flourType === 'Пшеничная' ? 2.8 : flourType === 'Ржаная' ? 2.0 : 2.4;
+  return { peakTimeHours: peak, peakMultiplier: mult, readyTimeHours: peak * 0.75, source: 'general' };
+}
+
+function getRise(hours, r) {
+  const pt = r.peakTimeHours, peak = r.peakMultiplier;
+  if (hours <= 0) return 1;
+  const t = hours / pt;
+  if (t <= 0.2) return 1 + (peak - 1) * 0.05 * (t / 0.2);
+  if (t <= 0.8) { const p = (t - 0.2) / 0.6, s = p * p * (3 - 2 * p); return 1 + (peak - 1) * (0.05 + 0.85 * s); }
+  if (t <= 1) { const p = (t - 0.8) / 0.2; return 1 + (peak - 1) * (0.9 + 0.1 * p); }
+  const total = pt * 1.3;
+  if (hours <= total) { const d = (hours - pt) / (total - pt); return peak - (peak - 1.2) * d; }
+  return 1.2;
+}
+
+// --- Наблюдения ---
+
+let observations = [
+  { starter: 10, flour: 20, water: 30, temp: 24, peakH: 4, mult: 2.5 },
+  { starter: 10, flour: 20, water: 20, temp: 22, peakH: 5, mult: 2.5 },
+];
+
+function getObsForCalc(flourType) {
+  return observations.map(o => ({
+    ratio: o.flour / o.starter,
+    hydration: (o.water / o.flour) * 100,
+    temperature: o.temp,
+    flourType,
+    peakTimeHours: o.peakH,
+    peakMultiplier: o.mult,
+  }));
+}
+
+function renderObs() {
+  const body = document.getElementById('obsBody');
+  body.innerHTML = '';
+  observations.forEach((o, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="number" value="${o.starter}" data-i="${i}" data-k="starter" min="1"></td>
+      <td><input type="number" value="${o.flour}" data-i="${i}" data-k="flour" min="1"></td>
+      <td><input type="number" value="${o.water}" data-i="${i}" data-k="water" min="1"></td>
+      <td><input type="number" value="${o.temp}" data-i="${i}" data-k="temp" min="0" max="45"></td>
+      <td><input type="number" value="${o.peakH}" data-i="${i}" data-k="peakH" min="0.5" step="0.5"></td>
+      <td><input type="number" value="${o.mult}" data-i="${i}" data-k="mult" min="1" max="5" step="0.1"></td>
+      <td><button class="btn-del" data-i="${i}">&times;</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.dataset.i, k = e.target.dataset.k;
+    observations[i][k] = parseFloat(e.target.value) || 0;
+    update();
+  }));
+  body.querySelectorAll('.btn-del').forEach(btn => btn.addEventListener('click', e => {
+    observations.splice(+e.target.dataset.i, 1);
+    renderObs();
+    update();
+  }));
+}
+
+document.getElementById('addObs').addEventListener('click', () => {
+  observations.push({ starter: 10, flour: 20, water: 20, temp: 22, peakH: 5, mult: 2.5 });
+  renderObs();
+  update();
+});
+
+// --- Отрисовка графика ---
+
+function drawChart(userResult, generalResult) {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const padL = 38, padR = 12, padT = 14, padB = 28;
+  const gW = W - padL - padR, gH = H - padT - padB;
+
+  const maxPeak = Math.max(userResult ? userResult.peakTimeHours : 0, generalResult.peakTimeHours);
+  const maxHours = maxPeak * 1.6;
+  const maxY = Math.ceil(Math.max(userResult ? userResult.peakMultiplier : 0, generalResult.peakMultiplier) * 10) / 10 + 0.2;
+  const minY = 1;
+
+  function toX(h) { return padL + (h / maxHours) * gW; }
+  function toY(v) { return padT + gH - ((v - minY) / (maxY - minY)) * gH; }
+
+  // Сетка
+  ctx.strokeStyle = '#e8ddd0'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + gH - (i / 4) * gH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + gW, y); ctx.stroke();
+    ctx.fillStyle = '#8b7355'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('x' + (minY + (maxY - minY) * (i / 4)).toFixed(1), padL - 4, y + 4);
+  }
+  for (let i = 0; i <= 5; i++) {
+    const h = (i / 5) * maxHours;
+    ctx.fillStyle = '#8b7355'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(h.toFixed(1) + 'ч', toX(h), H - 6);
+  }
+
+  function drawCurve(result, color, alpha) {
+    const pts = [];
+    for (let i = 0; i <= 200; i++) {
+      const h = (i / 200) * maxHours;
+      pts.push({ x: toX(h), y: toY(getRise(h, result)) });
+    }
+    // Заливка
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, padT + gH);
+    pts.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(pts[pts.length - 1].x, padT + gH);
+    ctx.closePath();
+    ctx.fillStyle = color.replace('1)', alpha + ')');
+    ctx.fill();
+    // Линия
+    ctx.beginPath();
+    pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // Общий расчёт — фон
+  ctx.setLineDash([6, 4]);
+  drawCurve(generalResult, 'rgba(123,164,196,1)', 0.08);
+  ctx.setLineDash([]);
+
+  // Пользовательский — основной
+  if (userResult) {
+    drawCurve(userResult, 'rgba(196,149,106,1)', 0.15);
+  }
+
+  const r = userResult || generalResult;
+
+  // Вертикаль — готова
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = '#6b9e3a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(toX(r.readyTimeHours), padT); ctx.lineTo(toX(r.readyTimeHours), padT + gH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Вертикаль — пик
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = '#e07a3a'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(toX(r.peakTimeHours), padT); ctx.lineTo(toX(r.peakTimeHours), padT + gH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Точка пика
+  ctx.beginPath(); ctx.arc(toX(r.peakTimeHours), toY(r.peakMultiplier), 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#e07a3a'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Подписи
+  ctx.fillStyle = '#e07a3a'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(r.peakTimeHours.toFixed(1) + 'ч', toX(r.peakTimeHours), toY(r.peakMultiplier) - 10);
+  ctx.fillStyle = '#6b9e3a'; ctx.font = '11px sans-serif';
+  ctx.fillText(r.readyTimeHours.toFixed(1) + 'ч', toX(r.readyTimeHours), padT + gH + 16);
+}
+
+// --- Обновление ---
+
+function update() {
+  const s = parseFloat(document.getElementById('starter').value) || 10;
+  const f = parseFloat(document.getElementById('flour').value) || 20;
+  const w = parseFloat(document.getElementById('water').value) || 20;
+  const temp = parseFloat(document.getElementById('temp').value) || 22;
+  const flourType = document.getElementById('flourType').value;
+
+  const ratio = f / s;
+  const hydration = (w / f) * 100;
+
+  const obs = observations.length > 0 ? getObsForCalc(flourType) : [];
+  const userResult = obs.length > 0 ? calcFromUser(obs, ratio, hydration, temp, flourType) : null;
+  const generalResult = calcGeneral(ratio, hydration, temp, flourType);
+  const r = userResult || generalResult;
+
+  // Инфо
+  const info = document.getElementById('calcInfo');
+  info.innerHTML = `
+    <b>Пропорция:</b> 1:${(f/s).toFixed(1)}:${(w/s).toFixed(1)} &nbsp;
+    <b>Гидратация:</b> ${hydration.toFixed(0)}% &nbsp;
+    <b>Источник:</b> ${r.source === 'user' ? 'мои наблюдения' : 'общая таблица'}<br>
+    <b>Пик:</b> ${r.peakTimeHours.toFixed(2)} ч &nbsp;
+    <b>Готова (80%):</b> ${r.readyTimeHours.toFixed(2)} ч &nbsp;
+    <b>Подъём:</b> x${r.peakMultiplier.toFixed(1)}
+    ${userResult ? `<br><b>По таблице было бы:</b> ${generalResult.peakTimeHours.toFixed(2)} ч (разница ${((r.peakTimeHours - generalResult.peakTimeHours) / generalResult.peakTimeHours * 100).toFixed(0)}%)` : ''}
+  `;
+
+  drawChart(userResult, generalResult);
+}
+
+// --- Слушатели ---
+
+['starter', 'flour', 'water', 'temp', 'flourType'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+});
+
+renderObs();
+update();
+window.addEventListener('resize', update);
+</script>
+</body>
+</html>

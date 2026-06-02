@@ -26,7 +26,7 @@
 
 // --- ОБЩИЕ ДАННЫЕ ---
 
-// Время до пика (часы) при 22°C для разных соотношений кормления
+// Время до пика (часы) при 22°C, 100% гидратации для разных соотношений кормления
 // Ржаная ~20-25% быстрее пшеничной [1][3]
 const peakTimeAt22: Record<string, Record<number, number>> = {
   wheat: {
@@ -52,14 +52,11 @@ const peakTimeAt22: Record<string, Record<number, number>> = {
 };
 
 // Множитель визуального объёма на пике [1][2][3]
-// Пшеничная поднимается выше за счёт глютена
-// Ржаная ниже, но визуально обманчива из-за пентозанов
 const defaultPeakMultiplier: Record<string, number> = {
   "Пшеничная": 2.8,
   "Ржаная": 2.0,
 };
 
-// Маппинг типа муки -> профиль ферментации
 function getFlourProfile(flourType: string): "wheat" | "rye" {
   const lower = flourType.toLowerCase();
   if (lower.includes("ржан")) return "rye";
@@ -68,9 +65,14 @@ function getFlourProfile(flourType: string): "wheat" | "rye" {
 
 // Температурный коэффициент: каждые +5.5°C время сокращается вдвое
 function temperatureCoefficient(temp: number): number {
-  const baseTemp = 22;
-  const diff = temp - baseTemp;
-  return Math.pow(0.5, diff / 5.5);
+  return Math.pow(0.5, (temp - 22) / 5.5);
+}
+
+// Коэффициент гидратации: при 100% = 1.0, густая (50%) — медленнее, жидкая (200%) — быстрее
+// (100 / H)^0.35 даёт: H=50% → 1.28, H=100% → 1.0, H=150% → 0.87, H=200% → 0.79
+function hydrationCoefficient(hydration: number): number {
+  const clamped = Math.max(30, Math.min(300, hydration));
+  return Math.pow(100 / clamped, 0.35);
 }
 
 // Интерполяция времени до пика по соотношению и типу муки
@@ -99,6 +101,7 @@ function interpolatePeakTime(ratio: number, flourType: string): number {
 
 export interface UserObservation {
   ratio: number;
+  hydration: number; // % (вода/мука * 100)
   temperature: number;
   flourType: string;
   peakTimeHours: number;
@@ -106,41 +109,52 @@ export interface UserObservation {
 }
 
 // Расчёт на основе пользовательских данных
-// Ищем ближайшее наблюдение и корректируем по температуре
+// Взвешенное среднее по всем наблюдениям: ближние по условиям весят больше
 function calculateFromUserData(
   observations: UserObservation[],
   ratio: number,
+  hydration: number,
   temperature: number,
   flourType: string
 ): FermentationResult | null {
   if (observations.length === 0) return null;
 
-  // Фильтруем по типу муки
   let relevant = observations.filter((o) => o.flourType === flourType);
   if (relevant.length === 0) relevant = observations;
 
-  // Ищем ближайшее по соотношению
-  relevant.sort((a, b) => Math.abs(a.ratio - ratio) - Math.abs(b.ratio - ratio));
-  const closest = relevant[0];
+  // Каждое наблюдение нормализуем к целевым условиям и считаем вес
+  const estimates: { peakTime: number; multiplier: number; weight: number }[] = [];
 
-  // Нормализуем время к 22°C, потом пересчитываем на нужную температуру
-  const closestTempCoeff = temperatureCoefficient(closest.temperature);
-  const peakAt22 = closest.peakTimeHours / closestTempCoeff;
+  for (const obs of relevant) {
+    // Нормализуем к базовым условиям (22°C, 100% гидратации)
+    const normalized = obs.peakTimeHours
+      / temperatureCoefficient(obs.temperature)
+      / hydrationCoefficient(obs.hydration);
 
-  // Корректировка по разнице в соотношении
-  const ratioDiff = ratio / closest.ratio;
-  const adjustedPeakAt22 = peakAt22 * Math.pow(ratioDiff, 0.7);
+    // Корректируем пропорцию через таблицу
+    const generalAtObs = interpolatePeakTime(obs.ratio, flourType);
+    const generalAtTarget = interpolatePeakTime(ratio, flourType);
+    const adjustedBase = normalized * (generalAtTarget / generalAtObs);
 
-  // Применяем целевую температуру
-  const targetTempCoeff = temperatureCoefficient(temperature);
-  const peakTime = adjustedPeakAt22 * targetTempCoeff;
+    // Применяем целевые условия
+    const peakTime = adjustedBase
+      * temperatureCoefficient(temperature)
+      * hydrationCoefficient(hydration);
 
-  // Среднее значение множителя из наблюдений той же муки
-  const sameFlourObs = observations.filter((o) => o.flourType === flourType);
-  const avgMultiplier =
-    sameFlourObs.length > 0
-      ? sameFlourObs.reduce((s, o) => s + o.peakMultiplier, 0) / sameFlourObs.length
-      : closest.peakMultiplier;
+    // Вес: обратная дистанция по всем осям (пропорция, температура, гидратация)
+    const dRatio = Math.abs(obs.ratio - ratio) / Math.max(ratio, 0.1);
+    const dTemp = Math.abs(obs.temperature - temperature) / 10;
+    const dHydr = Math.abs(obs.hydration - hydration) / 100;
+    const distance = Math.sqrt(dRatio * dRatio + dTemp * dTemp + dHydr * dHydr);
+    const weight = 1 / (distance + 0.05); // 0.05 чтобы не делить на 0
+
+    estimates.push({ peakTime, multiplier: obs.peakMultiplier, weight });
+  }
+
+  // Взвешенное среднее
+  const totalWeight = estimates.reduce((s, e) => s + e.weight, 0);
+  const peakTime = estimates.reduce((s, e) => s + e.peakTime * e.weight, 0) / totalWeight;
+  const avgMultiplier = estimates.reduce((s, e) => s + e.multiplier * e.weight, 0) / totalWeight;
 
   return {
     peakTimeHours: peakTime,
@@ -171,33 +185,33 @@ export interface FermentationResult {
   source?: "general" | "user";
 }
 
-// Расчёт по общим данным
+// Основная функция расчёта
+// t_пик = t_база(R, мука) × K_темп(T) × K_гидр(H)
 export function calculateFermentation(
   params: FermentationParams,
   userObservations?: UserObservation[]
 ): FermentationResult {
-  const { starterAmount, flourAmount, temperature, flourType } = params;
+  const { starterAmount, flourAmount, waterAmount, temperature, flourType } = params;
 
   const ratio = starterAmount > 0 ? flourAmount / starterAmount : 2;
   const clampedRatio = Math.max(0.02, Math.min(15, ratio));
+  const hydration = flourAmount > 0 ? (waterAmount / flourAmount) * 100 : 100;
 
   // Попробовать расчёт по пользовательским данным
   if (userObservations && userObservations.length > 0) {
     const userResult = calculateFromUserData(
       userObservations,
       clampedRatio,
+      hydration,
       temperature,
       flourType
     );
     if (userResult) return userResult;
   }
 
-  // Общий расчёт
+  // Общий расчёт: t_база × K_темп × K_гидр
   const baseTime = interpolatePeakTime(clampedRatio, flourType);
-  const tempCoeff = temperatureCoefficient(temperature);
-  const peakTime = baseTime * tempCoeff;
-  const profile = getFlourProfile(flourType);
-  // Точное совпадение → конкретный множитель, иначе среднее (2.4)
+  const peakTime = baseTime * temperatureCoefficient(temperature) * hydrationCoefficient(hydration);
   const multiplier = defaultPeakMultiplier[flourType] ?? 2.4;
 
   return {

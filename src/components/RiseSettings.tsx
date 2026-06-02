@@ -31,8 +31,10 @@ const formatHours = formatTime;
 function toUserObs(f: FeedingWithObs, defaultFlourType: string): UserObservation {
   const sa = f.starterAmount || 30;
   const fa = f.flourAmount || 50;
+  const wa = f.waterAmount || fa;
   return {
     ratio: fa / sa,
+    hydration: fa > 0 ? (wa / fa) * 100 : 100,
     temperature: f.temperature || 22,
     flourType: f.flourType || defaultFlourType,
     peakTimeHours: f.peakTimeHours,
