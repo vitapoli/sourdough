@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 export async function GET(_req: Request, { params }: { params: Promise<{ recipeId: string }> }) {
   const { recipeId } = await params;
 
+  // Только для публичных рецептов
+  const recipe = await prisma.recipe.findUnique({ where: { id: recipeId }, select: { isPublic: true } });
+  if (!recipe?.isPublic) return NextResponse.json({ error: "Не найден" }, { status: 404 });
+
   const comments = await prisma.comment.findMany({
     where: { recipeId },
     orderBy: { createdAt: "asc" },

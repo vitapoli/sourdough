@@ -30,11 +30,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 // --- Сессии ---
 
 export async function createSession(userId: string): Promise<string> {
+  const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  const session = await prisma.session.create({
-    data: { userId, expiresAt },
+  await prisma.session.create({
+    data: { id: token, userId, expiresAt },
   });
-  return session.id;
+  return token;
 }
 
 export async function setSessionCookie(sessionId: string) {
@@ -88,7 +89,7 @@ export function validateName(name: string): { value: string } | { error: string 
 }
 
 export function validatePassword(password: string): string | null {
-  if (password.length < 6) return "Пароль минимум 6 символов";
+  if (password.length < 8) return "Пароль минимум 8 символов";
   if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password) || !/[0-9]/.test(password)) {
     return "Пароль должен содержать как буквы так и цифры";
   }

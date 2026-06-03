@@ -1,8 +1,16 @@
 import { prisma } from "@/lib/db";
 import { hashPassword, createSession, setSessionCookie, validateEmail, validateName, validatePassword } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 
 export async function POST(request: Request) {
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(`register:${ip}`, 5, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Слишком много попыток. Подождите час" }, { status: 429 });
+  }
+
   const body = await request.json();
 
   const email = validateEmail(body.email || "");

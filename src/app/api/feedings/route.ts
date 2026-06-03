@@ -35,9 +35,14 @@ export async function PUT(request: Request) {
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
   const body = await request.json();
-  const data: Record<string, unknown> = {};
 
-  // Обычные поля кормления
+  // Проверяем владельца
+  const existing = await prisma.feeding.findUnique({ where: { id: body.id }, include: { starter: { select: { userId: true } } } });
+  if (!existing || existing.starter.userId !== session.user.id) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+
+  const data: Record<string, unknown> = {};
   if ("flourAmount" in body) data.flourAmount = body.flourAmount;
   if ("waterAmount" in body) data.waterAmount = body.waterAmount;
   if ("starterAmount" in body) data.starterAmount = body.starterAmount;
@@ -45,8 +50,6 @@ export async function PUT(request: Request) {
   if ("temperature" in body) data.temperature = body.temperature;
   if ("notes" in body) data.notes = body.notes;
   if ("photos" in body) data.photos = body.photos;
-
-  // Поля наблюдения
   if ("peakTimeHours" in body) data.peakTimeHours = body.peakTimeHours;
   if ("readyTimeHours" in body) data.readyTimeHours = body.readyTimeHours;
   if ("peakMultiplier" in body) data.peakMultiplier = body.peakMultiplier;
@@ -67,6 +70,13 @@ export async function DELETE(request: Request) {
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
+
+  // Проверяем владельца
+  const feeding = await prisma.feeding.findUnique({ where: { id }, include: { starter: { select: { userId: true } } } });
+  if (!feeding || feeding.starter.userId !== session.user.id) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+
   await prisma.feeding.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

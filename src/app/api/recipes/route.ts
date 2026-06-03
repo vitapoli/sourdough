@@ -46,7 +46,7 @@ export async function GET() {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Recipes GET error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка" }, { status: 500 });
   }
 }
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json(recipe, { status: 201 });
   } catch (error) {
     console.error("Recipe save error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка" }, { status: 500 });
   }
 }
 
@@ -113,7 +113,7 @@ export async function PUT(request: Request) {
     return NextResponse.json(recipe);
   } catch (error) {
     console.error("Recipe update error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка" }, { status: 500 });
   }
 }
 
@@ -124,11 +124,13 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json();
 
-    // Массовое обновление порядка
+    // Массовое обновление порядка — только свои рецепты
     if (body.reorder) {
       const ids: string[] = body.reorder;
+      const owned = await prisma.recipe.findMany({ where: { id: { in: ids }, OR: [{ userId: session.user.id }, { userId: null, isBuiltIn: true }] }, select: { id: true } });
+      const ownedIds = new Set(owned.map(r => r.id));
       await Promise.all(
-        ids.map((id, i) => prisma.recipe.update({ where: { id }, data: { sortOrder: i } }))
+        ids.filter(id => ownedIds.has(id)).map((id, i) => prisma.recipe.update({ where: { id }, data: { sortOrder: i } }))
       );
       return NextResponse.json({ ok: true });
     }
@@ -154,7 +156,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ...recipe, hidden: prefs.hidden, pinned: prefs.pinned });
     }
 
-    // Свои рецепты: обновляем поля напрямую
+    // Свои рецепты: проверка владельца
+    if (recipe.userId !== session.user.id) {
+      return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+    }
+
     const data: Record<string, boolean | number> = {};
     if (typeof body.pinned === "boolean") data.pinned = body.pinned;
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;
@@ -167,7 +173,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Recipe patch error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Внутренняя ошибка" }, { status: 500 });
   }
 }
 

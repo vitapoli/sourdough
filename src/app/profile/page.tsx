@@ -8,6 +8,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -25,8 +27,20 @@ export default function ProfilePage() {
   }
 
   async function handleDelete() {
+    if (!deletePassword) { setDeleteError("Введите пароль"); return; }
     setDeleting(true);
-    await fetch("/api/auth/delete", { method: "DELETE" });
+    setDeleteError("");
+    const res = await fetch("/api/auth/delete", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: deletePassword }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setDeleteError(data.error || "Ошибка");
+      setDeleting(false);
+      return;
+    }
     router.push("/login");
   }
 
@@ -89,10 +103,18 @@ export default function ProfilePage() {
             <p className="text-sm text-red-600 font-medium">
               Все данные будут удалены безвозвратно: закваски, кормления, рецепты.
             </p>
+            <input
+              type="password"
+              placeholder="Введите пароль для подтверждения"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl border border-red-200 text-sm bg-white focus:outline-none focus:border-red-400"
+            />
+            {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleDelete}
-                disabled={deleting}
+                disabled={deleting || !deletePassword}
                 className="flex-1 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
               >
                 {deleting ? "Удаляю..." : "Да, удалить всё"}
