@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     );
 
     const prompt = `Ты помощник пекаря. Распознай рецепт с фото (может быть несколько фото одного рецепта — объедини их в один).
+ВАЖНО: весь ответ (название, описание, ингредиенты, шаги) ОБЯЗАТЕЛЬНО на русском языке. Если оригинал на другом языке — переведи.
 Верни ТОЛЬКО JSON (без markdown-обёртки) в формате:
 {
   "title": "название рецепта",
@@ -94,6 +95,18 @@ export async function POST(request: Request) {
     }
 
     const recipe = JSON.parse(jsonMatch[0]);
+
+    // Очистка null в ингредиентах — React ругается на value={null} в input
+    if (Array.isArray(recipe.ingredients)) {
+      recipe.ingredients = recipe.ingredients.map((ing: Record<string, unknown>) => ({
+        ...ing,
+        name: ing.name || "",
+        amount: ing.amount ?? "",
+        unit: ing.unit ?? "",
+        phase: ing.phase ?? undefined,
+      }));
+    }
+
     return NextResponse.json(recipe);
   } catch (error) {
     console.error("Recipe scan error:", error);

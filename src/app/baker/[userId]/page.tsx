@@ -96,7 +96,7 @@ export default function BakerPage() {
         {/* Шапка */}
         <a href="/" className="flex items-center gap-1 text-brown-light mb-4">
           <Icon name="back" size={20} />
-          <span className="text-sm">На главную</span>
+          <span className="text-sm">Назад</span>
         </a>
 
         {/* Профиль */}

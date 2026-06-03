@@ -25,7 +25,13 @@ function useTrackerMode(): [TrackerMode, (m: TrackerMode) => void] {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<Tab>("tracker");
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("activeTab") as Tab | null;
+      if (saved === "tracker" || saved === "calculator" || saved === "recipes" || saved === "community") return saved;
+    }
+    return "tracker";
+  });
   const [recipesListKey, setRecipesListKey] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -42,6 +48,7 @@ export default function Home() {
       setRecipesListKey(k => k + 1);
     }
     setActiveTab(tab);
+    sessionStorage.setItem("activeTab", tab);
   }
   const [trackerMode, setTrackerMode] = useTrackerMode();
 

@@ -63,6 +63,7 @@ interface Recipe {
   previewHidden: string | null;
   parentId: string | null;
   variants?: Recipe[];
+  savedFrom?: { id: string; name: string };
 }
 
 function RecipeCardContent({ recipe }: { recipe: Recipe }) {
@@ -133,6 +134,11 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
         <span className="text-xs bg-golden/15 text-golden px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-golden/30">
           Базовый
         </span>
+      )}
+      {recipe.savedFrom && (
+        <a href={`/baker/${recipe.savedFrom.id}`} className="text-xs bg-terracotta/10 text-terracotta px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-terracotta/30 truncate max-w-[140px]">
+          от {recipe.savedFrom.name}
+        </a>
       )}
     </div>
   );
@@ -1958,6 +1964,11 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
 
   const loadRecipes = useCallback(async () => {
     const res = await fetch("/api/recipes");
+    if (!res.ok) {
+      console.error("Recipes API error:", res.status, await res.text());
+      setLoading(false);
+      return;
+    }
     const data = await res.json();
     setRecipes(data);
     setLoading(false);
@@ -2179,8 +2190,11 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
           )}
 
           {(() => {
-            const visible = recipes.filter(r => !r.parentId && (showHidden || !r.hidden)).sort((a, b) => Number(b.pinned) - Number(a.pinned));
-            const hiddenCount = recipes.filter(r => !r.parentId && r.hidden).length;
+            // Скрываем только варианты, чей родитель есть в списке (встроенные)
+            const parentIds = new Set(recipes.map(r => r.id));
+            const isVariant = (r: Recipe) => r.parentId && parentIds.has(r.parentId);
+            const visible = recipes.filter(r => !isVariant(r) && (showHidden || !r.hidden)).sort((a, b) => Number(b.pinned) - Number(a.pinned));
+            const hiddenCount = recipes.filter(r => !isVariant(r) && r.hidden).length;
             return (
               <>
                 <DraggableRecipeList

@@ -8,9 +8,24 @@ export async function POST(_req: Request, { params }: { params: Promise<{ recipe
 
   const { recipeId } = await params;
 
-  const original = await prisma.recipe.findUnique({ where: { id: recipeId } });
+  // Нельзя сохранять свой же рецепт
+  const original = await prisma.recipe.findUnique({
+    where: { id: recipeId },
+    include: { user: { select: { id: true, name: true } } },
+  });
   if (!original || !original.isPublic) {
     return NextResponse.json({ error: "Рецепт не найден" }, { status: 404 });
+  }
+  if (original.userId === session.user.id) {
+    return NextResponse.json({ error: "Это ваш рецепт" }, { status: 400 });
+  }
+
+  // Проверка — уже сохранён?
+  const existing = await prisma.recipe.findFirst({
+    where: { userId: session.user.id, parentId: recipeId },
+  });
+  if (existing) {
+    return NextResponse.json({ error: "Уже сохранён" }, { status: 409 });
   }
 
   const saved = await prisma.recipe.create({

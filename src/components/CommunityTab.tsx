@@ -108,6 +108,14 @@ export function CommunityTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort, search]);
 
+  // Загрузить список уже сохранённых рецептов
+  useEffect(() => {
+    fetch("/api/recipes").then(r => r.ok ? r.json() : []).then((data: { parentId?: string }[]) => {
+      const ids = new Set<string>(data.filter(r => r.parentId).map(r => r.parentId!));
+      setSavedIds(ids);
+    }).catch(() => {});
+  }, []);
+
   // Debounce поиска
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
@@ -255,9 +263,11 @@ export function CommunityTab() {
       });
       if (res.ok) {
         setSavedIds((prev) => new Set(prev).add(recipeId));
+      } else {
+        console.error("Save recipe error:", res.status, await res.text());
       }
-    } catch {
-      // тихо
+    } catch (err) {
+      console.error("Save recipe error:", err);
     } finally {
       setSavingId(null);
     }
@@ -287,7 +297,7 @@ export function CommunityTab() {
     } catch { /* */ }
 
     return (
-      <div className="animate-fade-up pb-24">
+      <div className="animate-fade-up pb-24 px-4">
         {/* Шапка */}
         <button
           onClick={() => setSelected(null)}
@@ -357,7 +367,11 @@ export function CommunityTab() {
                 {selected.likesCount}
               </span>
             </button>
-            {!savedIds.has(selected.id) ? (
+            {selected.user?.id !== currentUserId && (savedIds.has(selected.id) ? (
+              <span className="text-sm text-green-happy font-medium">
+                ✓ Сохранён
+              </span>
+            ) : (
               <button
                 onClick={() => saveRecipe(selected.id)}
                 disabled={savingId === selected.id}
@@ -366,11 +380,7 @@ export function CommunityTab() {
                 <Icon name="save" size={20} />
                 <span className="text-sm">Сохранить</span>
               </button>
-            ) : (
-              <span className="text-sm text-green-happy font-medium">
-                ✓ Сохранён
-              </span>
-            )}
+            ))}
           </div>
         </div>
 
@@ -480,7 +490,7 @@ export function CommunityTab() {
 
   // --- Лента ---
   return (
-    <div className="animate-fade-up pb-4">
+    <div className="animate-fade-up pb-4 px-4">
       {/* Поиск */}
       <div className="relative mb-3">
         <Icon
@@ -537,6 +547,7 @@ export function CommunityTab() {
               onSave={() => saveRecipe(recipe.id)}
               saving={savingId === recipe.id}
               saved={savedIds.has(recipe.id)}
+              isOwn={recipe.user?.id === currentUserId}
             />
           ))}
         </div>
@@ -562,6 +573,7 @@ function RecipeCard({
   onSave,
   saving,
   saved,
+  isOwn,
 }: {
   recipe: CommunityRecipe;
   onOpen: () => void;
@@ -569,6 +581,7 @@ function RecipeCard({
   onSave: () => void;
   saving: boolean;
   saved: boolean;
+  isOwn?: boolean;
 }) {
   const photoUrl = recipe.photos
     ? (() => {
@@ -661,7 +674,11 @@ function RecipeCard({
               <span className="text-xs">{recipe.commentsCount || ""}</span>
             </button>
 
-            {!saved ? (
+            {!isOwn && (saved ? (
+              <span className="text-green-happy">
+                <Icon name="bookmark-fill" size={18} />
+              </span>
+            ) : (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -672,11 +689,7 @@ function RecipeCard({
               >
                 <Icon name="save" size={18} />
               </button>
-            ) : (
-              <span className="text-green-happy">
-                <Icon name="bookmark-fill" size={18} />
-              </span>
-            )}
+            ))}
           </div>
         </div>
       </div>

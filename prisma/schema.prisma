@@ -22,6 +22,7 @@ model User {
   likes          Like[]
   comments       Comment[]
   passwordResets PasswordReset[]
+  recipePrefs    UserRecipePrefs[]
 }
 
 // Сессия авторизации
@@ -99,9 +100,23 @@ model Recipe {
   parentId    String?  // ID оригинального рецепта (для вариантов)
   parent      Recipe?  @relation("RecipeVariants", fields: [parentId], references: [id], onDelete: SetNull)
   variants    Recipe[] @relation("RecipeVariants")
-  likes       Like[]
-  comments    Comment[]
-  createdAt   DateTime @default(now())
+  likes         Like[]
+  comments      Comment[]
+  userPrefs     UserRecipePrefs[]
+  createdAt     DateTime @default(now())
+}
+
+// Персональные настройки рецепта (скрыт/закреплён — у каждого пользователя свои)
+model UserRecipePrefs {
+  id       String  @id @default(cuid())
+  recipeId String
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hidden   Boolean @default(false)
+  pinned   Boolean @default(false)
+
+  @@unique([recipeId, userId])
 }
 
 // Лайк рецепта
