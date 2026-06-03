@@ -1,0 +1,370 @@
+{
+  "info": {
+    "name": "Sourdough Security Tests",
+    "description": "Тесты безопасности API приложения Sourdough",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sourdough.viosay.fun" },
+    { "key": "sessionCookie", "value": "", "description": "Вставить session_id после логина" },
+    { "key": "otherUserId", "value": "", "description": "ID другого пользователя" },
+    { "key": "otherStarterId", "value": "", "description": "ID чужой закваски" },
+    { "key": "otherFeedingId", "value": "", "description": "ID чужого кормления" },
+    { "key": "otherRecipeId", "value": "", "description": "ID чужого рецепта" }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "Cookie" },
+      { "key": "value", "value": "session_id={{sessionCookie}}" },
+      { "key": "in", "value": "header" }
+    ]
+  },
+  "item": [
+    {
+      "name": "0. Авторизация",
+      "item": [
+        {
+          "name": "Логин (получить сессию)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@test.com\",\n  \"password\": \"test1234\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  const cookie = pm.response.headers.get('set-cookie');",
+                "  if (cookie) {",
+                "    const match = cookie.match(/session_id=([^;]+)/);",
+                "    if (match) pm.collectionVariables.set('sessionCookie', match[1]);",
+                "  }",
+                "}"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S1. Upload HTML как фото",
+      "item": [
+        {
+          "name": "Загрузить .html файл → отказ",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "photos", "type": "file", "description": "Выбрать .html файл" },
+                { "key": "type", "value": "recipe" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTML файл отклонён', () => {",
+                "  pm.response.to.have.status(400);",
+                "  pm.expect(pm.response.json().error).to.include('изображения');",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S2. Upload большого файла",
+      "item": [
+        {
+          "name": "Загрузить файл >5MB → отказ",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "photos", "type": "file", "description": "Выбрать файл >5MB" },
+                { "key": "type", "value": "recipe" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Большой файл отклонён', () => {",
+                "  pm.response.to.have.status(400);",
+                "  pm.expect(pm.response.json().error).to.include('5 МБ');",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S4. Брутфорс логина",
+      "item": [
+        {
+          "name": "6 попыток с неверным паролем → блокировка",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@test.com\",\n  \"password\": \"wrongpassword1\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "// Запустить 6 раз подряд — на 6-й должен быть 429",
+                "if (pm.info.iteration >= 5) {",
+                "  pm.test('Rate limit сработал', () => {",
+                "    pm.response.to.have.status(429);",
+                "  });",
+                "} else {",
+                "  pm.test('Неверный пароль — 401', () => {",
+                "    pm.response.to.have.status(401);",
+                "  });",
+                "}"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S5. Доступ к чужой закваске",
+      "item": [
+        {
+          "name": "GET чужой закваски → 404",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/starters/{{otherStarterId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Чужая закваска недоступна', () => {",
+                "  pm.expect([403, 404]).to.include(pm.response.code);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "DELETE чужой закваски → 403",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/starters/{{otherStarterId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Удаление чужой закваски запрещено', () => {",
+                "  pm.expect([403, 404]).to.include(pm.response.code);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S6. Доступ к чужому кормлению",
+      "item": [
+        {
+          "name": "PUT чужого кормления → 403",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/feedings",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{otherFeedingId}}\",\n  \"notes\": \"hacked\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Редактирование чужого кормления запрещено', () => {",
+                "  pm.response.to.have.status(403);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "DELETE чужого кормления → 403",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/feedings?id={{otherFeedingId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Удаление чужого кормления запрещено', () => {",
+                "  pm.response.to.have.status(403);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S7. Доступ к чужому рецепту",
+      "item": [
+        {
+          "name": "PATCH чужого рецепта (pin) → 403",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/recipes",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{otherRecipeId}}\",\n  \"pinned\": true\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Изменение чужого рецепта запрещено', () => {",
+                "  pm.response.to.have.status(403);",
+                "});"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "DELETE чужого рецепта → 403",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/recipes",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{otherRecipeId}}\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Удаление чужого рецепта запрещено', () => {",
+                "  pm.expect([403, 404]).to.include(pm.response.code);",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S8. XSS в комментарии",
+      "item": [
+        {
+          "name": "Комментарий со скриптом → сохраняется как текст",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/community/{{otherRecipeId}}/comments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"<script>alert('XSS')</script>\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Комментарий сохранён как текст', () => {",
+                "  pm.response.to.have.status(201);",
+                "  const body = pm.response.json();",
+                "  pm.expect(body.text).to.equal(\"<script>alert('XSS')</script>\");",
+                "  // React экранирует при рендере — скрипт не выполнится",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S9. XSS в имени пользователя",
+      "item": [
+        {
+          "name": "Регистрация с HTML в имени → отказ",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"xss-test@test.com\",\n  \"name\": \"<img src=x onerror=alert(1)>\",\n  \"password\": \"test12345\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('HTML в имени отклонён валидацией', () => {",
+                "  pm.response.to.have.status(400);",
+                "  // validateName допускает только буквы, пробелы и дефисы",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "S10. Path traversal в upload",
+      "item": [
+        {
+          "name": "starterId с ../ → отказ",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "photos", "type": "file", "description": "Любое фото" },
+                { "key": "starterId", "value": "../../etc" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Path traversal заблокирован', () => {",
+                "  pm.response.to.have.status(400);",
+                "  pm.expect(pm.response.json().error).to.include('Некорректный');",
+                "});"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+  ]
+}
