@@ -1,0 +1,61 @@
+name: Levain Lab — автопубликации
+
+on:
+  schedule:
+    # Черновик на проверку — понедельник и четверг 05:00 UTC (8:00 МСК)
+    - cron: '0 5 * * 1,4'
+    # Публикация — вторник и пятница 05:00 UTC (8:00 МСК)
+    - cron: '0 5 * * 2,5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Режим: --draft или --publish'
+        required: true
+        default: '--draft'
+        type: choice
+        options:
+          - '--draft'
+          - '--publish'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Определить режим (draft или publish)
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
+          else
+            DOW=$(date -u +%u)
+            if [ "$DOW" = "1" ] || [ "$DOW" = "4" ]; then
+              echo "mode=--draft" >> $GITHUB_OUTPUT
+            else
+              echo "mode=--publish" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Создать файл секретов
+        run: |
+          mkdir -p ~/.secrets
+          printf "TG_BOT_TOKEN=%s\nTG_CHANNEL_ID=%s\nTG_ADMIN_CHAT_ID=%s\n" \
+            "${{ secrets.TG_BOT_TOKEN }}" \
+            "${{ secrets.TG_CHANNEL_ID }}" \
+            "${{ secrets.TG_ADMIN_CHAT_ID }}" \
+            > ~/.secrets/sourdough-tokens
+
+      - name: Запустить скрипт
+        run: node scripts/publish-post.mjs ${{ steps.mode.outputs.mode }}
+
+      - name: Сохранить состояние
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/.publish-state.json
+          git diff --staged --quiet || git commit -m "update publish state" && git push
