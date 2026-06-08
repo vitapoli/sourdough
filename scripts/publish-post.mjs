@@ -87,37 +87,91 @@ function sendMessage(chatId, text) {
   });
 }
 
-// --- Поиск правки от админа (текст, фото с подписью, или форматированный текст) ---
+// --- Поиск правки от админа (текст, фото с подписью, или два сообщения) ---
 function getAdminResponse(afterDate) {
   const updates = tgRequest('getUpdates', { offset: -100 });
+  console.log(`getUpdates вернул ${updates.length} апдейтов`);
 
-  // Ищем последнее сообщение от админа после отправки черновика
-  for (const update of [...updates].reverse()) {
-    const msg = update.message;
+  // Собираем все сообщения от админа после отправки черновика
+  // edited_message — когда админ редактирует уже отправленное сообщение
+  const adminMessages = [];
+  for (const update of updates) {
+    const msg = update.message || update.edited_message;
     if (!msg) continue;
-    if (msg.from.id.toString() !== ADMIN_CHAT_ID) continue;
+    if (!msg.from || msg.from.id.toString() !== ADMIN_CHAT_ID) continue;
     if (msg.date <= afterDate) continue;
     if (msg.text === '/start' || (msg.text && msg.text.startsWith('/'))) continue;
-
-    // Фото с подписью
-    if (msg.photo && msg.caption) {
-      return {
-        type: 'photo',
-        photo: msg.photo[msg.photo.length - 1].file_id, // наибольшее разрешение
-        caption: msg.caption,
-        caption_entities: msg.caption_entities || [],
-      };
-    }
-
-    // Текстовое сообщение (с форматированием)
-    if (msg.text) {
-      return {
-        type: 'text',
-        text: msg.text,
-        entities: msg.entities || [],
-      };
-    }
+    adminMessages.push(msg);
   }
+
+  console.log(`Сообщений от админа после черновика: ${adminMessages.length}`);
+  for (const msg of adminMessages) {
+    console.log(`  date=${msg.date}, photo=${!!msg.photo}, text=${!!msg.text}, caption=${!!msg.caption}, document=${!!msg.document}`);
+  }
+
+  if (adminMessages.length === 0) {
+    console.log('Ответ от админа не найден.');
+    return null;
+  }
+
+  // 1. Фото с подписью в одном сообщении — идеально
+  const photoWithCaption = adminMessages.find(m => m.photo && m.caption);
+  if (photoWithCaption) {
+    return {
+      type: 'photo',
+      photo: photoWithCaption.photo[photoWithCaption.photo.length - 1].file_id,
+      caption: photoWithCaption.caption,
+      caption_entities: photoWithCaption.caption_entities || [],
+    };
+  }
+
+  // 2. Фото и текст двумя отдельными сообщениями (в любом порядке)
+  //    Telegram не даёт подпись длиннее 1024 символов, поэтому админ
+  //    отправляет фото отдельно, а текст отдельно
+  const photoMsg = adminMessages.find(m => m.photo);
+  const textMsg = [...adminMessages].reverse().find(m => m.text); // последний текст
+  if (photoMsg && textMsg) {
+    return {
+      type: 'photo',
+      photo: photoMsg.photo[photoMsg.photo.length - 1].file_id,
+      caption: textMsg.text,
+      caption_entities: textMsg.entities || [],
+    };
+  }
+
+  // 3. Только фото без текста
+  if (photoMsg) {
+    return {
+      type: 'photo',
+      photo: photoMsg.photo[photoMsg.photo.length - 1].file_id,
+      caption: '',
+      caption_entities: [],
+    };
+  }
+
+  // 4. Документ-картинка (фото отправлено как файл)
+  const docMsg = adminMessages.find(m => m.document && m.document.mime_type && m.document.mime_type.startsWith('image/'));
+  if (docMsg) {
+    const caption = textMsg ? textMsg.text : (docMsg.caption || '');
+    const entities = textMsg ? (textMsg.entities || []) : (docMsg.caption_entities || []);
+    return {
+      type: 'document_photo',
+      document: docMsg.document.file_id,
+      caption,
+      caption_entities: entities,
+    };
+  }
+
+  // 5. Только текст
+  if (textMsg) {
+    return {
+      type: 'text',
+      text: textMsg.text,
+      entities: textMsg.entities || [],
+    };
+  }
+
+  console.log('Ответ от админа не найден.');
   return null;
 }
 
@@ -151,8 +205,9 @@ if (mode === '--draft') {
   // Отправляем чистый текст поста (без обёрток)
   sendMessage(ADMIN_CHAT_ID, post.body);
 
-  // Отдельным сообщением — номер поста и инста-версия
-  const infoMsg = `#${state.nextPost + 1} · ${post.title}\n\n── Instagram ──\n${igVersion}`;
+  // Отдельным сообщением — номер поста, лимит и инста-версия
+  const charNote = `📏 ${post.body.length} символов` + (post.body.length > 1024 ? ` (лимит подписи к фото — 1024, нужно сократить)` : ` (ок для фото)`);
+  const infoMsg = `#${state.nextPost + 1} · ${post.title}\n${charNote}\n\n── Instagram ──\n${igVersion}`;
 
   sendMessage(ADMIN_CHAT_ID, infoMsg);
 
@@ -178,15 +233,38 @@ if (mode === '--draft') {
     const response = getAdminResponse(state.draftSentAt);
 
     if (response && response.type === 'photo') {
-      // Публикуем фото с подписью и форматированием
+      let caption = response.caption;
+      let entities = response.caption_entities;
+
+      // Telegram лимит подписи к фото — 1024 символа
+      if (caption.length > 1024) {
+        console.log(`⚠️ Подпись ${caption.length} символов, обрезаю до 1024`);
+        // Обрезаем по последнему переносу строки до лимита
+        const cut = caption.lastIndexOf('\n', 1021);
+        caption = caption.substring(0, cut > 0 ? cut : 1021) + '...';
+        // Убираем entities, которые выходят за границу
+        entities = entities.filter(e => e.offset + e.length <= caption.length);
+      }
+
       tgRequest('sendPhoto', {
         chat_id: CHANNEL_ID,
         photo: response.photo,
+        caption,
+        caption_entities: entities,
+      });
+      published = true;
+      console.log(`Опубликовано фото с подписью (${caption.length} символов).`);
+
+    } else if (response && response.type === 'document_photo') {
+      // Публикуем документ-фото с подписью
+      tgRequest('sendDocument', {
+        chat_id: CHANNEL_ID,
+        document: response.document,
         caption: response.caption,
         caption_entities: response.caption_entities,
       });
       published = true;
-      console.log('Опубликовано фото с подписью (отредактированная версия).');
+      console.log('Опубликовано фото-документ с подписью (отредактированная версия).');
 
     } else if (response && response.type === 'text') {
       // Публикуем текст с форматированием
@@ -227,7 +305,46 @@ if (mode === '--draft') {
 
   console.log(`Опубликован пост #${state.nextPost}`);
 
+} else if (mode === '--debug') {
+  // Показать что бот видит в апдейтах, без публикации
+  const state = getState();
+  console.log('=== Текущее состояние ===');
+  console.log(JSON.stringify(state, null, 2));
+  console.log('');
+  console.log('=== Апдейты от Telegram ===');
+  const updates = tgRequest('getUpdates', { offset: -100 });
+  console.log(`Всего апдейтов: ${updates.length}`);
+  for (const update of updates) {
+    const edited = !update.message && !!update.edited_message;
+    const msg = update.message || update.edited_message;
+    if (!msg) {
+      console.log(`  update_id=${update.update_id}: нет message`);
+      continue;
+    }
+    const from = msg.from ? `${msg.from.first_name} (id=${msg.from.id})` : 'unknown';
+    const isAdmin = msg.from && msg.from.id.toString() === ADMIN_CHAT_ID;
+    const afterDraft = msg.date > (state.draftSentAt || 0);
+    console.log(`  update_id=${update.update_id}: ${edited ? '[EDIT] ' : ''}from=${from}, date=${msg.date}, admin=${isAdmin}, afterDraft=${afterDraft}`);
+    if (msg.text) console.log(`    text: "${msg.text.substring(0, 80)}..."`);
+    if (msg.photo) console.log(`    photo: ${msg.photo.length} sizes, file_id=${msg.photo[msg.photo.length-1].file_id.substring(0, 30)}...`);
+    if (msg.caption) console.log(`    caption: "${msg.caption.substring(0, 80)}..."`);
+    if (msg.document) console.log(`    document: ${msg.document.mime_type}, file_id=${msg.document.file_id.substring(0, 30)}...`);
+  }
+
+  // Проверяем, что найдёт getAdminResponse
+  if (state.draftSentAt) {
+    console.log('');
+    console.log('=== Результат поиска ответа админа ===');
+    const response = getAdminResponse(state.draftSentAt);
+    if (response) {
+      console.log(`Найден ответ: type=${response.type}`);
+      console.log(JSON.stringify(response, null, 2));
+    } else {
+      console.log('Ответ админа НЕ НАЙДЕН');
+    }
+  }
+
 } else {
-  console.log('Использование: node publish-post.mjs --draft | --publish');
+  console.log('Использование: node publish-post.mjs --draft | --publish | --debug');
   process.exit(1);
 }
