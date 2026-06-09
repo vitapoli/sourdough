@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const t = useT();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,27 +21,27 @@ export default function RegisterPage() {
 
     const trimmedName = name.trim();
     if (trimmedName.length < 1) {
-      setError("Введите имя");
+      setError(t("auth.nameEmpty"));
       return;
     }
     if (trimmedName.length > 30) {
-      setError("Имя должно содержать менее 30 символов");
+      setError(t("auth.nameTooLong"));
       return;
     }
     if (!/^[a-zA-Zа-яА-ЯёЁ\s\-]+$/.test(trimmedName)) {
-      setError("Имя должно состоять только из букв");
+      setError(t("auth.nameInvalid"));
       return;
     }
     if (password.length < 6) {
-      setError("Пароль минимум 6 символов");
+      setError(t("auth.passwordShort"));
       return;
     }
     if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password) || !/[0-9]/.test(password)) {
-      setError("Пароль должен содержать как буквы так и цифры");
+      setError(t("auth.passwordWeak"));
       return;
     }
     if (password !== confirm) {
-      setError("Пароли не совпадают");
+      setError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -55,7 +57,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || "Ошибка регистрации");
+      setError(data.error || t("auth.registerError"));
       return;
     }
 
@@ -70,7 +72,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-brown-dark">Sourdough</h1>
-          <p className="text-brown-light mt-1">Создай аккаунт</p>
+          <p className="text-brown-light mt-1">{t("auth.registerTitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-6 card-shadow border border-warm-beige/60 space-y-4">
@@ -79,13 +81,13 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Имя</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.name")}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className={inputClass}
-              placeholder="Как тебя зовут?"
+              placeholder={t("auth.namePlaceholder")}
               required
               autoComplete="name"
             />
@@ -105,14 +107,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Пароль</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.password")}</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass + " pr-12"}
-                placeholder="Минимум 6 символов"
+                placeholder={t("auth.passwordMin")}
                 required
                 minLength={6}
                 autoComplete="new-password"
@@ -122,19 +124,19 @@ export default function RegisterPage() {
                 onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-brown-light hover:text-brown text-xs font-medium"
               >
-                {showPass ? "Скрыть" : "Показать"}
+                {showPass ? t("hide") : t("show")}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Повтори пароль</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.repeatPassword")}</label>
             <input
               type={showPass ? "text" : "password"}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className={inputClass}
-              placeholder="Ещё раз"
+              placeholder={t("auth.repeatPlaceholder")}
               required
               minLength={6}
               autoComplete="new-password"
@@ -146,14 +148,14 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            {loading ? "Регистрация..." : "Создать аккаунт"}
+            {loading ? t("auth.registering") : t("auth.createAccount")}
           </button>
         </form>
 
         <p className="text-center text-sm text-brown-light mt-4">
-          Уже есть аккаунт?{" "}
+          {t("auth.hasAccount")}{" "}
           <a href="/login" className="text-terracotta font-bold hover:underline">
-            Войти
+            {t("auth.login")}
           </a>
         </p>
       </div>

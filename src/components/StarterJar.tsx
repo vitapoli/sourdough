@@ -8,6 +8,7 @@ const moodImages: Record<Mood, string> = {
   new: "/moods/new.png",
   ready: "/moods/ready.png",
   peak: "/moods/peak.png?v=2",
+  paused: "/moods/hungry.png",  // Используем hungry как заглушку для паузы
 };
 
 export function StarterJar({ mood, name }: { mood: Mood; name: string }) {
@@ -16,8 +17,8 @@ export function StarterJar({ mood, name }: { mood: Mood; name: string }) {
       <div className="w-44 h-44 flex items-center justify-center animate-breathe overflow-visible">
         <img
           src={moodImages[mood]}
-          alt={`Закваска ${name}`}
-          className={`w-full object-contain ${mood === "peak" ? "-mt-3" : ""}`}
+          alt={name}
+          className={`w-full object-contain ${mood === "peak" ? "-mt-3" : ""} ${mood === "paused" ? "opacity-50 grayscale" : ""}`}
         />
       </div>
     </div>

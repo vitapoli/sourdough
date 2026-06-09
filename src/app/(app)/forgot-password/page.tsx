@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/lib/i18n";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const t = useT();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,7 +25,7 @@ export default function ForgotPasswordPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error || "Ошибка");
+      setError(data.error || t("error"));
       return;
     }
 
@@ -37,12 +39,12 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">Проверь почту</h1>
+          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">{t("auth.checkEmail")}</h1>
           <p className="text-brown-light mb-6">
-            Если аккаунт с таким email существует, мы отправили ссылку для сброса пароля.
+            {t("auth.checkEmailDesc")}
           </p>
           <a href="/login" className="text-terracotta font-bold hover:underline">
-            Вернуться ко входу
+            {t("auth.backToLogin")}
           </a>
         </div>
       </div>
@@ -53,8 +55,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-extrabold text-brown-dark">Забыл пароль?</h1>
-          <p className="text-brown-light mt-1">Введи email и мы отправим ссылку для сброса</p>
+          <h1 className="text-2xl font-extrabold text-brown-dark">{t("auth.forgotTitle")}</h1>
+          <p className="text-brown-light mt-1">{t("auth.forgotDesc")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-6 card-shadow border border-warm-beige/60 space-y-4">
@@ -80,13 +82,13 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            {loading ? "Отправляю..." : "Отправить ссылку"}
+            {loading ? t("auth.sending") : t("auth.sendLink")}
           </button>
         </form>
 
         <p className="text-center text-sm text-brown-light mt-4">
           <a href="/login" className="text-terracotta font-bold hover:underline">
-            Вернуться ко входу
+            {t("auth.backToLogin")}
           </a>
         </p>
       </div>

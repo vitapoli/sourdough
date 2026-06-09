@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useT } from "@/lib/i18n";
 
 interface DropdownProps {
   value: string;
@@ -12,6 +13,7 @@ interface DropdownProps {
 }
 
 export function Dropdown({ value, options, onChange, placeholder, allowCustom, className = "" }: DropdownProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const isCustomValue = allowCustom && value !== "" && !options.includes(value);
   const [custom, setCustom] = useState(false);
@@ -34,7 +36,7 @@ export function Dropdown({ value, options, onChange, placeholder, allowCustom, c
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Тип муки"
+          placeholder={t("dropdown.flourType")}
           autoFocus
           className="flex-1 px-3 py-2 border-2 border-warm-beige rounded-2xl bg-cream text-sm font-bold text-brown-dark focus:outline-none focus:border-terracotta transition-colors"
         />
@@ -58,7 +60,7 @@ export function Dropdown({ value, options, onChange, placeholder, allowCustom, c
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between gap-2 w-full px-3 py-2 border-2 border-warm-beige rounded-2xl bg-cream text-sm font-bold text-brown-dark hover:border-terracotta/50 transition-colors cursor-pointer"
       >
-        <span className={value ? "" : "text-brown-light"}>{value || placeholder || "Выбрать..."}</span>
+        <span className={value ? "" : "text-brown-light"}>{value || placeholder || t("dropdown.select")}</span>
         <svg
           width="10" height="6" viewBox="0 0 10 6" fill="none"
           className={`text-terracotta shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
@@ -88,7 +90,7 @@ export function Dropdown({ value, options, onChange, placeholder, allowCustom, c
               onClick={() => { onChange(""); setCustom(true); setOpen(false); }}
               className="block w-full text-left px-4 py-2 text-sm font-bold text-brown-light hover:bg-warm-beige/50 border-t border-warm-beige transition-colors"
             >
-              Другая...
+              {t("dropdown.other")}
             </button>
           )}
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { PhotoViewer } from "./PhotoViewer";
+import { useT, useLang, translateBuiltInRecipe } from "@/lib/i18n";
 
 interface Ingredient {
   name: string;
@@ -35,7 +36,12 @@ function getRole(ing: Ingredient): IngRole {
   return ing.role ?? detectRole(ing.name);
 }
 
-const ROLE_LABELS: Record<IngRole, string> = { flour: "Мука", liquid: "Жидкость", starter: "Закваска", none: "—" };
+function getRoleLabel(role: IngRole, t: (k: string) => string): string {
+  if (role === "flour") return t("recipes.roleFlour");
+  if (role === "liquid") return t("recipes.roleLiquid");
+  if (role === "starter") return t("recipes.roleStarter");
+  return t("recipes.roleNone");
+}
 const ROLE_COLORS: Record<IngRole, string> = {
   flour: "bg-amber-100 text-amber-700 border-amber-300",
   liquid: "bg-blue-100 text-blue-600 border-blue-300",
@@ -67,6 +73,7 @@ interface Recipe {
 }
 
 function RecipeCardContent({ recipe }: { recipe: Recipe }) {
+  const t = useT();
   const photoUrl = recipe.photos ? (() => { const u: string[] = JSON.parse(recipe.photos); return u.length > 0 ? u[0] : null; })() : null;
   const hasDescription = !!recipe.description;
 
@@ -132,12 +139,12 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
       </h3>
       {recipe.isBuiltIn && (
         <span className="text-xs bg-golden/15 text-golden px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-golden/30">
-          Базовый
+          {t("recipes.builtin")}
         </span>
       )}
       {recipe.savedFrom && (
         <a href={`/baker/${recipe.savedFrom.id}`} className="text-xs bg-terracotta/10 text-terracotta px-2.5 py-0.5 rounded-full font-bold shrink-0 ml-2 border border-terracotta/30 truncate max-w-[140px]">
-          от {recipe.savedFrom.name}
+          {t("recipes.by")} {recipe.savedFrom.name}
         </a>
       )}
     </div>
@@ -210,6 +217,7 @@ function DraggableRecipeList({
   onTogglePublic: (r: Recipe) => void;
   onReorder: (orderedIds: string[]) => void;
 }) {
+  const t = useT();
   const [menuRecipe, setMenuRecipe] = useState<Recipe | null>(null);
   // phase: null → "menu" (показано меню) → "drag" (перетаскивание)
   const [phase, setPhase] = useState<null | "menu" | "drag">(null);
@@ -452,14 +460,14 @@ function DraggableRecipeList({
               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors"
             >
               <Icon name={menuRecipe.pinned ? "bookmark-fill" : "bookmark"} size={18} className={menuRecipe.pinned ? "text-golden" : ""} />
-              {menuRecipe.pinned ? "Открепить" : "Закрепить"}
+              {menuRecipe.pinned ? t("recipes.unpin") : t("recipes.pin")}
             </button>
             <button
               onClick={() => { onToggleHide(menuRecipe); setMenuRecipe(null); setPhase(null); phaseRef.current = null; }}
               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
             >
               <Icon name={menuRecipe.hidden ? "eye" : "eye-off"} size={18} />
-              {menuRecipe.hidden ? "Показать" : "Скрыть"}
+              {menuRecipe.hidden ? t("recipes.show") : t("recipes.hide")}
             </button>
             {!menuRecipe.isBuiltIn && (
             <button
@@ -467,7 +475,7 @@ function DraggableRecipeList({
               className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-brown hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
             >
               <Icon name="globe" size={18} className={menuRecipe.isPublic ? "text-terracotta" : ""} />
-              {menuRecipe.isPublic ? "Снять с публикации" : "Опубликовать"}
+              {menuRecipe.isPublic ? t("recipes.unpublish") : t("recipes.publish")}
             </button>
             )}
           </div>
@@ -492,6 +500,7 @@ function RecipeDetail({
   onConvert: () => void;
   onSelectVariant: (r: Recipe) => void;
 }) {
+  const t = useT();
   const [deleting, setDeleting] = useState(false);
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [viewPhotoIndex, setViewPhotoIndex] = useState(0);
@@ -564,7 +573,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
   }
 
   async function handleDelete() {
-    if (!confirm("Удалить этот рецепт?")) return;
+    if (!confirm(t("recipes.deleteConfirm"))) return;
     setDeleting(true);
     await fetch("/api/recipes", {
       method: "DELETE",
@@ -655,7 +664,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
         onClick={onBack}
         className="text-terracotta font-bold text-sm hover:underline flex items-center gap-1"
       >
-        <Icon name="back" size={16} /> Назад к рецептам
+        <Icon name="back" size={16} /> {t("recipes.backToRecipes")}
       </button>
 
       <div className="bg-card rounded-2xl p-5 card-shadow border border-warm-beige/60">
@@ -665,7 +674,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
             <button
               onClick={() => setShowPrintOptions(!showPrintOptions)}
               className={`transition-colors p-1 ${showPrintOptions ? "text-terracotta" : "text-brown-light hover:text-terracotta"}`}
-              title="Сохранить PDF"
+              title={t("recipes.savePdf")}
             >
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 14l4 4 4-4M10 18V8M3 10V4a1 1 0 011-1h12a1 1 0 011 1v6" />
@@ -675,7 +684,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
               <button
                 onClick={onEdit}
                 className="text-brown-light hover:text-terracotta transition-colors p-1"
-                title="Редактировать"
+                title={t("edit")}
               >
                 <Icon name="pencil" size={20} />
               </button>
@@ -683,7 +692,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
                 onClick={handleDelete}
                 disabled={deleting}
                 className="text-brown-light hover:text-red-500 transition-colors p-1 disabled:opacity-50"
-                title="Удалить рецепт"
+                title={t("recipes.deleteRecipe")}
               >
                 <Icon name="trash" size={20} />
               </button>
@@ -701,7 +710,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
                   onChange={(e) => setPrintWithPhotos(e.target.checked)}
                   className="accent-terracotta w-4 h-4"
                 />
-                С фото
+                {t("recipes.withPhoto")}
               </label>
             )}
             {!recipe.photos && <span />}
@@ -709,7 +718,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
               onClick={() => { handleSharePdf(); setShowPrintOptions(false); }}
               className="px-4 py-1.5 bg-terracotta text-white text-sm font-bold rounded-xl hover:brightness-110 transition-all"
             >
-              Сохранить PDF
+              {t("recipes.savePdf")}
             </button>
           </div>
         )}
@@ -738,12 +747,12 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
 
         <div className="flex gap-3 flex-wrap mb-5">
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
-            <p className="text-xs text-brown-light">Мука</p>
+            <p className="text-xs text-brown-light">{t("recipes.flour")}</p>
             <p className="text-sm font-bold text-brown">{recipe.flour}</p>
           </div>
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light flex items-center gap-1 justify-center">
-              <img src="/ear.png" alt="" className="h-3.5 w-auto inline opacity-60" /> Закваска
+              <img src="/ear.png" alt="" className="h-3.5 w-auto inline opacity-60" /> {t("recipes.starter")}
             </p>
             <p className="text-sm font-bold text-brown">{recipe.starterPct}%</p>
           </div>
@@ -769,7 +778,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           })()}
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light flex items-center gap-1 justify-center">
-              <Icon name="drop" size={14} /> Гидратация
+              <Icon name="drop" size={14} /> {t("recipes.hydration")}
               {calcData && (
                 <button
                   onClick={() => setShowDetailCalc(!showDetailCalc)}
@@ -787,14 +796,14 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
 
         {showDetailCalc && calcData && (
           <div className="bg-warm-beige/40 rounded-xl p-3 text-sm space-y-2 animate-fade-up mb-4">
-            <p className="font-bold text-brown-dark text-xs">Расчёт гидратации:</p>
+            <p className="font-bold text-brown-dark text-xs">{t("recipes.calcTitle")}</p>
             <div className="space-y-1">
               <p className="text-brown">
-                <span className="font-medium">Мука ({calcData.totalFlour}г):</span>{" "}
+                <span className="font-medium">{t("recipes.flourLabel")} ({calcData.totalFlour}г):</span>{" "}
                 {calcData.flourItems.join(", ")}
               </p>
               <p className="text-brown">
-                <span className="font-medium">Жидкости ({calcData.totalLiquid}г):</span>{" "}
+                <span className="font-medium">{t("recipes.liquidsLabel")} ({calcData.totalLiquid}г):</span>{" "}
                 {calcData.liquidItems.join(", ")}
               </p>
               <p className="text-terracotta font-bold text-xs mt-1">
@@ -802,7 +811,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
               </p>
             </div>
             <div className="flex items-center gap-2 pt-2 border-t border-warm-beige/60">
-              <span className="text-xs text-brown-light shrink-0">Гидратация закваски:</span>
+              <span className="text-xs text-brown-light shrink-0">{t("recipes.starterHydration")}</span>
               <input
                 type="number"
                 min="50"
@@ -867,12 +876,12 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           return (
             <>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-extrabold text-brown-dark">Ингредиенты:</h3>
+                <h3 className="font-extrabold text-brown-dark">{t("recipes.ingredients")}:</h3>
                 <button
                   onClick={onConvert}
                   className="text-xs font-bold text-terracotta hover:underline flex items-center gap-1"
                 >
-                  Пересчитать
+                  {t("recipes.recalculate")}
                 </button>
               </div>
               <div className="space-y-3 mb-5">
@@ -894,7 +903,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           );
         })()}
 
-        <h3 className="font-extrabold text-brown-dark mb-3">Приготовление:</h3>
+        <h3 className="font-extrabold text-brown-dark mb-3">{t("recipes.directions")}:</h3>
         <div className="space-y-3">
           {steps.map((step, i) => (
             <div key={i} className="flex gap-3">
@@ -909,7 +918,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
         {/* Варианты рецепта */}
         {recipe.variants && recipe.variants.length > 0 && (
           <div className="mt-5 pt-4 border-t border-warm-beige">
-            <h3 className="font-extrabold text-brown-dark mb-2">Варианты:</h3>
+            <h3 className="font-extrabold text-brown-dark mb-2">{t("recipes.variants")}</h3>
             <div className="space-y-1.5">
               {recipe.variants.map((v) => (
                 <button
@@ -956,25 +965,73 @@ interface ScannedRecipe {
   steps?: string[];
 }
 
+const FLOUR_DB_VALUES = ["Пшеничная", "Ржаная"];
+const FLOUR_EN: Record<string, string> = { "Пшеничная": "Wheat", "Ржаная": "Rye" };
+const FLOUR_FROM_EN: Record<string, string> = { "Wheat": "Пшеничная", "Rye": "Ржаная" };
+
 function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPreviewHidden }: { onCreated: () => void; initial?: ScannedRecipe; editId?: string; initialPhotos?: string[]; initialPreviewHidden?: string[] }) {
+  const t = useT();
+  const { lang } = useLang();
   const [title, setTitle] = useState(initial?.title || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [flour, setFlour] = useState(initial?.flour || "Пшеничная");
-  const [hydration, setHydration] = useState(String(initial?.hydration || "70"));
+  const [hydration, setHydration] = useState(initial?.hydration ? String(initial.hydration) : "");
 
   // Определяем, есть ли закваска в ингредиентах
   const hasStarter = (initial?.ingredients || []).some(ing =>
     ["закваска", "стартер", "левен", "leaven", "материнская", "культура"].some(k => ing.name.toLowerCase().includes(k))
   );
 
-  const [starterPct, setStarterPct] = useState(hasStarter ? String(initial?.starterPct || "20") : "");
-  const [salt, setSalt] = useState(initial?.salt ? String(initial.salt) : "10");
+  const [starterPct, setStarterPct] = useState(() => {
+    if (!hasStarter) return "";
+    // Рассчитываем из ингредиентов: вес закваски / общий вес муки * 100
+    const ings = initial?.ingredients || [];
+    let totalFlour = 0;
+    let totalStarter = 0;
+    for (const ing of ings) {
+      const amount = parseFloat(ing.amount) || 0;
+      if (amount <= 0) continue;
+      const role = getRole(ing);
+      if (role === "flour") totalFlour += amount;
+      if (role === "starter") totalStarter += amount;
+    }
+    if (totalFlour > 0 && totalStarter > 0) {
+      return String(Math.round(totalStarter / totalFlour * 100));
+    }
+    if (initial?.starterPct != null && initial.starterPct > 0) return String(initial.starterPct);
+    return "20";
+  });
+  const [salt, setSalt] = useState(() => {
+    if (initial?.salt != null) return String(initial.salt);
+    // Если соль не задана отдельно, но есть в ингредиентах — взять оттуда
+    const saltIng = (initial?.ingredients || []).find(ing =>
+      ing.name.toLowerCase().includes("соль") && !ing.name.toLowerCase().includes("солод")
+    );
+    if (saltIng?.amount) return String(saltIng.amount);
+    return "";
+  });
   const [showCalc, setShowCalc] = useState(false);
   const [showPhaseInput, setShowPhaseInput] = useState(false);
   const [newPhaseName, setNewPhaseName] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>(
     initial?.ingredients || []
   );
+  // Пересчёт процента закваски при изменении ингредиентов
+  useEffect(() => {
+    let totalFlour = 0;
+    let totalStarter = 0;
+    for (const ing of ingredients) {
+      const amount = parseFloat(ing.amount) || 0;
+      if (amount <= 0) continue;
+      const role = getRole(ing);
+      if (role === "flour") totalFlour += amount;
+      if (role === "starter") totalStarter += amount;
+    }
+    if (totalFlour > 0 && totalStarter > 0) {
+      setStarterPct(String(Math.round(totalStarter / totalFlour * 100)));
+    }
+  }, [ingredients]);
+
   const [stepsText, setStepsText] = useState(initial?.steps?.join("\n") || "");
   const [photos, setPhotos] = useState<string[]>(initialPhotos || []);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -1166,10 +1223,10 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
       if (data.urls) {
         setPhotos(prev => [...prev, ...data.urls].slice(0, 3));
       } else {
-        alert("Не удалось загрузить фото: " + (data.error || "неизвестная ошибка"));
+        alert(t("recipes.photoUploadError") + ": " + (data.error || t("recipes.unknownError")));
       }
     } catch (err) {
-      alert("Ошибка загрузки фото: " + String(err));
+      alert(t("recipes.photoUploadFailed") + ": " + String(err));
     }
     setUploadingPhoto(false);
     e.target.value = "";
@@ -1202,7 +1259,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
         description: description.trim() || null,
         flour,
         hydration: liveCalcData ? Math.round(liveCalcData.totalLiquid / liveCalcData.totalFlour * 100) : (parseInt(hydration) || 70),
-        starterPct: parseInt(starterPct) || 20,
+        starterPct: Math.max(0, parseInt(starterPct) || 0),
         salt: salt ? parseFloat(salt) : null,
         ingredients: filteredIngredients.length > 0 ? JSON.stringify(filteredIngredients) : null,
         hydrationCalc: initial?.hydrationCalc ? JSON.stringify(initial.hydrationCalc) : null,
@@ -1214,7 +1271,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
     if (!res.ok) {
       const err = await res.json();
-      alert("Ошибка сохранения: " + (err.error || "неизвестная ошибка"));
+      alert(t("recipes.saveError") + ": " + (err.error || t("recipes.unknownError")));
       setLoading(false);
       return;
     }
@@ -1231,54 +1288,56 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-card rounded-2xl p-5 card-shadow border border-warm-beige/60 space-y-4 animate-fade-up">
-      <h3 className="text-lg font-extrabold text-brown-dark">{editId ? "Редактировать рецепт" : "Добавить рецепт"}</h3>
+      <h3 className="text-lg font-extrabold text-brown-dark">{editId ? t("recipes.editTitle") : t("recipes.addTitle")}</h3>
 
       <div>
-        <label className="text-sm font-medium text-brown">Название</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.nameLabel")}</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Мой любимый хлеб"
+          placeholder={t("recipes.titlePlaceholder")}
           required
           className={inputClass}
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium text-brown">Описание</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.descLabel")}</label>
         <textarea
           value={description}
           onChange={(e) => { setDescription(e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
           onFocus={(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
-          placeholder="Краткое описание"
+          placeholder={t("recipes.descPlaceholder")}
           rows={1}
           className={`${inputClass} resize-none overflow-hidden`}
         ></textarea>
       </div>
 
       <div>
-        <label className="text-sm font-medium text-brown">Мука</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.flourTypeLabel")}</label>
         <Dropdown
-          value={flour}
-          options={["Пшеничная", "Ржаная"]}
-          onChange={setFlour}
+          value={lang === "en" ? (FLOUR_EN[flour] || flour) : flour}
+          options={lang === "en" ? FLOUR_DB_VALUES.map(v => FLOUR_EN[v] || v) : FLOUR_DB_VALUES}
+          onChange={(v) => setFlour(lang === "en" ? (FLOUR_FROM_EN[v] || v) : v)}
           allowCustom
         />
       </div>
 
       <div className="grid grid-cols-2 gap-2 items-end">
         <div>
-          <label className="text-xs font-medium text-brown">Закваска %</label>
+          <label className="text-xs font-medium text-brown">{t("recipes.starterPct")}</label>
           <input
             type="number"
             value={starterPct}
             onChange={(e) => setStarterPct(e.target.value)}
-            className={inputClass}
+            readOnly={ingredients.some(ing => getRole(ing) === "starter" && parseFloat(ing.amount) > 0)}
+            className={`${inputClass}${ingredients.some(ing => getRole(ing) === "starter" && parseFloat(ing.amount) > 0) ? " opacity-60" : ""}`}
+            title={ingredients.some(ing => getRole(ing) === "starter" && parseFloat(ing.amount) > 0) ? t("recipes.calculatedFromIngs") : ""}
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-brown">Гидр. закваски %</label>
+          <label className="text-xs font-medium text-brown">{t("recipes.starterHydrationPct")}</label>
           <input
             type="number"
             min="50"
@@ -1291,7 +1350,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
       </div>
       <div className="grid grid-cols-2 gap-2 items-end">
         <div>
-          <label className="text-xs font-medium text-brown">Соль (г)</label>
+          <label className="text-xs font-medium text-brown">{t("recipes.saltG")}</label>
           <input
             type="number"
             value={salt}
@@ -1301,7 +1360,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
         </div>
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-brown">Гидратация %</label>
+            <label className="text-xs font-medium text-brown">{t("recipes.hydrationPct")}</label>
             {liveCalcData && (
               <button
                 type="button"
@@ -1323,8 +1382,8 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
       {showCalc && (
         <div className="bg-warm-beige/40 rounded-xl p-3 text-sm space-y-2 animate-fade-up">
-          <p className="font-bold text-brown-dark text-xs">Расчёт гидратации:</p>
-          <p className="text-[10px] text-brown-light">Нажми на роль, чтобы изменить</p>
+          <p className="font-bold text-brown-dark text-xs">{t("recipes.calcTitle")}</p>
+          <p className="text-[10px] text-brown-light">{t("recipes.clickToChange")}</p>
 
           {/* Ингредиенты с ролями */}
           <div className="space-y-1">
@@ -1342,9 +1401,9 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                       setIngredients(prev => prev.map((v, i) => i === realIdx ? { ...v, role: next } : v));
                     }}
                     className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${ROLE_COLORS[role]} ${isAuto ? "border-dashed" : ""}`}
-                    title={isAuto ? "Авто" : "Вручную"}
+                    title={isAuto ? t("recipes.auto") : t("recipes.manual")}
                   >
-                    {ROLE_LABELS[role]}
+                    {getRoleLabel(role, t)}
                   </button>
                 </div>
               );
@@ -1355,11 +1414,11 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
           {liveCalcData && (
             <div className="space-y-1 pt-2 border-t border-warm-beige/60">
               <p className="text-brown">
-                <span className="font-medium">Мука ({liveCalcData.totalFlour}г):</span>{" "}
+                <span className="font-medium">{t("recipes.flourLabel")} ({liveCalcData.totalFlour}г):</span>{" "}
                 {liveCalcData.flourItems.join(", ")}
               </p>
               <p className="text-brown">
-                <span className="font-medium">Жидкости ({liveCalcData.totalLiquid}г):</span>{" "}
+                <span className="font-medium">{t("recipes.liquidsLabel")} ({liveCalcData.totalLiquid}г):</span>{" "}
                 {liveCalcData.liquidItems.join(", ")}
               </p>
               <p className="text-terracotta font-bold text-xs mt-1">
@@ -1369,7 +1428,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
           )}
 
           <div className="flex items-center gap-2 pt-2 border-t border-warm-beige/60">
-            <span className="text-xs text-brown-light shrink-0">Гидратация закваски:</span>
+            <span className="text-xs text-brown-light shrink-0">{t("recipes.starterHydration")}</span>
             <input
               type="number"
               min="50"
@@ -1385,7 +1444,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
       {/* Ингредиенты */}
       <div className="space-y-3">
-        <label className="text-sm font-medium text-brown">Ингредиенты</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.ingredientsLabel")}</label>
 
         {/* Ингредиенты без фазы */}
         {ingredients.filter(ing => !ing.phase).length > 0 && (
@@ -1396,7 +1455,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                   type="text"
                   value={ing.name}
                   onChange={(e) => updateIngredient(i, "name", e.target.value)}
-                  placeholder="Название"
+                  placeholder={t("recipes.namePlaceholder")}
                   className="flex-1 min-w-0 px-2 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm focus:outline-none focus:border-terracotta transition-colors"
                 />
                 <input
@@ -1410,7 +1469,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                   type="text"
                   value={ing.unit}
                   onChange={(e) => updateIngredient(i, "unit", e.target.value)}
-                  placeholder="ед"
+                  placeholder={t("recipes.unitPlaceholder")}
                   className="w-10 shrink-0 px-1 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm text-center focus:outline-none focus:border-terracotta transition-colors"
                 />
                 <div className="relative shrink-0">
@@ -1431,7 +1490,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium transition-colors ${ing.pinned && ing.pinnedUnit === "g" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
                         >
                           <Icon name="pin" size={14} />
-                          В шапку (г)
+                          {t("recipes.pinToHeaderG")}
                         </button>
                         <button
                           type="button"
@@ -1439,7 +1498,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium border-t border-warm-beige/60 transition-colors ${ing.pinned && ing.pinnedUnit === "%" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
                         >
                           <Icon name="pin" size={14} />
-                          В шапку (%)
+                          {t("recipes.pinToHeaderPct")}
                         </button>
                         {ing.pinned && (
                           <button
@@ -1448,7 +1507,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                             className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-brown-light hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
                           >
                             <Icon name="close" size={14} />
-                            Открепить
+                            {t("recipes.unpin")}
                           </button>
                         )}
                         <button
@@ -1457,7 +1516,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-t border-warm-beige/60"
                         >
                           <Icon name="trash" size={14} />
-                          Удалить
+                          {t("delete")}
                         </button>
                       </div>
                     </>
@@ -1480,7 +1539,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                 }}
                 className="text-xs text-brown-light hover:text-red-500"
               >
-                убрать фазу
+                {t("recipes.removePhase")}
               </button>
             </div>
             {ingredients.map((ing, i) => ing.phase === phase && (
@@ -1489,7 +1548,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                   type="text"
                   value={ing.name}
                   onChange={(e) => updateIngredient(i, "name", e.target.value)}
-                  placeholder="Название"
+                  placeholder={t("recipes.namePlaceholder")}
                   className="flex-1 min-w-0 px-2 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm focus:outline-none focus:border-terracotta transition-colors"
                 />
                 <input
@@ -1503,7 +1562,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                   type="text"
                   value={ing.unit}
                   onChange={(e) => updateIngredient(i, "unit", e.target.value)}
-                  placeholder="ед"
+                  placeholder={t("recipes.unitPlaceholder")}
                   className="w-10 shrink-0 px-1 py-2 border-2 border-warm-beige rounded-xl bg-cream text-brown-dark text-sm text-center focus:outline-none focus:border-terracotta transition-colors"
                 />
                 <div className="relative shrink-0">
@@ -1524,7 +1583,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium transition-colors ${ing.pinned && ing.pinnedUnit === "g" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
                         >
                           <Icon name="pin" size={14} />
-                          В шапку (г)
+                          {t("recipes.pinToHeaderG")}
                         </button>
                         <button
                           type="button"
@@ -1532,7 +1591,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className={`flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium border-t border-warm-beige/60 transition-colors ${ing.pinned && ing.pinnedUnit === "%" ? "text-golden bg-golden/10" : "text-brown hover:bg-warm-beige/50"}`}
                         >
                           <Icon name="pin" size={14} />
-                          В шапку (%)
+                          {t("recipes.pinToHeaderPct")}
                         </button>
                         {ing.pinned && (
                           <button
@@ -1541,7 +1600,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                             className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-brown-light hover:bg-warm-beige/50 transition-colors border-t border-warm-beige/60"
                           >
                             <Icon name="close" size={14} />
-                            Открепить
+                            {t("recipes.unpin")}
                           </button>
                         )}
                         <button
@@ -1550,7 +1609,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                           className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors border-t border-warm-beige/60"
                         >
                           <Icon name="trash" size={14} />
-                          Удалить
+                          {t("delete")}
                         </button>
                       </div>
                     </>
@@ -1563,7 +1622,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
               onClick={() => addIngredient(phase)}
               className="text-xs text-golden hover:underline"
             >
-              + ингредиент в «{phase}»
+              {t("recipes.addIngToPhase")} «{phase}»
             </button>
           </div>
         ))}
@@ -1574,25 +1633,25 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
             onClick={() => addIngredient()}
             className="text-sm text-terracotta font-medium hover:underline"
           >
-            + Ингредиент
+            {t("recipes.addIngredient")}
           </button>
           <button
             type="button"
             onClick={() => setShowPhaseInput(true)}
             className="text-sm text-golden font-medium hover:underline"
           >
-            + Фаза
+            {t("recipes.addPhase")}
           </button>
         </div>
 
         {showPhaseInput && (
           <div className="bg-golden/5 border-2 border-golden/30 rounded-xl p-3 space-y-2 animate-fade-up">
-            <p className="text-xs font-bold text-golden">Новая фаза</p>
+            <p className="text-xs font-bold text-golden">{t("recipes.newPhase")}</p>
             <input
               type="text"
               value={newPhaseName}
               onChange={(e) => setNewPhaseName(e.target.value)}
-              placeholder="Заварка, Опара, Основное тесто..."
+              placeholder={t("recipes.phasePlaceholder")}
               autoFocus
               className="w-full px-3 py-2 border-2 border-golden/30 rounded-xl bg-cream text-brown-dark text-sm focus:outline-none focus:border-golden transition-colors"
               onKeyDown={(e) => {
@@ -1623,14 +1682,14 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
                 disabled={!newPhaseName.trim()}
                 className="px-3 py-1.5 bg-golden text-white text-xs font-bold rounded-lg disabled:opacity-50 transition-all"
               >
-                Добавить
+                {t("recipes.add")}
               </button>
               <button
                 type="button"
                 onClick={() => { setShowPhaseInput(false); setNewPhaseName(""); }}
                 className="px-3 py-1.5 text-xs text-brown-light hover:text-brown transition-colors"
               >
-                Отмена
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -1638,11 +1697,11 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
       </div>
 
       <div>
-        <label className="text-sm font-medium text-brown">Шаги (каждый с новой строки)</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.stepsLabel")}</label>
         <textarea
           value={stepsText}
           onChange={(e) => setStepsText(e.target.value)}
-          placeholder={"Смешать муку и воду\nДобавить закваску\nВымесить тесто\n..."}
+          placeholder={t("recipes.stepPlaceholder")}
           rows={5}
           className={`${inputClass} resize-none`}
         />
@@ -1650,7 +1709,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
       {/* Фото */}
       <div>
-        <label className="text-sm font-medium text-brown">Фото (до 3)</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.photosLabel")}</label>
         {photos.length > 0 && (
           <div className="flex gap-2 mt-2 flex-wrap">
             {photos.map((url, i) => (
@@ -1670,7 +1729,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
         {photos.length < 3 && (
           <label className="mt-2 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-warm-beige rounded-xl text-brown-light hover:border-terracotta/40 hover:text-terracotta cursor-pointer transition-colors">
             <Icon name="camera" size={18} />
-            <span className="text-sm font-medium">{uploadingPhoto ? "Загрузка..." : "Добавить фото"}</span>
+            <span className="text-sm font-medium">{uploadingPhoto ? t("recipes.uploading") : t("recipes.addPhoto")}</span>
             <input
               type="file"
               accept="image/*"
@@ -1685,9 +1744,9 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
 
       {/* Превью-поля */}
       <div>
-        <label className="text-sm font-medium text-brown">Показывать в превью</label>
+        <label className="text-sm font-medium text-brown">{t("recipes.showInPreview")}</label>
         <div className="flex gap-2 mt-1.5 flex-wrap">
-          {([["flour", "Мука"], ["starter", "Закваска"], ["hydration", "Гидратация"]] as const).map(([key, label]) => {
+          {([["flour", t("recipes.flour")], ["starter", t("recipes.starter")], ["hydration", t("recipes.hydration")]] as [string, string][]).map(([key, label]) => {
             const hidden = previewHidden.includes(key);
             return (
               <button
@@ -1714,7 +1773,7 @@ function AddRecipeForm({ onCreated, initial, editId, initialPhotos, initialPrevi
         disabled={loading || !title.trim()}
         className="w-full py-4 bg-terracotta text-white text-lg font-bold rounded-xl card-shadow-lg hover:bg-terracotta-light active:scale-95 transition-all disabled:opacity-50"
       >
-        {loading ? "Сохраняю..." : (editId ? "Сохранить изменения" : "Сохранить рецепт")}
+        {loading ? t("recipes.saving") : (editId ? t("recipes.saveChanges") : t("recipes.saveRecipe"))}
       </button>
     </form>
   );
@@ -1729,6 +1788,7 @@ function RecipeConverter({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const originalIngs: Ingredient[] = recipe.ingredients ? JSON.parse(recipe.ingredients) : [];
   const originalTotal = originalIngs.reduce((sum, ing) => sum + (parseFloat(ing.amount) || 0), 0);
 
@@ -1802,7 +1862,7 @@ function RecipeConverter({
         <div className="flex items-center justify-between p-5 pb-0">
           <h3 className="text-lg font-extrabold text-brown-dark flex items-center gap-2">
             <Icon name="calculator" size={22} className="text-terracotta" />
-            Пересчитать
+            {t("recipes.recalculate")}
           </h3>
           <button onClick={onClose} className="text-brown-light hover:text-brown transition-colors">
             <Icon name="close" size={22} />
@@ -1812,7 +1872,7 @@ function RecipeConverter({
         <div className="overflow-y-auto px-5 space-y-4 flex-1">
         {/* Целевой вес */}
         <div>
-          <label className="text-sm font-medium text-brown">Общий вес ингредиентов (г)</label>
+          <label className="text-sm font-medium text-brown">{t("recipes.totalWeightG")}</label>
           <input
             type="number"
             value={targetWeight}
@@ -1821,7 +1881,7 @@ function RecipeConverter({
           />
           {originalTotal > 0 && scale !== 1 && (
             <p className="text-xs text-brown-light mt-1 text-center">
-              Коэффициент: ×{scale.toFixed(2)}
+              {t("recipes.coefficient")}: ×{scale.toFixed(2)}
             </p>
           )}
         </div>
@@ -1834,7 +1894,7 @@ function RecipeConverter({
               !showPercents ? "bg-white text-terracotta card-shadow" : "text-brown-light"
             }`}
           >
-            Граммы
+            {t("recipes.grams")}
           </button>
           <button
             onClick={() => setShowPercents(true)}
@@ -1842,7 +1902,7 @@ function RecipeConverter({
               showPercents ? "bg-white text-terracotta card-shadow" : "text-brown-light"
             }`}
           >
-            Пекарские %
+            {t("recipes.bakersPct")}
           </button>
         </div>
 
@@ -1860,7 +1920,7 @@ function RecipeConverter({
 
         {showPercents && totalFlour > 0 && (
           <p className="text-xs text-brown-light text-center">
-            Проценты от общего веса муки ({Math.round(totalFlour * scale)}г)
+            {t("recipes.pctOfFlour")} ({Math.round(totalFlour * scale)}г)
           </p>
         )}
 
@@ -1874,7 +1934,7 @@ function RecipeConverter({
               disabled={saving || target <= 0}
               className="w-full py-3 bg-terracotta text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
             >
-              Сохранить как основной
+              {t("recipes.saveAsMain")}
             </button>
           )}
           <button
@@ -1882,14 +1942,14 @@ function RecipeConverter({
             disabled={saving || target <= 0}
             className="w-full py-3 bg-golden text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            Сохранить как новый рецепт
+            {t("recipes.saveAsNew")}
           </button>
           <button
             onClick={() => handleSave("variant")}
             disabled={saving || target <= 0}
             className="w-full py-3 bg-warm-beige text-brown font-bold rounded-xl hover:bg-warm-beige/80 active:scale-95 transition-all disabled:opacity-50"
           >
-            Сохранить как вариант
+            {t("recipes.saveAsVariant")}
           </button>
         </div>
       </div>
@@ -1898,6 +1958,8 @@ function RecipeConverter({
 }
 
 export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
+  const t = useT();
+  const { lang } = useLang();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Recipe | null>(null);
@@ -1970,9 +2032,15 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
       return;
     }
     const data = await res.json();
-    setRecipes(data);
+    // Переводим встроенные рецепты
+    const translated = data.map((r: Recipe) => {
+      if (!r.isBuiltIn) return r;
+      const tr = translateBuiltInRecipe(r, lang);
+      return { ...r, ...tr };
+    });
+    setRecipes(translated);
     setLoading(false);
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     loadRecipes();
@@ -2001,7 +2069,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
           quality
         );
       };
-      img.onerror = () => reject(new Error("Не удалось загрузить изображение"));
+      img.onerror = () => reject(new Error(t("recipes.imageLoadError")));
       img.src = URL.createObjectURL(file);
     });
   }
@@ -2020,7 +2088,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
         formData.append("photo", compressed, files[i].name || `photo-${i}.jpg`);
       }
     } catch (err) {
-      setScanError("Ошибка при обработке фото: " + String(err));
+      setScanError(t("recipes.scanPhotoError") + ": " + String(err));
       setScanning(false);
       e.target.value = "";
       return;
@@ -2033,7 +2101,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
       });
 
       if (!res.ok) {
-        let msg = `Ошибка сервера (${res.status})`;
+        let msg = `${t("recipes.scanServerError")} (${res.status})`;
         try { const err = await res.json(); msg = err.error + (err.details ? ": " + err.details : ""); } catch {}
         setScanError(msg);
         setScanning(false);
@@ -2052,7 +2120,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
       setShowAdd(true);
       setShowList(false);
     } catch (err) {
-      setScanError("Ошибка при распознавании: " + String(err));
+      setScanError(t("recipes.scanRecognizeError") + ": " + String(err));
     }
     setScanning(false);
     // Сброс input чтобы можно было загрузить тот же файл повторно
@@ -2064,7 +2132,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <div className="text-center animate-fade-up">
           <Icon name="recipe-page" size={48} className="mb-4 animate-bounce text-terracotta mx-auto" />
-          <p className="text-brown-light text-lg">Загрузка рецептов...</p>
+          <p className="text-brown-light text-lg">{t("recipes.loadingRecipes")}</p>
         </div>
       </div>
     );
@@ -2125,7 +2193,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
             onClick={() => { setEditing(null); setShowList(true); }}
             className="text-brown-light hover:text-brown text-sm transition-colors mt-4"
           >
-            Отмена
+            {t("cancel")}
           </button>
         </div>
       )}
@@ -2147,7 +2215,7 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
             onClick={() => { setShowAdd(false); setScanned(undefined); setShowList(true); }}
             className="text-brown-light hover:text-brown text-sm transition-colors mt-4"
           >
-            Отмена
+            {t("cancel")}
           </button>
         </div>
       )}
@@ -2161,19 +2229,19 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
                 onClick={() => setShowList(false)}
                 className="w-full py-4 bg-card rounded-2xl border-2 border-terracotta/40 text-terracotta font-bold hover:bg-terracotta/5 transition-all"
               >
-                Вернуться к черновику
+                {t("recipes.backToDraft")}
               </button>
             )}
             <button
               onClick={() => { setShowAdd(true); setShowList(false); setEditing(null); }}
               className="w-full py-4 bg-card rounded-2xl border-2 border-dashed border-terracotta/30 text-terracotta font-bold hover:border-terracotta/60 hover:bg-terracotta/5 transition-all"
             >
-              + Добавить свой рецепт
+              {t("recipes.addOwn")}
             </button>
 
             <label className="w-full py-4 bg-card rounded-2xl border-2 border-dashed border-golden/30 text-golden font-bold hover:border-golden/60 hover:bg-golden/5 transition-all flex items-center justify-center gap-2 cursor-pointer">
               <Icon name="notebook" size={20} />
-              {scanning ? "Распознаю..." : "Распознать с фото"}
+              {scanning ? t("recipes.scanning") : t("recipes.scanFromPhoto")}
               <input
                 type="file"
                 accept="image/*"
@@ -2212,13 +2280,13 @@ export function RecipesTab({ goToListSignal }: { goToListSignal?: number }) {
                     className="flex items-center gap-1.5 text-sm text-brown-light hover:text-brown transition-colors"
                   >
                     <Icon name={showHidden ? "eye-off" : "eye"} size={16} />
-                    {showHidden ? "Скрыть спрятанные" : `Показать скрытые (${hiddenCount})`}
+                    {showHidden ? t("recipes.hideHidden") : `${t("recipes.showHidden")} (${hiddenCount})`}
                   </button>
                 )}
 
                 {visible.length === 0 && !hiddenCount && (
                   <p className="text-brown-light text-center py-8">
-                    Пока нет рецептов. Добавь свой первый!
+                    {t("recipes.noRecipes")}
                   </p>
                 )}
               </>

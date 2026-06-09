@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
+import { useT } from "@/lib/i18n";
 
 const FLOUR_TYPES = ["Пшеничная", "Ржаная"];
 
@@ -24,6 +25,7 @@ interface FeedingFormProps {
 }
 
 export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormProps) {
+  const t = useT();
   const [loading, setLoading] = useState(false);
   const [starterAmount, setStarterAmount] = useState("10");
   const [flourAmount, setFlourAmount] = useState("20");
@@ -35,6 +37,22 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
   const [showExtra, setShowExtra] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
+  // Map DB values to translated labels and back
+  const flourLabelMap: Record<string, string> = {
+    "Пшеничная": t("create.wheat"),
+    "Ржаная": t("create.rye"),
+  };
+  const flourLabelToValue: Record<string, string> = {};
+  for (const [val, label] of Object.entries(flourLabelMap)) {
+    flourLabelToValue[label] = val;
+  }
+  const flourLabels = FLOUR_TYPES.map((ft) => flourLabelMap[ft] || ft);
+  const flourDisplayValue = flourLabelMap[flourType] || flourType;
+
+  function handleFlourChange(label: string) {
+    setFlourType(flourLabelToValue[label] || label);
+  }
 
   function handlePhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -78,10 +96,10 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           photosJson = JSON.stringify(uploadData.urls);
           data.photos = photosJson;
         } else {
-          alert("Не удалось загрузить фото: " + (uploadData.error || "неизвестная ошибка"));
+          alert(t("feeding.photoError") + ": " + (uploadData.error || ""));
         }
       } catch (err) {
-        alert("Ошибка загрузки фото: " + String(err));
+        alert(t("feeding.photoError") + ": " + String(err));
       }
     }
 
@@ -111,7 +129,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
   if (done) {
     return (
       <div className="px-6 py-2.5 bg-green-happy text-white font-bold rounded-2xl card-shadow-lg animate-fade-up">
-        Покормлена!
+        {t("tracker.fed")}
       </div>
     );
   }
@@ -130,7 +148,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
       {/* Пропорции — всегда видны */}
       <div className="grid grid-cols-4 gap-2">
         <div className="flex flex-col">
-          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Закваска</label>
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">{t("feeding.starter")}</label>
           <input
             type="number"
             inputMode="decimal"
@@ -140,7 +158,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Мука, г</label>
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">{t("feeding.flourG")}</label>
           <input
             type="number"
             inputMode="decimal"
@@ -150,7 +168,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Вода, г</label>
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">{t("feeding.waterG")}</label>
           <input
             type="number"
             inputMode="decimal"
@@ -160,7 +178,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">Соотн.</label>
+          <label className="text-[10px] font-medium text-brown-light text-center h-4 leading-4">{t("feeding.ratio")}</label>
           <div className="px-3 py-2 rounded-xl bg-warm-beige/50 text-sm font-bold text-terracotta text-center">
             {ratio}
           </div>
@@ -169,9 +187,9 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
 
       {/* Тип муки */}
       <Dropdown
-        value={flourType}
-        options={FLOUR_TYPES}
-        onChange={setFlourType}
+        value={flourDisplayValue}
+        options={flourLabels}
+        onChange={handleFlourChange}
         allowCustom
       />
 
@@ -195,7 +213,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Заметки: запах, консистенция..."
+            placeholder={t("feeding.notesPlaceholder")}
             rows={2}
             className="w-full px-3 py-2 border-2 border-warm-beige rounded-xl bg-cream text-sm text-brown-dark focus:outline-none focus:border-terracotta transition-colors resize-none"
           />
@@ -228,7 +246,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
           className="flex-1 py-2.5 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <Icon name="flour-bag" size={18} className="opacity-90" />
-          {loading ? "..." : "Покормить"}
+          {loading ? "..." : t("feeding.feed")}
         </button>
         <label
           className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
@@ -256,7 +274,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
               : "bg-warm-beige/50 text-brown-light hover:text-brown border border-warm-beige"
           }`}
         >
-          {showExtra ? "Скрыть" : "Темп. и заметки"}
+          {showExtra ? t("hide") : t("feeding.tempNotes")}
         </button>
       </div>
     </div>

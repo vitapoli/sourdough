@@ -1,8 +1,8 @@
 {
-  "name": "Sourdough — трекер закваски",
-  "short_name": "Sourdough",
-  "description": "Веди свою закваску как тамагочи",
-  "start_url": "/",
+  "name": "Your First Starter in 7 Days",
+  "short_name": "Course",
+  "description": "Free mini-course for beginner bakers",
+  "start_url": "/course/en",
   "display": "standalone",
   "background_color": "#FDF8F3",
   "theme_color": "#FDF8F3",

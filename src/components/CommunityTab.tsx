@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "./Icon";
+import { useT } from "@/lib/i18n";
 
 interface CommunityRecipe {
   id: string;
@@ -31,20 +32,21 @@ interface CommentData {
 type SortMode = "new" | "popular";
 
 // Относительное время
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (k: string) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "только что";
-  if (mins < 60) return `${mins}мин`;
+  if (mins < 1) return t("community.justNow");
+  if (mins < 60) return `${mins}${t("community.minAgo")}`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}ч`;
+  if (hours < 24) return `${hours}${t("community.hAgo")}`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}д`;
+  if (days < 30) return `${days}${t("community.dAgo")}`;
   const months = Math.floor(days / 30);
-  return `${months}мес`;
+  return `${months}${t("community.monthAgo")}`;
 }
 
 export function CommunityTab() {
+  const t = useT();
   const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortMode>("new");
@@ -304,7 +306,7 @@ export function CommunityTab() {
           className="flex items-center gap-1 text-brown-light mb-4 active:opacity-60"
         >
           <Icon name="back" size={20} />
-          <span className="text-sm">Назад</span>
+          <span className="text-sm">{t("back")}</span>
         </button>
 
         {/* Фото */}
@@ -349,7 +351,7 @@ export function CommunityTab() {
             href={`/baker/${selected.user?.id}`}
             className="text-sm font-semibold text-terracotta"
           >
-            {selected.user?.name || "Аноним"}
+            {selected.user?.name || t("community.anon")}
           </a>
           <div className="flex items-center gap-4">
             <button
@@ -369,7 +371,7 @@ export function CommunityTab() {
             </button>
             {selected.user?.id !== currentUserId && (savedIds.has(selected.id) ? (
               <span className="text-sm text-green-happy font-medium">
-                ✓ Сохранён
+                ✓ {t("community.saved")}
               </span>
             ) : (
               <button
@@ -378,7 +380,7 @@ export function CommunityTab() {
                 className="flex items-center gap-1 text-brown-light active:scale-95 transition-transform"
               >
                 <Icon name="save" size={20} />
-                <span className="text-sm">Сохранить</span>
+                <span className="text-sm">{t("save")}</span>
               </button>
             ))}
           </div>
@@ -387,7 +389,7 @@ export function CommunityTab() {
         {/* Ингредиенты */}
         {ingredients.length > 0 && (
           <div className="mb-5">
-            <h3 className="text-sm font-bold text-brown mb-2">Ингредиенты</h3>
+            <h3 className="text-sm font-bold text-brown mb-2">{t("community.ingredients")}</h3>
             <div className="space-y-1.5">
               {ingredients.map((ing, i) => (
                 <div
@@ -407,7 +409,7 @@ export function CommunityTab() {
         {/* Шаги */}
         {steps.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-sm font-bold text-brown mb-2">Приготовление</h3>
+            <h3 className="text-sm font-bold text-brown mb-2">{t("community.steps")}</h3>
             <div className="space-y-3">
               {steps.map((step, i) => (
                 <div key={i} className="flex gap-3">
@@ -427,14 +429,14 @@ export function CommunityTab() {
         <div className="border-t border-warm-beige/60 pt-4">
           <h3 className="text-sm font-bold text-brown mb-3 flex items-center gap-2">
             <Icon name="comment" size={16} />
-            Комментарии ({selected.commentsCount})
+            {t("community.comments")} ({selected.commentsCount})
           </h3>
 
           {commentsLoading ? (
-            <p className="text-sm text-brown-light">Загрузка...</p>
+            <p className="text-sm text-brown-light">{t("loading")}</p>
           ) : comments.length === 0 ? (
             <p className="text-sm text-brown-light mb-3">
-              Пока нет комментариев
+              {t("community.noComments")}
             </p>
           ) : (
             <div className="space-y-3 mb-4">
@@ -446,7 +448,7 @@ export function CommunityTab() {
                         {c.user.name}
                       </span>
                       <span className="text-[10px] text-brown-light">
-                        {timeAgo(c.createdAt)}
+                        {timeAgo(c.createdAt, t)}
                       </span>
                     </div>
                     {currentUserId === c.user.id && (
@@ -471,7 +473,7 @@ export function CommunityTab() {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendComment()}
-              placeholder="Написать комментарий..."
+              placeholder={t("community.commentPlaceholder")}
               maxLength={500}
               className="flex-1 bg-warm-beige/40 rounded-xl px-3 py-2.5 text-sm text-brown-dark placeholder:text-brown-light/50 outline-none focus:ring-2 focus:ring-terracotta/30"
             />
@@ -502,7 +504,7 @@ export function CommunityTab() {
           type="text"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Поиск рецептов..."
+          placeholder={t("community.searchPlaceholder")}
           className="w-full bg-warm-beige/40 rounded-xl pl-10 pr-4 py-2.5 text-sm text-brown-dark placeholder:text-brown-light/50 outline-none focus:ring-2 focus:ring-terracotta/30"
         />
       </div>
@@ -519,21 +521,21 @@ export function CommunityTab() {
                 : "bg-warm-beige/50 text-brown-light"
             }`}
           >
-            {s === "new" ? "Новое" : "Популярное"}
+            {s === "new" ? t("community.new") : t("community.popular")}
           </button>
         ))}
       </div>
 
       {/* Лента карточек */}
       {loading ? (
-        <div className="text-center py-12 text-brown-light">Загрузка...</div>
+        <div className="text-center py-12 text-brown-light">{t("loading")}</div>
       ) : recipes.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-4xl mb-3">🍞</div>
           <p className="text-brown-light">
             {search
-              ? "Ничего не найдено"
-              : "Пока нет публичных рецептов. Поделитесь своим первым!"}
+              ? t("community.nothingFound")
+              : t("community.noRecipes")}
           </p>
         </div>
       ) : (
@@ -557,7 +559,7 @@ export function CommunityTab() {
       {hasMore && (
         <div ref={sentinelRef} className="py-4 text-center">
           {loadingMore && (
-            <span className="text-sm text-brown-light">Загрузка...</span>
+            <span className="text-sm text-brown-light">{t("loading")}</span>
           )}
         </div>
       )}
@@ -583,6 +585,7 @@ function RecipeCard({
   saved: boolean;
   isOwn?: boolean;
 }) {
+  const t = useT();
   const photoUrl = recipe.photos
     ? (() => {
         try {
@@ -643,7 +646,7 @@ function RecipeCard({
             className="text-xs font-semibold text-terracotta truncate max-w-[100px]"
             onClick={(e) => e.stopPropagation()}
           >
-            {recipe.user?.name || "Аноним"}
+            {recipe.user?.name || t("community.anon")}
           </a>
 
           <div className="flex items-center gap-3">

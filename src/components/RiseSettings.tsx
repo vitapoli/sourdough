@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { UserObservation } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
+import { useT } from "@/lib/i18n";
 
 interface RiseSettingsProps {
   starterId: string;
@@ -50,6 +51,7 @@ export function RiseSettings({
   onObservationsLoaded,
   refreshKey,
 }: RiseSettingsProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [feedingsWithObs, setFeedingsWithObs] = useState<FeedingWithObs[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -104,10 +106,10 @@ export function RiseSettings({
           onClick={() => setOpen(true)}
           className="text-xs text-brown-light hover:text-terracotta underline transition-colors"
         >
-          Настройки шкалы подъёма
+          {t("rise.settings")}
           {useCustom && selectedCount > 0 && (
             <span className="ml-1 text-green-happy no-underline">
-              (свои данные: {selectedCount})
+              ({t("rise.customData")}: {selectedCount})
             </span>
           )}
         </button>
@@ -117,7 +119,7 @@ export function RiseSettings({
           target="_blank"
           className="text-xs text-terracotta hover:underline transition-colors"
         >
-          Как работает брожение
+          {t("rise.howItWorks")}
         </a>
       </div>
     );
@@ -126,7 +128,7 @@ export function RiseSettings({
   return (
     <div className="w-full max-w-sm bg-card rounded-2xl p-5 card-shadow-lg border border-warm-beige/60 space-y-4 animate-fade-up">
       <div className="flex justify-between items-center">
-        <h3 className="font-extrabold text-brown-dark">Шкала подъёма</h3>
+        <h3 className="font-extrabold text-brown-dark">{t("rise.scaleTitle")}</h3>
         <button
           onClick={() => setOpen(false)}
           className="text-brown-light hover:text-brown text-lg transition-colors"
@@ -137,7 +139,7 @@ export function RiseSettings({
 
       {/* Переключатель режима */}
       <div className="bg-warm-beige/30 rounded-xl p-4 space-y-3">
-        <p className="text-sm text-brown font-medium">Какие данные использовать?</p>
+        <p className="text-sm text-brown font-medium">{t("rise.whichData")}</p>
         <div className="flex gap-2">
           <button
             onClick={() => onToggleCustom(false)}
@@ -147,7 +149,7 @@ export function RiseSettings({
                 : "bg-card text-brown border border-warm-beige"
             }`}
           >
-            Общие
+            {t("rise.general")}
           </button>
           <button
             onClick={() => onToggleCustom(true)}
@@ -158,7 +160,7 @@ export function RiseSettings({
                 : "bg-card text-brown border border-warm-beige"
             } disabled:opacity-40`}
           >
-            Мои данные {selectedCount > 0 && `(${selectedCount})`}
+            {t("rise.myData")} {selectedCount > 0 && `(${selectedCount})`}
           </button>
         </div>
         <p className="text-xs text-brown-light">
@@ -271,9 +273,9 @@ export function RiseSettings({
       {feedingsWithObs.length > 0 && (
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-brown">Мои наблюдения:</p>
+            <p className="text-sm font-medium text-brown">{t("rise.myObservations")}</p>
             <button onClick={toggleAll} className="text-[10px] text-terracotta hover:underline">
-              Все
+              {t("rise.all")}
             </button>
           </div>
 
@@ -328,7 +330,7 @@ export function RiseSettings({
 
       {feedingsWithObs.length === 0 && useCustom && (
         <p className="text-xs text-brown-light text-center py-2">
-          Пока нет наблюдений. Записать результат можно в истории кормлений.
+          {t("rise.noObservations")}
         </p>
       )}
     </div>

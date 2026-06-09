@@ -6,6 +6,7 @@ import { CreateStarterForm } from "./CreateStarterForm";
 import { Icon } from "./Icon";
 import { getStarterMood } from "@/lib/starterMood";
 import { formatTime } from "@/lib/formatTime";
+import { useT, useLang } from "@/lib/i18n";
 
 interface Feeding {
   id: string;
@@ -21,6 +22,9 @@ interface Starter {
   flour: string;
   createdAt: string;
   feedings: Feeding[];
+  isPaused?: boolean;
+  pausedAt?: string | null;
+  resumedAt?: string | null;
 }
 
 // Мини-календарь текущего месяца с возможностью выбора дня
@@ -42,8 +46,10 @@ function MiniCalendar({
   const daysInMonth = lastDay.getDate();
   const today = now.getDate();
 
-  const monthName = firstDay.toLocaleDateString("ru-RU", { month: "long" });
-  const days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const t = useT();
+  const { lang } = useLang();
+  const monthName = firstDay.toLocaleDateString(lang === "en" ? "en-US" : "ru-RU", { month: "long" });
+  const days = [t("day.mon"), t("day.tue"), t("day.wed"), t("day.thu"), t("day.fri"), t("day.sat"), t("day.sun")];
 
   const cells: (number | null)[] = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
@@ -97,6 +103,7 @@ function MiniCalendar({
 }
 
 export function SimpleTrackerTab() {
+  const t = useT();
   const [starters, setStarters] = useState<Starter[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Starter | null>(null);
@@ -231,7 +238,7 @@ export function SimpleTrackerTab() {
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <div className="text-center animate-fade-up">
           <Icon name="jar" size={40} className="mb-3 animate-bounce text-terracotta mx-auto" />
-          <p className="text-brown-light">Загрузка...</p>
+          <p className="text-brown-light">{t("loading")}</p>
         </div>
       </div>
     );
@@ -242,10 +249,10 @@ export function SimpleTrackerTab() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 min-h-[60vh] animate-fade-up">
         <Icon name="wheat" size={48} className="mb-3 text-terracotta" />
         <h2 className="text-xl font-extrabold text-brown-dark mb-1">
-          {starters.length === 0 ? "Привет, пекарь!" : "Новая закваска"}
+          {starters.length === 0 ? t("tracker.hello") : t("tracker.newStarter")}
         </h2>
         <p className="text-brown-light mb-6 text-center">
-          {starters.length === 0 ? "Давай создадим твою первую закваску" : "Добавь ещё одну закваску"}
+          {starters.length === 0 ? t("tracker.createFirst") : t("tracker.addAnother")}
         </p>
         <CreateStarterForm
           onCreated={async () => {
@@ -256,7 +263,7 @@ export function SimpleTrackerTab() {
         />
         {starters.length > 0 && (
           <button onClick={() => setShowCreate(false)} className="mt-3 text-brown-light hover:text-brown text-sm transition-colors">
-            Отмена
+            {t("cancel")}
           </button>
         )}
       </div>
@@ -264,7 +271,18 @@ export function SimpleTrackerTab() {
   }
 
   const lastFeeding = detail?.feedings?.[0] ?? null;
-  const { mood, message } = getStarterMood(lastFeeding?.fedAt ?? null, undefined, now);
+  const isPaused = detail?.isPaused ?? false;
+
+  // При паузе — замораживаем время; при возобновлении — считаем от resumedAt
+  const effectiveCurrentTime = isPaused && detail?.pausedAt ? new Date(detail.pausedAt).getTime() : now;
+  const effectiveLastFeeding = !isPaused && detail?.resumedAt && lastFeeding
+    && new Date(detail.resumedAt).getTime() > new Date(lastFeeding.fedAt).getTime()
+    ? detail.resumedAt : (lastFeeding?.fedAt ?? null);
+
+  const moodResult = isPaused
+    ? { mood: "paused" as const, message: t("mood.msg.paused"), label: t("mood.label.paused"), hoursAgo: null }
+    : getStarterMood(effectiveLastFeeding, undefined, effectiveCurrentTime);
+  const { mood, message } = moodResult;
 
   // Даты кормлений для календарика
   const feedingDates = new Set(
@@ -313,37 +331,58 @@ export function SimpleTrackerTab() {
           {/* Баночка */}
           <StarterJar mood={mood} name={detail.name} />
 
-          {/* Настроение */}
-          <span className={`px-3.5 py-1.5 rounded-full font-bold text-xs ${
-            mood === "hungry" ? "bg-orange-hungry/10 text-orange-hungry border border-orange-hungry/30" :
-            mood === "new" ? "bg-golden/10 text-golden border border-golden/30" :
-            "bg-green-happy/10 text-green-happy border border-green-happy/30"
-          }`}>
-            {message}
-          </span>
+          {/* Настроение + кнопка паузы */}
+          <div className="flex items-center gap-2">
+            <span className={`px-3.5 py-1.5 rounded-full font-bold text-xs ${
+              mood === "paused" ? "bg-blue-sleepy/10 text-blue-sleepy border border-blue-sleepy/30" :
+              mood === "hungry" ? "bg-orange-hungry/10 text-orange-hungry border border-orange-hungry/30" :
+              mood === "new" ? "bg-golden/10 text-golden border border-golden/30" :
+              "bg-green-happy/10 text-green-happy border border-green-happy/30"
+            }`}>
+              {message}
+            </span>
+            <button
+              onClick={async () => {
+                const action = isPaused ? "resume" : "pause";
+                await fetch(`/api/starters/${detail.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action }),
+                });
+                const res = await fetch(`/api/starters/${detail.id}`);
+                if (res.ok) setDetail(await res.json());
+                const listRes = await fetch("/api/starters");
+                if (listRes.ok) setStarters(await listRes.json());
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-terracotta text-white shadow-sm transition-all active:scale-95"
+              title={isPaused ? t("tracker.resume") : t("tracker.pause")}
+            >
+              <span className="text-sm leading-none">{isPaused ? "▶" : "⏸"}</span>
+            </button>
+          </div>
 
           {/* Форма кормления */}
-          {done ? (
+          {isPaused ? null : done ? (
             <div className="px-6 py-2.5 bg-green-happy text-white font-bold rounded-2xl card-shadow-lg animate-fade-up">
-              Покормлена!
+              {t("tracker.fed")}
             </div>
           ) : (
             <div className="w-full max-w-sm bg-card rounded-2xl p-3.5 card-shadow border border-warm-beige/60 space-y-2.5 animate-fade-up">
               <div className="grid grid-cols-4 gap-2">
                 <div>
-                  <label className="text-[10px] font-medium text-brown-light text-center block">Закваска</label>
+                  <label className="text-[10px] font-medium text-brown-light text-center block">{t("feeding.starter")}</label>
                   <input type="number" value={starterAmount} onChange={(e) => setStarterAmount(e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-brown-light text-center block">Мука, г</label>
+                  <label className="text-[10px] font-medium text-brown-light text-center block">{t("feeding.flourG")}</label>
                   <input type="number" value={flourAmount} onChange={(e) => setFlourAmount(e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-brown-light text-center block">Вода, г</label>
+                  <label className="text-[10px] font-medium text-brown-light text-center block">{t("feeding.waterG")}</label>
                   <input type="number" value={waterAmount} onChange={(e) => setWaterAmount(e.target.value)} className={inputClass} />
                 </div>
                 <div>
-                  <label className="text-[10px] font-medium text-brown-light text-center block">Соотн.</label>
+                  <label className="text-[10px] font-medium text-brown-light text-center block">{t("feeding.ratio")}</label>
                   <div className="px-3 py-2 rounded-xl bg-warm-beige/50 text-sm font-bold text-terracotta text-center">
                     {ratio}
                   </div>
@@ -355,7 +394,7 @@ export function SimpleTrackerTab() {
                 className="w-full py-2.5 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <Icon name="flour-bag" size={18} className="opacity-90" />
-                {feeding ? "..." : "Покормить"}
+                {feeding ? "..." : t("feeding.feed")}
               </button>
             </div>
           )}
@@ -385,7 +424,7 @@ export function SimpleTrackerTab() {
                 </div>
 
                 {dayFeedings.length === 0 && (
-                  <p className="text-xs text-brown-light py-1">Нет кормлений в этот день</p>
+                  <p className="text-xs text-brown-light py-1">{t("tracker.noDayFeedings")}</p>
                 )}
 
                 {dayFeedings.map((f) => {
@@ -409,25 +448,25 @@ export function SimpleTrackerTab() {
                         <p className="text-xs text-brown-light">{time}</p>
                         <div className="grid grid-cols-4 gap-1.5">
                           <div>
-                            <label className="text-[9px] text-brown-light block text-center">Закв.</label>
+                            <label className="text-[9px] text-brown-light block text-center">{t("feeding.starterG")}</label>
                             <input type="number" value={editSa} onChange={(e) => setEditSa(e.target.value)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="text-[9px] text-brown-light block text-center">Мука</label>
+                            <label className="text-[9px] text-brown-light block text-center">{t("tracker.flour")}</label>
                             <input type="number" value={editFa} onChange={(e) => setEditFa(e.target.value)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="text-[9px] text-brown-light block text-center">Вода</label>
+                            <label className="text-[9px] text-brown-light block text-center">{t("tracker.water")}</label>
                             <input type="number" value={editWa} onChange={(e) => setEditWa(e.target.value)} className={inputClass} />
                           </div>
                           <div>
-                            <label className="text-[9px] text-brown-light block text-center">Соотн.</label>
+                            <label className="text-[9px] text-brown-light block text-center">{t("feeding.ratio")}</label>
                             <div className="px-1 py-2 rounded-xl bg-warm-beige/50 text-xs font-bold text-terracotta text-center">{editRatio}</div>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={() => saveEdit(f.id)} className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs">Сохранить</button>
-                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-brown-light text-xs">Отмена</button>
+                          <button onClick={() => saveEdit(f.id)} className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs">{t("save")}</button>
+                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-brown-light text-xs">{t("cancel")}</button>
                         </div>
                       </div>
                     );
@@ -466,26 +505,26 @@ export function SimpleTrackerTab() {
                 {addingForDate ? (
                   <div className="bg-warm-beige/30 rounded-xl p-3 space-y-2 animate-fade-up">
                     <div className="flex items-center gap-2">
-                      <label className="text-xs text-brown-light">Время:</label>
+                      <label className="text-xs text-brown-light">{t("tracker.time")}</label>
                       <input type="time" value={addTime} onChange={(e) => setAddTime(e.target.value)} className="px-2 py-1 border-2 border-warm-beige rounded-lg bg-cream text-sm text-brown-dark focus:outline-none focus:border-terracotta" />
                     </div>
                     <div className="grid grid-cols-3 gap-1.5">
                       <div>
-                        <label className="text-[9px] text-brown-light block text-center">Закв.</label>
+                        <label className="text-[9px] text-brown-light block text-center">{t("feeding.starterG")}</label>
                         <input type="number" value={addSa} onChange={(e) => setAddSa(e.target.value)} className={inputClass} />
                       </div>
                       <div>
-                        <label className="text-[9px] text-brown-light block text-center">Мука</label>
+                        <label className="text-[9px] text-brown-light block text-center">{t("tracker.flour")}</label>
                         <input type="number" value={addFa} onChange={(e) => setAddFa(e.target.value)} className={inputClass} />
                       </div>
                       <div>
-                        <label className="text-[9px] text-brown-light block text-center">Вода</label>
+                        <label className="text-[9px] text-brown-light block text-center">{t("tracker.water")}</label>
                         <input type="number" value={addWa} onChange={(e) => setAddWa(e.target.value)} className={inputClass} />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={handleAddForDate} className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs">Добавить</button>
-                      <button onClick={() => setAddingForDate(false)} className="px-3 py-1.5 text-brown-light text-xs">Отмена</button>
+                      <button onClick={handleAddForDate} className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs">{t("tracker.add")}</button>
+                      <button onClick={() => setAddingForDate(false)} className="px-3 py-1.5 text-brown-light text-xs">{t("cancel")}</button>
                     </div>
                   </div>
                 ) : (
@@ -493,7 +532,7 @@ export function SimpleTrackerTab() {
                     onClick={() => { setAddingForDate(true); setAddSa("10"); setAddFa("20"); setAddWa("30"); setAddTime("12:00"); }}
                     className="w-full py-2 text-xs font-bold text-terracotta border-2 border-dashed border-terracotta/30 rounded-xl hover:border-terracotta/60 transition-all"
                   >
-                    + Добавить кормление
+                    {t("tracker.addFeeding")}
                   </button>
                 )}
               </div>
@@ -504,10 +543,10 @@ export function SimpleTrackerTab() {
           <div className="w-full max-w-sm space-y-2">
             <h3 className="text-lg font-extrabold text-brown-dark flex items-center gap-2">
               <Icon name="notebook" size={20} />
-              Последние кормления
+              {t("tracker.lastFeedings")}
             </h3>
             {(detail.feedings ?? []).length === 0 && (
-              <p className="text-brown-light text-center py-4">Ещё ни одного кормления</p>
+              <p className="text-brown-light text-center py-4">{t("tracker.noFeedings")}</p>
             )}
             {(detail.feedings ?? []).slice(0, 7).map((f) => {
               const date = new Date(f.fedAt);

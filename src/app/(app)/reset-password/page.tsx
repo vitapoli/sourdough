@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useT } from "@/lib/i18n";
 
 function ResetForm() {
   const params = useSearchParams();
   const token = params.get("token");
+  const t = useT();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -20,15 +22,15 @@ function ResetForm() {
     setError("");
 
     if (password.length < 6) {
-      setError("Пароль минимум 6 символов");
+      setError(t("auth.passwordShort"));
       return;
     }
     if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password) || !/[0-9]/.test(password)) {
-      setError("Пароль должен содержать как буквы так и цифры");
+      setError(t("auth.passwordWeak"));
       return;
     }
     if (password !== confirm) {
-      setError("Пароли не совпадают");
+      setError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -58,10 +60,10 @@ function ResetForm() {
     return (
       <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">Недействительная ссылка</h1>
-          <p className="text-brown-light mb-6">Попробуйте запросить сброс пароля заново.</p>
+          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">{t("auth.invalidLink")}</h1>
+          <p className="text-brown-light mb-6">{t("auth.invalidLinkDesc")}</p>
           <a href="/forgot-password" className="text-terracotta font-bold hover:underline">
-            Забыл пароль
+            {t("auth.forgotPassword")}
           </a>
         </div>
       </div>
@@ -72,10 +74,10 @@ function ResetForm() {
     return (
       <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
         <div className="w-full max-w-sm text-center">
-          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">Пароль изменён</h1>
-          <p className="text-brown-light mb-6">Теперь можешь войти с новым паролем.</p>
+          <h1 className="text-2xl font-extrabold text-brown-dark mb-4">{t("auth.passwordChanged")}</h1>
+          <p className="text-brown-light mb-6">{t("auth.passwordChangedDesc")}</p>
           <a href="/login" className="text-terracotta font-bold hover:underline">
-            Войти
+            {t("auth.login")}
           </a>
         </div>
       </div>
@@ -86,7 +88,7 @@ function ResetForm() {
     <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-extrabold text-brown-dark">Новый пароль</h1>
+          <h1 className="text-2xl font-extrabold text-brown-dark">{t("auth.resetTitle")}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-6 card-shadow border border-warm-beige/60 space-y-4">
@@ -95,14 +97,14 @@ function ResetForm() {
           )}
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Новый пароль</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.newPassword")}</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass + " pr-12"}
-                placeholder="Минимум 6 символов"
+                placeholder={t("auth.passwordMin")}
                 required
                 minLength={6}
                 autoComplete="new-password"
@@ -112,19 +114,19 @@ function ResetForm() {
                 onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-brown-light hover:text-brown text-xs font-medium"
               >
-                {showPass ? "Скрыть" : "Показать"}
+                {showPass ? t("hide") : t("show")}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Повтори пароль</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.repeatPassword")}</label>
             <input
               type={showPass ? "text" : "password"}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className={inputClass}
-              placeholder="Ещё раз"
+              placeholder={t("auth.repeatPlaceholder")}
               required
               minLength={6}
               autoComplete="new-password"
@@ -136,7 +138,7 @@ function ResetForm() {
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            {loading ? "Сохраняю..." : "Сохранить пароль"}
+            {loading ? t("auth.saving") : t("auth.savePassword")}
           </button>
         </form>
       </div>

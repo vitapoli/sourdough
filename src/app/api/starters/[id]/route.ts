@@ -44,3 +44,38 @@ export async function DELETE(
   await prisma.starter.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+// Пауза / возобновление закваски
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
+  const { id } = await params;
+  const starter = await prisma.starter.findUnique({ where: { id } });
+  if (!starter || starter.userId !== session.user.id) {
+    return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
+  }
+
+  const { action } = await request.json();
+
+  if (action === "pause") {
+    const updated = await prisma.starter.update({
+      where: { id },
+      data: { isPaused: true, pausedAt: new Date() },
+    });
+    return NextResponse.json(updated);
+  }
+
+  if (action === "resume") {
+    const updated = await prisma.starter.update({
+      where: { id },
+      data: { isPaused: false, pausedAt: null, resumedAt: new Date() },
+    });
+    return NextResponse.json(updated);
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}

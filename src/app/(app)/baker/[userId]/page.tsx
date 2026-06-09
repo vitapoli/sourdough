@@ -92,7 +92,7 @@ export default function BakerPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-lg mx-auto p-4">
+      <div className="w-full max-w-sm mx-auto p-4">
         {/* Шапка */}
         <a href="/" className="flex items-center gap-1 text-brown-light mb-4">
           <Icon name="back" size={20} />
@@ -143,7 +143,7 @@ export default function BakerPage() {
                     <img
                       src={photoUrl}
                       alt={recipe.title}
-                      className="w-full h-44 object-cover"
+                      className="w-full h-48 object-cover object-center"
                     />
                   )}
                   <div className="p-4">

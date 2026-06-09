@@ -1,4 +1,4 @@
-export type Mood = "happy" | "hungry" | "new" | "ready" | "peak";
+export type Mood = "happy" | "hungry" | "new" | "ready" | "peak" | "paused";
 
 export function getStarterMood(lastFeedingAt: string | null, peakTimeHours?: number, currentTime?: number): {
   mood: Mood;
@@ -87,6 +87,7 @@ export const moodColors: Record<Mood, string> = {
   new: "text-golden",
   ready: "text-green-happy",
   peak: "text-green-happy",
+  paused: "text-blue-sleepy",
 };
 
 export const moodBgColors: Record<Mood, string> = {
@@ -95,4 +96,5 @@ export const moodBgColors: Record<Mood, string> = {
   new: "bg-golden",
   ready: "bg-green-happy",
   peak: "bg-green-happy",
+  paused: "bg-blue-sleepy",
 };

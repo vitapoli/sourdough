@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
@@ -11,6 +12,7 @@ export default function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const router = useRouter();
+  const t = useT();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -27,7 +29,7 @@ export default function ProfilePage() {
   }
 
   async function handleDelete() {
-    if (!deletePassword) { setDeleteError("Введите пароль"); return; }
+    if (!deletePassword) { setDeleteError(t("profile.enterPassword")); return; }
     setDeleting(true);
     setDeleteError("");
     const res = await fetch("/api/auth/delete", {
@@ -37,7 +39,7 @@ export default function ProfilePage() {
     });
     if (!res.ok) {
       const data = await res.json();
-      setDeleteError(data.error || "Ошибка");
+      setDeleteError(data.error || t("error"));
       setDeleting(false);
       return;
     }
@@ -47,7 +49,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <p className="text-brown-light">Загрузка...</p>
+        <p className="text-brown-light">{t("loading")}</p>
       </div>
     );
   }
@@ -63,7 +65,7 @@ export default function ProfilePage() {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 12L6 8l4-4" />
           </svg>
-          Назад
+          {t("back")}
         </button>
 
         {/* Профиль */}
@@ -87,7 +89,7 @@ export default function ProfilePage() {
           onClick={handleLogout}
           className="w-full py-3 bg-card rounded-2xl card-shadow border border-warm-beige/60 text-brown font-bold hover:bg-warm-beige/30 transition-all mb-4"
         >
-          Выйти из аккаунта
+          {t("profile.logout")}
         </button>
 
         {/* Удаление */}
@@ -96,16 +98,16 @@ export default function ProfilePage() {
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full py-3 text-sm text-brown-light/60 hover:text-red-400 transition-colors"
           >
-            Удалить аккаунт
+            {t("profile.delete")}
           </button>
         ) : (
           <div className="bg-red-50 rounded-2xl p-4 border border-red-200 space-y-3">
             <p className="text-sm text-red-600 font-medium">
-              Все данные будут удалены безвозвратно: закваски, кормления, рецепты.
+              {t("profile.deleteWarning")}
             </p>
             <input
               type="password"
-              placeholder="Введите пароль для подтверждения"
+              placeholder={t("profile.confirmPassword")}
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-red-200 text-sm bg-white focus:outline-none focus:border-red-400"
@@ -117,13 +119,13 @@ export default function ProfilePage() {
                 disabled={deleting || !deletePassword}
                 className="flex-1 py-2.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
               >
-                {deleting ? "Удаляю..." : "Да, удалить всё"}
+                {deleting ? t("profile.deleting") : t("profile.confirmDelete")}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2.5 text-brown-light hover:text-brown text-sm transition-colors"
               >
-                Отмена
+                {t("cancel")}
               </button>
             </div>
           </div>

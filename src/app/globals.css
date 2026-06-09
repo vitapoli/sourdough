@@ -135,6 +135,26 @@ h1, h2, h3, h4 {
   user-select: none;
 }
 
+/* Крупный шрифт для курса */
+.course-content {
+  font-size: 1.125rem;
+  line-height: 1.75;
+}
+.course-content .text-sm {
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+.course-content .text-xs {
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+}
+.course-content h2 {
+  font-size: 1.5rem !important;
+}
+.course-content h3 {
+  font-size: 1.125rem !important;
+}
+
 /* Safe area для iPhone */
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {

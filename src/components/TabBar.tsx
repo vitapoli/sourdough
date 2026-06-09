@@ -1,14 +1,15 @@
 "use client";
 
 import { Icon } from "./Icon";
+import { useT } from "@/lib/i18n";
 
 export type Tab = "tracker" | "calculator" | "recipes" | "community";
 
-const tabs: { id: Tab; label: string; icon: "jar" | "calculator-classic" | "recipe-page" | "community" }[] = [
-  { id: "tracker", label: "Трекер", icon: "jar" },
-  { id: "calculator", label: "Калькулятор", icon: "calculator-classic" },
-  { id: "recipes", label: "Рецепты", icon: "recipe-page" },
-  { id: "community", label: "Пекари", icon: "community" },
+const tabDefs: { id: Tab; labelKey: string; icon: "jar" | "calculator-classic" | "recipe-page" | "community" }[] = [
+  { id: "tracker", labelKey: "tab.tracker", icon: "jar" },
+  { id: "calculator", labelKey: "tab.calculator", icon: "calculator-classic" },
+  { id: "recipes", labelKey: "tab.recipes", icon: "recipe-page" },
+  { id: "community", labelKey: "tab.community", icon: "community" },
 ];
 
 export function TabBar({
@@ -18,10 +19,12 @@ export function TabBar({
   active: Tab;
   onChange: (tab: Tab) => void;
 }) {
+  const t = useT();
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-warm-beige/60 z-50 safe-bottom">
       <div className="max-w-lg mx-auto flex">
-        {tabs.map((tab) => (
+        {tabDefs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
@@ -37,7 +40,7 @@ export function TabBar({
                 active === tab.id ? "text-terracotta" : ""
               }`}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </span>
             {active === tab.id && (
               <div className="w-6 h-[3px] bg-terracotta rounded-full" />

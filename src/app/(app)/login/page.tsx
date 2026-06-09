@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const t = useT();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +28,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error || "Ошибка входа");
+      setError(data.error || t("auth.loginError"));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-brown-dark">Sourdough</h1>
-          <p className="text-brown-light mt-1">Войди в свой аккаунт</p>
+          <p className="text-brown-light mt-1">{t("auth.loginTitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-card rounded-2xl p-6 card-shadow border border-warm-beige/60 space-y-4">
@@ -63,14 +65,14 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-brown-light block mb-1">Пароль</label>
+            <label className="text-xs font-medium text-brown-light block mb-1">{t("auth.password")}</label>
             <div className="relative">
               <input
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass + " pr-12"}
-                placeholder="Минимум 6 символов"
+                placeholder={t("auth.passwordMin")}
                 required
                 autoComplete="current-password"
               />
@@ -79,7 +81,7 @@ export default function LoginPage() {
                 onClick={() => setShowPass(!showPass)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-brown-light hover:text-brown text-xs font-medium"
               >
-                {showPass ? "Скрыть" : "Показать"}
+                {showPass ? t("hide") : t("show")}
               </button>
             </div>
           </div>
@@ -89,20 +91,20 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-gradient-to-r from-terracotta to-terracotta-light text-white font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            {loading ? "Вхожу..." : "Войти"}
+            {loading ? t("auth.loggingIn") : t("auth.login")}
           </button>
 
           <p className="text-center">
             <a href="/forgot-password" className="text-xs text-brown-light hover:text-terracotta transition-colors">
-              Забыл пароль?
+              {t("auth.forgotPassword")}
             </a>
           </p>
         </form>
 
         <p className="text-center text-sm text-brown-light mt-4">
-          Нет аккаунта?{" "}
+          {t("auth.noAccount")}{" "}
           <a href="/register" className="text-terracotta font-bold hover:underline">
-            Зарегистрируйся
+            {t("auth.register")}
           </a>
         </p>
       </div>

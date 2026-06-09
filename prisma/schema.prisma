@@ -53,6 +53,9 @@ model Starter {
   flour     String   // Тип муки (ржаная, пшеничная, и т.д.)
   createdAt DateTime @default(now())
   notes     String?  // Заметки
+  isPaused  Boolean  @default(false)  // На паузе (в холодильнике)
+  pausedAt  DateTime?  // Когда поставлена на паузу
+  resumedAt DateTime?  // Когда снята с паузы (для отсчёта таймера)
 
   feedings Feeding[]
 }

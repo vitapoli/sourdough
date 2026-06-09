@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { Dropdown } from "./Dropdown";
+import { useT } from "@/lib/i18n";
 
 interface CreateStarterFormProps {
   onCreated: () => void;
 }
 
 export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
+  const t = useT();
   const [name, setName] = useState("");
-  const [flour, setFlour] = useState("Ржаная");
+  const [flour, setFlour] = useState(t("create.rye"));
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState("");
@@ -19,11 +21,11 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
     setError("");
     if (!name.trim()) return;
     if (name.trim().length > 30) {
-      setError("Имя должно содержать менее 30 символов");
+      setError(t("create.nameTooLong"));
       return;
     }
     if (flour.trim().length > 30) {
-      setError("Тип муки должен содержать менее 30 символов");
+      setError(t("create.flourTooLong"));
       return;
     }
 
@@ -41,7 +43,7 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white/80 backdrop-blur rounded-2xl p-6 shadow-lg space-y-4">
       <h2 className="text-xl font-semibold text-brown-dark text-center">
-        Создай свою закваску
+        {t("create.title")}
       </h2>
 
       {error && (
@@ -49,22 +51,22 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
       )}
 
       <div>
-        <label className="text-sm text-brown-light">Имя закваски</label>
+        <label className="text-sm text-brown-light">{t("create.name")}</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Например: Ржанка, Малышка..."
+          placeholder={t("create.namePlaceholder")}
           required
           className="w-full mt-1 px-4 py-3 border border-brown-light/30 rounded-xl bg-cream focus:outline-none focus:ring-2 focus:ring-terracotta/30 text-lg"
         />
       </div>
 
       <div>
-        <label className="text-sm text-brown-light">Тип муки</label>
+        <label className="text-sm text-brown-light">{t("create.flourType")}</label>
         <Dropdown
           value={flour}
-          options={["Ржаная", "Пшеничная"]}
+          options={[t("create.rye"), t("create.wheat")]}
           onChange={setFlour}
           allowCustom
           className="mt-1"
@@ -76,7 +78,7 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
         disabled={loading || !name.trim()}
         className="w-full py-4 bg-terracotta text-white text-lg font-semibold rounded-xl shadow-lg hover:bg-terracotta-light active:scale-95 transition-all disabled:opacity-50"
       >
-        {loading ? "Создаю..." : "Начать!"}
+        {loading ? t("create.creating") : t("create.start")}
       </button>
     </form>
   );

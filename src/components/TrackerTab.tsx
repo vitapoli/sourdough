@@ -11,6 +11,7 @@ import { Icon } from "./Icon";
 import { getStarterMood, Mood } from "@/lib/starterMood";
 import { UserObservation, calculateFermentation } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
+import { useT } from "@/lib/i18n";
 
 interface Feeding {
   id: string;
@@ -33,33 +34,59 @@ interface Starter {
   flour: string;
   createdAt: string;
   feedings: Feeding[];
+  isPaused?: boolean;
+  pausedAt?: string | null;
+  resumedAt?: string | null;
 }
 
 const moodBadgeColors: Record<string, string> = {
   happy: "bg-green-happy/10 text-green-happy border border-green-happy/30",
   hungry: "bg-orange-hungry/10 text-orange-hungry border border-orange-hungry/30",
+  paused: "bg-blue-sleepy/10 text-blue-sleepy border border-blue-sleepy/30",
   new: "bg-golden/10 text-golden border border-golden/30",
   ready: "bg-green-happy/10 text-green-happy border border-green-happy/30",
   peak: "bg-green-happy/10 text-green-happy border border-green-happy/30",
 };
 
+function PauseButton({ isPaused, starterId, onDone }: { isPaused: boolean; starterId: string; onDone: () => void }) {
+  const t = useT();
+  return (
+    <button
+      onClick={async () => {
+        await fetch(`/api/starters/${starterId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: isPaused ? "resume" : "pause" }),
+        });
+        onDone();
+      }}
+      className="w-8 h-8 flex items-center justify-center rounded-full bg-terracotta text-white shadow-sm transition-all active:scale-95"
+      title={isPaused ? t("tracker.resume") : t("tracker.pause")}
+    >
+      <span className="text-sm leading-none">{isPaused ? "▶" : "⏸"}</span>
+    </button>
+  );
+}
+
 function FermentationTimers({ hoursAgo, peakTimeHours }: { hoursAgo: number; peakTimeHours: number }) {
+  const t = useT();
   const timeToPeak = Math.max(0, peakTimeHours - hoursAgo);
 
   return (
     <div className="flex items-center gap-3 text-sm">
       <span className="text-brown-light">
-        Прошло <span className="font-bold text-brown">{formatTime(hoursAgo)}</span>
+        {t("tracker.elapsed")} <span className="font-bold text-brown">{formatTime(hoursAgo)}</span>
       </span>
       <span className="text-brown-light/40">|</span>
       <span className="text-brown-light">
-        До пика <span className="font-bold text-golden">{timeToPeak > 0 ? formatTime(timeToPeak) : "На пике"}</span>
+        {t("tracker.toPeak")} <span className="font-bold text-golden">{timeToPeak > 0 ? formatTime(timeToPeak) : t("tracker.atPeak")}</span>
       </span>
     </div>
   );
 }
 
 export function TrackerTab() {
+  const t = useT();
   const [starters, setStarters] = useState<Starter[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Starter | null>(null);
@@ -106,7 +133,7 @@ export function TrackerTab() {
 
   async function handleDelete() {
     if (!detail) return;
-    if (!confirm(`Удалить закваску "${detail.name}"? Это действие нельзя отменить.`)) return;
+    if (!confirm(t("tracker.deleteConfirm").replace("{name}", detail.name))) return;
     await fetch(`/api/starters/${detail.id}`, { method: "DELETE" });
     setDetail(null);
     setSelectedId(null);
@@ -128,7 +155,7 @@ export function TrackerTab() {
       <div className="flex-1 flex items-center justify-center min-h-[60vh]">
         <div className="text-center animate-fade-up">
           <Icon name="jar" size={40} className="mb-3 animate-bounce text-terracotta mx-auto" />
-          <p className="text-brown-light">Загрузка...</p>
+          <p className="text-brown-light">{t("loading")}</p>
         </div>
       </div>
     );
@@ -139,12 +166,12 @@ export function TrackerTab() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-6 min-h-[60vh] animate-fade-up">
         <Icon name="wheat" size={48} className="mb-3 text-terracotta" />
         <h2 className="text-xl font-extrabold text-brown-dark mb-1">
-          {starters.length === 0 ? "Привет, пекарь!" : "Новая закваска"}
+          {starters.length === 0 ? t("tracker.hello") : t("tracker.newStarter")}
         </h2>
         <p className="text-brown-light mb-6 text-center">
           {starters.length === 0
-            ? "Давай создадим твою первую закваску"
-            : "Добавь ещё одну закваску"}
+            ? t("tracker.createFirst")
+            : t("tracker.addAnother")}
         </p>
         <CreateStarterForm
           onCreated={async () => {
@@ -160,7 +187,7 @@ export function TrackerTab() {
             onClick={() => setShowCreate(false)}
             className="mt-3 text-brown-light hover:text-brown text-sm transition-colors"
           >
-            Отмена
+            {t("cancel")}
           </button>
         )}
       </div>
@@ -181,7 +208,15 @@ export function TrackerTab() {
       }, useCustomCurve ? userObservations : undefined).peakTimeHours
     : undefined;
 
-  const moodResult = getStarterMood(lastFeedingAt, peakTimeHours, now);
+  const isPaused = detail?.isPaused ?? false;
+  const effectiveCurrentTime = isPaused && detail?.pausedAt ? new Date(detail.pausedAt).getTime() : now;
+  const effectiveLastFeeding = !isPaused && detail?.resumedAt && lastFeedingAt
+    && new Date(detail.resumedAt).getTime() > new Date(lastFeedingAt).getTime()
+    ? detail.resumedAt : lastFeedingAt;
+
+  const moodResult = isPaused
+    ? { mood: "paused" as Mood, label: t("mood.label.paused"), message: t("mood.msg.paused"), hoursAgo: null }
+    : getStarterMood(effectiveLastFeeding, peakTimeHours, effectiveCurrentTime);
   const { mood, label, message, hoursAgo } = moodResult;
 
   return (
@@ -236,37 +271,48 @@ export function TrackerTab() {
                 <StarterJar mood={mood} name={detail.name} />
               </div>
 
-              {/* Таймеры: прошло / до пика */}
-              {hoursAgo !== null && peakTimeHours && (
-                <FermentationTimers hoursAgo={hoursAgo} peakTimeHours={peakTimeHours} />
-              )}
+              {/* Таймеры: прошло / до пика + кнопка паузы */}
+              <div className="flex items-center gap-2">
+                {hoursAgo !== null && peakTimeHours && (
+                  <FermentationTimers hoursAgo={hoursAgo} peakTimeHours={peakTimeHours} />
+                )}
+                <PauseButton
+                  isPaused={isPaused}
+                  starterId={detail.id}
+                  onDone={async () => {
+                    const res = await fetch(`/api/starters/${detail.id}`);
+                    if (res.ok) setDetail(await res.json());
+                    loadStarters();
+                  }}
+                />
+              </div>
 
             </>
           )}
 
           {/* Кнопка кормления */}
-          <FeedingForm starterId={detail.id} defaultFlourType={detail.flour} onFed={handleFed} />
+          {!isPaused && <FeedingForm starterId={detail.id} defaultFlourType={detail.flour} onFed={handleFed} />}
 
           {/* Инфо — компактная строка */}
           <div className="w-full max-w-sm bg-card rounded-xl px-3 py-2 card-shadow border border-warm-beige/60 flex justify-around items-center">
             <div className="text-center">
-              <p className="text-[10px] text-brown-light leading-tight">Мука</p>
+              <p className="text-[10px] text-brown-light leading-tight">{t("tracker.flour")}</p>
               <p className="text-xs font-bold text-brown">{detail.flour}</p>
             </div>
             <div className="w-px h-6 bg-warm-beige" />
             <div className="text-center">
-              <p className="text-[10px] text-brown-light leading-tight">Возраст</p>
+              <p className="text-[10px] text-brown-light leading-tight">{t("tracker.age")}</p>
               <p className="text-xs font-bold text-brown">
                 {Math.floor(
                   (Date.now() - new Date(detail.createdAt).getTime()) /
                     (1000 * 60 * 60 * 24)
                 )}{" "}
-                дн.
+                {t("tracker.days")}
               </p>
             </div>
             <div className="w-px h-6 bg-warm-beige" />
             <div className="text-center">
-              <p className="text-[10px] text-brown-light leading-tight">Кормлений</p>
+              <p className="text-[10px] text-brown-light leading-tight">{t("tracker.feedings")}</p>
               <p className="text-xs font-bold text-brown">
                 {detail.feedings.length}
               </p>

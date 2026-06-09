@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://sourdough.viosay.fun";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://levainlab.ru";
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   await resend.emails.send({

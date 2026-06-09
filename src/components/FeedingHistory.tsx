@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { formatTime } from "@/lib/formatTime";
 import { PhotoViewer } from "./PhotoViewer";
+import { useT } from "@/lib/i18n";
 
 interface Feeding {
   id: string;
@@ -38,6 +39,7 @@ function ObservationMiniForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [peakH, setPeakH] = useState(feeding.peakTimeHours ? String(Math.floor(feeding.peakTimeHours)) : "");
   const [peakM, setPeakM] = useState(feeding.peakTimeHours ? String(Math.round((feeding.peakTimeHours % 1) * 60)) : "");
   const [mult, setMult] = useState(feeding.peakMultiplier ? String(feeding.peakMultiplier) : "");
@@ -89,16 +91,16 @@ function ObservationMiniForm({
   return (
     <div className="mt-2 pt-2 border-t border-warm-beige space-y-2 animate-fade-up">
       <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-xs text-brown-light">Пик:</span>
+        <span className="text-xs text-brown-light">{t("history.peak")}</span>
         <input type="number" value={peakH} onChange={(e) => setPeakH(e.target.value)} placeholder="6" min="0" max="99" className={inputClass} />
-        <span className="text-[10px] text-brown-light">ч</span>
+        <span className="text-[10px] text-brown-light">{t("history.hours")}</span>
         <input type="number" value={peakM} onChange={(e) => setMinClamped(setPeakM, e.target.value)} placeholder="0" min="0" max="59" className={inputClass} />
-        <span className="text-[10px] text-brown-light">мин</span>
+        <span className="text-[10px] text-brown-light">{t("history.minutes")}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-brown-light">Подъём:</span>
+        <span className="text-xs text-brown-light">{t("history.rise")}</span>
         <input type="number" value={mult} onChange={(e) => setMult(e.target.value)} placeholder="2.5" step="0.1" min="1" className={`${inputClass} w-16`} />
-        <span className="text-[10px] text-brown-light">раз</span>
+        <span className="text-[10px] text-brown-light">{t("history.times")}</span>
       </div>
       <div className="flex gap-2">
         <button
@@ -106,7 +108,7 @@ function ObservationMiniForm({
           disabled={saving || peakTotal === 0 || !mult}
           className="flex-1 py-1.5 bg-terracotta text-white font-bold rounded-lg text-xs hover:bg-terracotta-light transition-all disabled:opacity-50"
         >
-          {saving ? "..." : "Сохранить"}
+          {saving ? "..." : t("save")}
         </button>
         {feeding.peakTimeHours && (
           <button
@@ -114,14 +116,14 @@ function ObservationMiniForm({
             disabled={saving}
             className="px-3 py-1.5 text-orange-hungry hover:bg-orange-hungry/10 font-medium text-xs rounded-lg transition-all disabled:opacity-50"
           >
-            Убрать
+            {t("history.remove")}
           </button>
         )}
         <button
           onClick={onCancel}
           className="px-3 py-1.5 text-brown-light hover:text-brown text-xs transition-colors"
         >
-          Отмена
+          {t("cancel")}
         </button>
       </div>
     </div>
@@ -139,6 +141,7 @@ function EditFeedingForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [starterAmount, setStarterAmount] = useState(feeding.starterAmount?.toString() ?? "");
   const [flourAmount, setFlourAmount] = useState(feeding.flourAmount?.toString() ?? "");
   const [waterAmount, setWaterAmount] = useState(feeding.waterAmount?.toString() ?? "");
@@ -217,19 +220,19 @@ function EditFeedingForm({
     <div className="bg-card rounded-2xl px-4 py-4 border border-terracotta/30 card-shadow space-y-3 animate-fade-up">
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="text-xs font-medium text-brown">Закваска (г)</label>
+          <label className="text-xs font-medium text-brown">{t("history.starterG")}</label>
           <input type="number" value={starterAmount} onChange={(e) => setStarterAmount(e.target.value)} placeholder="30" className={inputClass} />
         </div>
         <div>
-          <label className="text-xs font-medium text-brown">Мука (г)</label>
+          <label className="text-xs font-medium text-brown">{t("history.flourG")}</label>
           <input type="number" value={flourAmount} onChange={(e) => setFlourAmount(e.target.value)} placeholder="50" className={inputClass} />
         </div>
         <div>
-          <label className="text-xs font-medium text-brown">Вода (г)</label>
+          <label className="text-xs font-medium text-brown">{t("history.waterG")}</label>
           <input type="number" value={waterAmount} onChange={(e) => setWaterAmount(e.target.value)} placeholder="50" className={inputClass} />
         </div>
         <div>
-          <label className="text-xs font-medium text-brown">Тип муки</label>
+          <label className="text-xs font-medium text-brown">{t("history.flourType")}</label>
           <Dropdown
             value={flourType}
             options={["Пшеничная", "Ржаная"]}
@@ -239,18 +242,18 @@ function EditFeedingForm({
           />
         </div>
         <div>
-          <label className="text-xs font-medium text-brown">Температура °C</label>
+          <label className="text-xs font-medium text-brown">{t("history.tempC")}</label>
           <input type="number" value={temperature} onChange={(e) => setTemperature(e.target.value)} placeholder="22" className={inputClass} />
         </div>
       </div>
       <div>
-        <label className="text-xs font-medium text-brown">Заметки</label>
-        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Запах, консистенция..." className={inputClass} />
+        <label className="text-xs font-medium text-brown">{t("history.notes")}</label>
+        <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("history.notesPlaceholder")} className={inputClass} />
       </div>
 
       {/* Фото */}
       <div>
-        <label className="text-xs font-medium text-brown">Фото</label>
+        <label className="text-xs font-medium text-brown">{t("history.photo")}</label>
         <div className="flex gap-2 flex-wrap mt-1">
           {keepPhotos.map((url, i) => (
             <div key={url} className="relative w-16 h-16">
@@ -277,10 +280,10 @@ function EditFeedingForm({
 
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-terracotta text-white font-bold rounded-xl text-sm hover:bg-terracotta-light transition-all disabled:opacity-50">
-          {saving ? "..." : "Сохранить"}
+          {saving ? "..." : t("save")}
         </button>
         <button onClick={onCancel} className="px-4 py-2 text-brown-light hover:text-brown text-sm transition-colors">
-          Отмена
+          {t("cancel")}
         </button>
       </div>
     </div>
@@ -288,6 +291,7 @@ function EditFeedingForm({
 }
 
 export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistoryProps) {
+  const t = useT();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [observingId, setObservingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -304,7 +308,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
   if (feedings.length === 0) {
     return (
       <div className="w-full max-w-sm text-center py-6">
-        <p className="text-brown-light">Ещё ни одного кормления</p>
+        <p className="text-brown-light">{t("history.noFeedings")}</p>
       </div>
     );
   }
@@ -313,7 +317,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
     <div className="w-full max-w-sm space-y-3">
       <h3 className="text-lg font-extrabold text-brown-dark flex items-center gap-2">
         <Icon name="notebook" size={20} />
-        История кормлений
+        {t("history.title")}
       </h3>
       {feedings.slice(0, 10).map((f, i) => {
         const date = new Date(f.fedAt);
@@ -354,7 +358,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
                 <span className="text-sm font-bold text-brown">{timeStr}</span>
                 {hasObservation && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-golden/15 text-golden font-medium">
-                    наблюдение
+                    {t("history.observation")}
                   </span>
                 )}
               </div>
@@ -363,7 +367,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
                 <button
                   onClick={() => setEditingId(f.id)}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-brown-light hover:text-terracotta hover:bg-terracotta/10 transition-all"
-                  title="Редактировать"
+                  title={t("edit")}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8.5 2.5l3 3M1 10l-.5 3.5L4 13l8.5-8.5-3-3L1 10z" />
@@ -373,7 +377,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
                   onClick={() => handleDelete(f.id)}
                   disabled={isDeleting}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-brown-light hover:text-orange-hungry hover:bg-orange-hungry/10 transition-all disabled:opacity-30"
-                  title="Удалить"
+                  title={t("delete")}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 4h10M5 4V2.5a.5.5 0 01.5-.5h3a.5.5 0 01.5.5V4M3 4l.7 8.1a1 1 0 001 .9h4.6a1 1 0 001-.9L11 4" />
@@ -434,7 +438,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
                     <img
                       key={pi}
                       src={url}
-                      alt="Фото кормления"
+                      alt=""
                       className="w-16 h-16 object-cover rounded-xl border border-warm-beige cursor-pointer hover:opacity-80 transition-opacity opacity-75 brightness-90 saturate-[0.85]"
                       onClick={() => { setViewPhotos(urls); setViewPhotoIndex(pi); }}
                     />
@@ -449,7 +453,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
                 onClick={() => setObservingId(f.id)}
                 className="mt-2 text-[11px] text-terracotta hover:underline font-medium"
               >
-                {hasObservation ? "Изменить результат" : "Записать результат"}
+                {hasObservation ? t("history.editResult") : t("history.recordResult")}
               </button>
             )}
 
