@@ -17,6 +17,9 @@ on:
           - '--draft'
           - '--publish'
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
