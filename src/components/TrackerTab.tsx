@@ -63,7 +63,11 @@ function PauseButton({ isPaused, starterId, onDone }: { isPaused: boolean; start
       className="w-8 h-8 flex items-center justify-center rounded-full bg-terracotta text-white shadow-sm transition-all active:scale-95"
       title={isPaused ? t("tracker.resume") : t("tracker.pause")}
     >
-      <span className="text-sm leading-none">{isPaused ? "▶" : "⏸"}</span>
+      {isPaused ? (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5l9 5.5-9 5.5V1.5z"/></svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="1" width="3.5" height="12" rx="1"/><rect x="8.5" y="1" width="3.5" height="12" rx="1"/></svg>
+      )}
     </button>
   );
 }
