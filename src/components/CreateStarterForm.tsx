@@ -11,8 +11,13 @@ interface CreateStarterFormProps {
 export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
   const t = useT();
   const [name, setName] = useState("");
-  const [flour, setFlour] = useState(t("create.rye"));
+  const [flour, setFlour] = useState("Ржаная");
   const [loading, setLoading] = useState(false);
+
+  const flourLabelMap: Record<string, string> = { "Ржаная": t("create.rye"), "Пшеничная": t("create.wheat") };
+  const flourLabelToValue: Record<string, string> = {};
+  for (const [val, label] of Object.entries(flourLabelMap)) flourLabelToValue[label] = val;
+  const flourLabels = [t("create.rye"), t("create.wheat")];
 
   const [error, setError] = useState("");
 
@@ -65,9 +70,9 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
       <div>
         <label className="text-sm text-brown-light">{t("create.flourType")}</label>
         <Dropdown
-          value={flour}
-          options={[t("create.rye"), t("create.wheat")]}
-          onChange={setFlour}
+          value={flourLabelMap[flour] || flour}
+          options={flourLabels}
+          onChange={(label) => setFlour(flourLabelToValue[label] || label)}
           allowCustom
           className="mt-1"
         />

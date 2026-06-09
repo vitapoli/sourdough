@@ -11,7 +11,7 @@ import { Icon } from "./Icon";
 import { getStarterMood, Mood } from "@/lib/starterMood";
 import { UserObservation, calculateFermentation } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
-import { useT } from "@/lib/i18n";
+import { useT, useFlourLabel } from "@/lib/i18n";
 
 interface Feeding {
   id: string;
@@ -87,6 +87,7 @@ function FermentationTimers({ hoursAgo, peakTimeHours }: { hoursAgo: number; pea
 
 export function TrackerTab() {
   const t = useT();
+  const flourLabel = useFlourLabel();
   const [starters, setStarters] = useState<Starter[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Starter | null>(null);
@@ -214,10 +215,24 @@ export function TrackerTab() {
     && new Date(detail.resumedAt).getTime() > new Date(lastFeedingAt).getTime()
     ? detail.resumedAt : lastFeedingAt;
 
-  const moodResult = isPaused
-    ? { mood: "paused" as Mood, label: t("mood.label.paused"), message: t("mood.msg.paused"), hoursAgo: null }
+  const moodRaw = isPaused
+    ? { mood: "paused" as Mood, label: "", message: "", hoursAgo: null }
     : getStarterMood(effectiveLastFeeding, peakTimeHours, effectiveCurrentTime);
-  const { mood, label, message, hoursAgo } = moodResult;
+  const { mood, hoursAgo } = moodRaw;
+
+  const moodLabelMap: Record<string, string> = {
+    "Новенькая": t("mood.label.new"), "Покормлена": t("mood.label.fed"), "Готова!": t("mood.label.ready"),
+    "На пике!": t("mood.label.peak"), "Опадает": t("mood.label.falling"), "Счастливая": t("mood.label.happy"),
+    "Голодная": t("mood.label.hungry"),
+  };
+  const moodMsgMap: Record<string, string> = {
+    "Покорми меня в первый раз!": t("mood.msg.new"), "Только покормили, работаю!": t("mood.msg.fed"),
+    "Можно использовать в тесто!": t("mood.msg.ready"), "Я на максимуме! Используй меня!": t("mood.msg.peak"),
+    "Прошла пик... покорми меня!": t("mood.msg.falling"), "Я сытая и пузырюсь!": t("mood.msg.happy"),
+    "Пора бы подкрепиться...": t("mood.msg.hungry"),
+  };
+  const label = isPaused ? t("mood.label.paused") : (moodLabelMap[moodRaw.label] || moodRaw.label);
+  const message = isPaused ? t("mood.msg.paused") : (moodMsgMap[moodRaw.message] || moodRaw.message);
 
   return (
     <div className="flex flex-col items-center px-4 pt-2 pb-20 gap-2">
@@ -297,7 +312,7 @@ export function TrackerTab() {
           <div className="w-full max-w-sm bg-card rounded-xl px-3 py-2 card-shadow border border-warm-beige/60 flex justify-around items-center">
             <div className="text-center">
               <p className="text-[10px] text-brown-light leading-tight">{t("tracker.flour")}</p>
-              <p className="text-xs font-bold text-brown">{detail.flour}</p>
+              <p className="text-xs font-bold text-brown">{flourLabel(detail.flour)}</p>
             </div>
             <div className="w-px h-6 bg-warm-beige" />
             <div className="text-center">

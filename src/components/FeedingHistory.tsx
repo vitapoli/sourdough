@@ -5,7 +5,7 @@ import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { formatTime } from "@/lib/formatTime";
 import { PhotoViewer } from "./PhotoViewer";
-import { useT } from "@/lib/i18n";
+import { useT, useFlourLabel, useLang } from "@/lib/i18n";
 
 interface Feeding {
   id: string;
@@ -235,7 +235,7 @@ function EditFeedingForm({
           <label className="text-xs font-medium text-brown">{t("history.flourType")}</label>
           <Dropdown
             value={flourType}
-            options={["Пшеничная", "Ржаная"]}
+            options={[t("create.rye"), t("create.wheat")]}
             onChange={setFlourType}
             placeholder="—"
             allowCustom
@@ -292,6 +292,9 @@ function EditFeedingForm({
 
 export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistoryProps) {
   const t = useT();
+  const flourLabel = useFlourLabel();
+  const { lang } = useLang();
+  const locale = lang === "ru" ? "ru-RU" : "en-US";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [observingId, setObservingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -321,7 +324,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
       </h3>
       {feedings.slice(0, 10).map((f, i) => {
         const date = new Date(f.fedAt);
-        const timeStr = date.toLocaleDateString("ru-RU", {
+        const timeStr = date.toLocaleDateString(locale, {
           day: "numeric",
           month: "short",
           hour: "2-digit",
@@ -390,10 +393,10 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
             <div className="flex gap-3 flex-wrap mt-1.5">
               {(f.flourAmount || f.waterAmount) && (
                 <span className="text-xs text-brown-light bg-warm-beige/70 px-2.5 py-1 rounded-lg font-medium">
-                  {f.starterAmount && `${f.starterAmount}г зак. / `}
-                  {f.flourAmount && `${f.flourAmount}г муки`}
+                  {f.starterAmount && `${f.starterAmount}${t("history.gStarter")} / `}
+                  {f.flourAmount && `${f.flourAmount}${t("history.gFlour")}`}
                   {f.flourAmount && f.waterAmount && " / "}
-                  {f.waterAmount && `${f.waterAmount}г воды`}
+                  {f.waterAmount && `${f.waterAmount}${t("history.gWater")}`}
                 </span>
               )}
               {f.starterAmount && f.flourAmount && (
@@ -403,7 +406,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
               )}
               {f.flourType && (
                 <span className="text-xs text-brown-light bg-warm-beige/70 px-2.5 py-1 rounded-lg font-medium">
-                  {f.flourType}
+                  {flourLabel(f.flourType)}
                 </span>
               )}
               {f.temperature && (
@@ -417,7 +420,7 @@ export function FeedingHistory({ feedings, starterId, onChanged }: FeedingHistor
             {hasObservation && (
               <div className="flex gap-3 mt-1.5 text-xs">
                 <span className="text-golden bg-golden/10 px-2 py-0.5 rounded-lg font-medium">
-                  пик: {formatHours(f.peakTimeHours!)}
+                  {t("history.peakLabel")} {formatHours(f.peakTimeHours!)}
                 </span>
                 <span className="text-terracotta bg-terracotta/10 px-2 py-0.5 rounded-lg font-medium">
                   x{f.peakMultiplier}

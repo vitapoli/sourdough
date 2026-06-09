@@ -43,6 +43,21 @@ export function useT() {
   };
 }
 
+// Маппинг русских значений из БД на ключи переводов
+const dbFlourMap: Record<string, string> = {
+  "Ржаная": "create.rye",
+  "Пшеничная": "create.wheat",
+};
+
+export function useFlourLabel() {
+  const t = useT();
+  return (dbValue: string | null | undefined) => {
+    if (!dbValue) return "";
+    const key = dbFlourMap[dbValue];
+    return key ? t(key) : dbValue;
+  };
+}
+
 /* ========== Словарь ========== */
 
 const translations: Record<string, { ru: string; en: string }> = {
@@ -141,6 +156,10 @@ const translations: Record<string, { ru: string; en: string }> = {
   "history.minutes": { ru: "мин", en: "min" },
   "history.rise": { ru: "Подъём:", en: "Rise:" },
   "history.times": { ru: "раз", en: "x" },
+  "history.gStarter": { ru: "г зак.", en: "g starter" },
+  "history.gFlour": { ru: "г муки", en: "g flour" },
+  "history.gWater": { ru: "г воды", en: "g water" },
+  "history.peakLabel": { ru: "пик:", en: "peak:" },
 
   // --- Калькулятор ---
   "calc.title": { ru: "Калькулятор закваски", en: "Starter calculator" },

@@ -104,6 +104,8 @@ function MiniCalendar({
 
 export function SimpleTrackerTab() {
   const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "ru-RU";
   const [starters, setStarters] = useState<Starter[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<Starter | null>(null);
@@ -279,10 +281,24 @@ export function SimpleTrackerTab() {
     && new Date(detail.resumedAt).getTime() > new Date(lastFeeding.fedAt).getTime()
     ? detail.resumedAt : (lastFeeding?.fedAt ?? null);
 
-  const moodResult = isPaused
-    ? { mood: "paused" as const, message: t("mood.msg.paused"), label: t("mood.label.paused"), hoursAgo: null }
+  const moodRaw = isPaused
+    ? { mood: "paused" as const, label: "", message: "", hoursAgo: null }
     : getStarterMood(effectiveLastFeeding, undefined, effectiveCurrentTime);
-  const { mood, message } = moodResult;
+  const { mood } = moodRaw;
+
+  const moodLabelMap: Record<string, string> = {
+    "Новенькая": t("mood.label.new"), "Покормлена": t("mood.label.fed"), "Готова!": t("mood.label.ready"),
+    "На пике!": t("mood.label.peak"), "Опадает": t("mood.label.falling"), "Счастливая": t("mood.label.happy"),
+    "Голодная": t("mood.label.hungry"),
+  };
+  const moodMsgMap: Record<string, string> = {
+    "Покорми меня в первый раз!": t("mood.msg.new"), "Только покормили, работаю!": t("mood.msg.fed"),
+    "Можно использовать в тесто!": t("mood.msg.ready"), "Я на максимуме! Используй меня!": t("mood.msg.peak"),
+    "Прошла пик... покорми меня!": t("mood.msg.falling"), "Я сытая и пузырюсь!": t("mood.msg.happy"),
+    "Пора бы подкрепиться...": t("mood.msg.hungry"),
+  };
+  const label = isPaused ? t("mood.label.paused") : (moodLabelMap[moodRaw.label] || moodRaw.label);
+  const message = isPaused ? t("mood.msg.paused") : (moodMsgMap[moodRaw.message] || moodRaw.message);
 
   // Даты кормлений для календарика
   const feedingDates = new Set(
@@ -414,7 +430,7 @@ export function SimpleTrackerTab() {
               return ds === selectedDate;
             });
             const dateObj = new Date(selectedDate);
-            const dateLabel = dateObj.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+            const dateLabel = dateObj.toLocaleDateString(locale, { day: "numeric", month: "long" });
 
             return (
               <div className="w-full max-w-sm bg-card rounded-2xl p-4 card-shadow border border-golden/30 space-y-2 animate-fade-up">
@@ -428,7 +444,7 @@ export function SimpleTrackerTab() {
                 )}
 
                 {dayFeedings.map((f) => {
-                  const time = new Date(f.fedAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+                  const time = new Date(f.fedAt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
                   const sa = f.starterAmount || 0;
                   const fa = f.flourAmount || 0;
                   const wa = f.waterAmount || 0;
@@ -550,7 +566,7 @@ export function SimpleTrackerTab() {
             )}
             {(detail.feedings ?? []).slice(0, 7).map((f) => {
               const date = new Date(f.fedAt);
-              const timeStr = date.toLocaleDateString("ru-RU", {
+              const timeStr = date.toLocaleDateString(locale, {
                 day: "numeric",
                 month: "short",
                 hour: "2-digit",

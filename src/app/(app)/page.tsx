@@ -2,6 +2,8 @@
 
 import { useState, useEffect, lazy, Suspense } from "react";
 import { TabBar, Tab } from "@/components/TabBar";
+import { LangSwitch } from "@/components/LangSwitch";
+import { useT } from "@/lib/i18n";
 
 const TrackerTab = lazy(() => import("@/components/TrackerTab").then(m => ({ default: m.TrackerTab })));
 const SimpleTrackerTab = lazy(() => import("@/components/SimpleTrackerTab").then(m => ({ default: m.SimpleTrackerTab })));
@@ -25,6 +27,7 @@ function useTrackerMode(): [TrackerMode, (m: TrackerMode) => void] {
 }
 
 export default function Home() {
+  const t = useT();
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("activeTab") as Tab | null;
@@ -55,7 +58,7 @@ export default function Home() {
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <p className="text-brown-light">Загрузка...</p>
+        <p className="text-brown-light">{t("loading")}</p>
       </div>
     );
   }
@@ -66,10 +69,10 @@ export default function Home() {
       <header className="flex items-center justify-between px-4 pt-6 pb-3">
         <div className="w-8" />
         <div className="text-center">
-          <h1 className="text-2xl font-extrabold text-brown-dark tracking-tight leading-none">
-            Sourdough
+          <h1 className="text-2xl font-extrabold text-brown-dark tracking-tight leading-none flex items-center justify-center gap-1.5">
+            Sourdough <LangSwitch />
           </h1>
-          <p className="text-xs text-brown-light mt-0.5">трекер закваски</p>
+          <p className="text-xs text-brown-light mt-0.5">{t("app.subtitle")}</p>
         </div>
         <a href="/profile" className="w-8 h-8 flex items-center justify-center rounded-full bg-warm-beige/50 text-brown-light hover:text-terracotta hover:bg-terracotta/10 transition-all">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -90,7 +93,7 @@ export default function Home() {
                 : "bg-warm-beige/50 text-brown-light hover:text-brown"
             }`}
           >
-            Простой
+            {t("mode.simple")}
           </button>
           <button
             onClick={() => setTrackerMode("detailed")}
@@ -100,14 +103,14 @@ export default function Home() {
                 : "bg-warm-beige/50 text-brown-light hover:text-brown"
             }`}
           >
-            Подробный
+            {t("mode.detailed")}
           </button>
         </div>
       )}
 
       {/* Контент вкладки */}
       <main className="flex-1 pb-20 animate-fade-up">
-        <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-brown-light">Загрузка...</p></div>}>
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-brown-light">{t("loading")}</p></div>}>
           {activeTab === "tracker" && trackerMode === "simple" && <SimpleTrackerTab />}
           {activeTab === "tracker" && trackerMode === "detailed" && <TrackerTab />}
           {activeTab === "calculator" && <CalculatorTab />}
