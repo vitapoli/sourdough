@@ -3,10 +3,10 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { TabBar, Tab } from "@/components/TabBar";
 import { LangSwitch } from "@/components/LangSwitch";
+import { SimpleTrackerTab } from "@/components/SimpleTrackerTab";
 import { useT } from "@/lib/i18n";
 
 const TrackerTab = lazy(() => import("@/components/TrackerTab").then(m => ({ default: m.TrackerTab })));
-const SimpleTrackerTab = lazy(() => import("@/components/SimpleTrackerTab").then(m => ({ default: m.SimpleTrackerTab })));
 const CalculatorTab = lazy(() => import("@/components/CalculatorTab").then(m => ({ default: m.CalculatorTab })));
 const RecipesTab = lazy(() => import("@/components/RecipesTab").then(m => ({ default: m.RecipesTab })));
 const CommunityTab = lazy(() => import("@/components/CommunityTab").then(m => ({ default: m.CommunityTab })));
@@ -57,8 +57,9 @@ export default function Home() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <p className="text-brown-light">{t("loading")}</p>
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-3">
+        <h1 className="text-3xl font-extrabold text-brown-dark tracking-tight">Sourdough</h1>
+        <div className="w-6 h-6 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin" />
       </div>
     );
   }

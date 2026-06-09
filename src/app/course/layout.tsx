@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Your First Starter in 7 Days — Free Course",
-  description: "Free mini-course for beginner bakers. Learn to make your first sourdough starter.",
+  title: "Первая закваска за 7 дней — бесплатный мини-курс",
+  description: "Пошаговый курс для начинающих: выведи свою первую закваску с нуля. Один урок в день, два варианта — с весами и без.",
   manifest: "/course-manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Starter Course",
+    title: "Курс закваски",
+  },
+  openGraph: {
+    title: "Первая закваска за 7 дней — бесплатный мини-курс",
+    description: "Пошаговый курс для начинающих: выведи свою первую закваску с нуля.",
+    url: "https://levainlab.ru/course",
+    siteName: "Sourdough",
+    locale: "ru_RU",
+    type: "website",
   },
 };
 
