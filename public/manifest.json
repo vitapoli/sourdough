@@ -1,8 +1,8 @@
 {
-  "name": "Your First Starter in 7 Days",
-  "short_name": "Course",
-  "description": "Free mini-course for beginner bakers",
-  "start_url": "/course/en",
+  "name": "Levain Lab — трекер закваски",
+  "short_name": "Levain Lab",
+  "description": "Трекер закваски, рецепты хлеба, калькулятор гидратации",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#FDF8F3",
   "theme_color": "#FDF8F3",
