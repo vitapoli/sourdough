@@ -299,7 +299,7 @@ export function CommunityTab() {
     } catch { /* */ }
 
     return (
-      <div className="animate-fade-up pb-24 px-4">
+      <div className="animate-fade-up pb-24 px-4 max-w-[416px] mx-auto">
         {/* Шапка */}
         <button
           onClick={() => setSelected(null)}
@@ -387,24 +387,43 @@ export function CommunityTab() {
         </div>
 
         {/* Ингредиенты */}
-        {ingredients.length > 0 && (
-          <div className="mb-5">
-            <h3 className="text-sm font-bold text-brown mb-2">{t("community.ingredients")}</h3>
-            <div className="space-y-1.5">
-              {ingredients.map((ing, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between text-sm text-brown-dark"
-                >
-                  <span>{ing.name}</span>
-                  <span className="text-brown-light">
-                    {ing.amount} {ing.unit}
-                  </span>
-                </div>
-              ))}
+        {ingredients.length > 0 && (() => {
+          const recipePhases = [...new Set(ingredients.map((ing) => ing.phase).filter(Boolean))] as string[];
+          const noPhase = ingredients.filter((ing) => !ing.phase);
+          const renderIng = (
+            ing: { name: string; amount: string; unit: string },
+            i: number
+          ) => (
+            <div key={i} className="flex justify-between text-sm text-brown-dark">
+              <span>{ing.name}</span>
+              <span className="text-brown-light">
+                {ing.amount} {ing.unit}
+              </span>
             </div>
-          </div>
-        )}
+          );
+          return (
+            <div className="mb-5">
+              <h3 className="text-sm font-bold text-brown mb-2">{t("community.ingredients")}</h3>
+              <div className="space-y-3">
+                {noPhase.length > 0 && (
+                  <div className="space-y-1.5">
+                    {noPhase.map((ing, i) => renderIng(ing, i))}
+                  </div>
+                )}
+                {recipePhases.map((phase) => (
+                  <div key={phase}>
+                    <p className="text-xs font-bold text-golden mb-1">{phase}</p>
+                    <div className="space-y-1.5 border-l-2 border-golden/30 pl-3">
+                      {ingredients
+                        .filter((ing) => ing.phase === phase)
+                        .map((ing, i) => renderIng(ing, i))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Шаги */}
         {steps.length > 0 && (
@@ -492,7 +511,7 @@ export function CommunityTab() {
 
   // --- Лента ---
   return (
-    <div className="animate-fade-up pb-4 px-4">
+    <div className="animate-fade-up pb-4 px-4 max-w-[416px] mx-auto">
       {/* Поиск */}
       <div className="relative mb-3">
         <Icon

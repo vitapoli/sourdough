@@ -14,14 +14,6 @@ export async function GET(request: NextRequest) {
 
   const where: Record<string, unknown> = { isPublic: true };
 
-  if (q) {
-    where.OR = [
-      { title: { contains: q } },
-      { flour: { contains: q } },
-      { description: { contains: q } },
-    ];
-  }
-
   if (cursor) {
     where.createdAt = { lt: new Date(cursor) };
   }
@@ -31,10 +23,13 @@ export async function GET(request: NextRequest) {
       ? [{ likes: { _count: "desc" as const } }, { createdAt: "desc" as const }]
       : [{ createdAt: "desc" as const }];
 
+  // SQLite-поиск через LIKE для кириллицы регистрозависим. Поэтому при
+  // поиске берём все публичные рецепты и фильтруем в JS через toLowerCase()
+  // — он корректно понижает регистр кириллицы.
   const recipes = await prisma.recipe.findMany({
     where,
     orderBy,
-    take: limit + 1,
+    take: q ? undefined : limit + 1,
     include: {
       user: { select: { id: true, name: true } },
       _count: { select: { likes: true, comments: true } },
@@ -44,8 +39,19 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const hasMore = recipes.length > limit;
-  const items = hasMore ? recipes.slice(0, limit) : recipes;
+  let filtered = recipes;
+  if (q) {
+    const ql = q.toLowerCase();
+    filtered = recipes.filter(
+      (r) =>
+        r.title.toLowerCase().includes(ql) ||
+        r.flour.toLowerCase().includes(ql) ||
+        (r.description ?? "").toLowerCase().includes(ql)
+    );
+  }
+
+  const hasMore = filtered.length > limit;
+  const items = hasMore ? filtered.slice(0, limit) : filtered;
 
   const result = items.map((r) => ({
     id: r.id,

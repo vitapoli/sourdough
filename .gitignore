@@ -59,3 +59,10 @@ next-env.d.ts
 AGENTS.md
 CLAUDE.md
 deploy.sh
+
+# рабочие материалы (планы, доки, исходники постов) — не код приложения
+/content/
+
+# тяжёлые оригиналы картинок курса — сайт использует .webp
+/public/course/*.jpeg
+/public/course/*.jpg
