@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 const DAYS = [
   { num: 1, title: "Getting Started", ready: true },
   { num: 2, title: "Observe", ready: true },
-  { num: 3, title: "Keep Going", ready: false },
+  { num: 3, title: "The Starter Wakes Up", ready: true },
   { num: 4, title: "What to Look For", ready: false },
   { num: 5, title: "It's Alive!", ready: false },
   { num: 6, title: "Ready Check", ready: false },
@@ -15,6 +15,7 @@ const DAYS = [
 const DAY_COMPONENTS: Record<number, () => React.ReactNode> = {
   1: () => <Day1En />,
   2: () => <Day2En />,
+  3: () => <Day3En />,
 };
 
 export default function CoursePageEn() {
@@ -41,7 +42,7 @@ export default function CoursePageEn() {
         <div className="flex justify-between items-center max-w-md mx-auto">
           <a href="/login" className="text-sm text-brown-light hover:text-terracotta transition-colors">Levain Lab</a>
           <a
-            href="/course"
+            href={`/course?day=${currentDay}`}
             className="text-sm font-bold text-brown-light hover:text-terracotta transition-colors"
           >
             RU
@@ -684,6 +685,274 @@ function Day2En() {
             we'll tell you more.
           </p>
         </Details>
+      </Section>
+    </>
+  );
+}
+
+/* ========== Day 3 Content ========== */
+
+function Day3En() {
+  return (
+    <>
+      <div className="mb-6">
+        <div className="text-xs font-bold text-terracotta mb-1">DAY 3</div>
+        <h2 className="text-2xl font-extrabold text-brown-dark leading-tight">
+          The Starter Wakes Up
+        </h2>
+      </div>
+
+      <Section>
+        <p className="text-brown text-sm leading-relaxed">
+          Another 24 hours have passed. Today your starter should be showing
+          activity — more bubbles, a noticeable rise, and a sharper smell.
+        </p>
+        <PhotoGallery priority images={[
+          { src: "/course/day-3-1.webp", alt: "Active starter on day 3 — bubbles and rise" },
+        ]} />
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>What You Might See</H2>
+
+        <div className="space-y-4">
+          <div className="bg-terracotta/5 rounded-xl p-4">
+            <H3>Good activity (this is how it should be)</H3>
+            <p className="text-brown text-sm leading-relaxed">
+              Bubbles are visible — small ones throughout and larger ones on the
+              surface. Over the last 24 hours the starter has grown roughly{" "}
+              <strong>1.5–2x</strong> in volume. That's a great sign: yeast and
+              lactic acid bacteria are working hard, feeding on maltose from the
+              flour and releasing gas.
+            </p>
+            <p className="text-brown text-sm leading-relaxed mt-2">
+              The starter may have already fallen by the time you look — also
+              normal. It managed to eat all its food and settle back down,
+              getting hungry. There's no need to mark the rise with a rubber band
+              at this point.
+            </p>
+          </div>
+
+          <div className="bg-warm-beige/30 rounded-xl p-4">
+            <H3>Some activity, but weak</H3>
+            <p className="text-brown text-sm leading-relaxed">
+              Few bubbles, a small rise. Also normal — starters develop at
+              different speeds, a lot depends on the flour and temperature. Just
+              keep feeding, activity will build over the next few days.
+            </p>
+          </div>
+
+          <div className="bg-cream/60 rounded-xl p-4 border border-warm-beige">
+            <H3>No signs at all</H3>
+            <p className="text-brown text-sm leading-relaxed mb-2">
+              If there are no bubbles, no smell, no movement at all — it's almost
+              always the temperature; it's too cool. Do the same as in Day 2:
+            </p>
+            <ol className="space-y-1.5 text-sm text-brown list-decimal pl-5">
+              <li>
+                Move the jar somewhere <strong>warmer, 77-82°F (25-28°C)</strong>
+              </li>
+              <li>
+                Add a bit of <strong>whole grain (rye) flour</strong> — it has
+                more enzymes and wild microorganisms, it speeds things up
+              </li>
+              <li>
+                You can make the starter <strong>a bit thinner</strong> — yeast
+                develops faster in a more liquid environment
+              </li>
+              <li>Wait another day</li>
+            </ol>
+            <p className="text-brown text-sm leading-relaxed mt-2">
+              Activity will definitely come. If it's still completely quiet after
+              another day — write to us, we'll figure it out together.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>About the Smell</H2>
+        <p className="text-brown text-sm leading-relaxed mb-3">
+          Open the jar and smell it. Today the smell has become{" "}
+          <strong>stronger and sharper</strong>. This is completely normal.
+        </p>
+        <p className="text-brown text-sm leading-relaxed mb-3">
+          Here's why: lactic acid bacteria are{" "}
+          <strong>actively producing acid</strong> — but the environment hasn't
+          fully acidified yet. The acidity hasn't reached the level (roughly{" "}
+          <strong>pH 4.5 and below</strong>) at which the "bad" bacteria die off.
+          So they're still here — and they're what gives off that unpleasant
+          smell.
+        </p>
+        <p className="text-brown text-sm leading-relaxed">
+          Over the next 1–2 days more acid will build up, the pH will drop below
+          ~4.5 toward 3.5–4.0 — the unwanted microbes will die off, while yeast
+          and lactic acid bacteria, on the contrary, thrive in acidity. That's
+          when the smell will turn pleasant — like yogurt, sometimes with fruity
+          notes. Today's sharpness is a normal stage along the way.
+        </p>
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>What to Do Today: Second Feeding</H2>
+        <p className="text-brown text-sm leading-relaxed mb-4">
+          We feed the same way as yesterday.
+        </p>
+
+        <div className="bg-terracotta/5 rounded-xl p-4 mb-4">
+          <H3>Without a scale (intuitive)</H3>
+          <ol className="space-y-2 text-sm text-brown list-decimal pl-5">
+            <li>Remove roughly half the mass from the jar (discard it)</li>
+            <li>Add a tablespoon of flour (rye + wheat, as before)</li>
+            <li>Add water to the previous consistency — thick pancake batter</li>
+            <li>Mix and cover (don't screw the lid tight!)</li>
+          </ol>
+        </div>
+
+        <div className="bg-warm-beige/30 rounded-xl p-4">
+          <H3>With a scale</H3>
+          <ol className="space-y-2 text-sm text-brown list-decimal pl-5">
+            <li>Keep 20-25 g of starter in the jar, remove the rest</li>
+            <li>Add 50 g of water at room temperature</li>
+            <li>Add 50 g of flour (5 g whole grain rye + 45 g wheat)</li>
+            <li>Mix and cover</li>
+          </ol>
+        </div>
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>Temperature Reminder</H2>
+        <ul className="space-y-2 text-sm text-brown">
+          <li>
+            <strong>75-79°F (24-26°C)</strong> — mesophilic bacteria actively
+            multiply and produce mild lactic acid.
+          </li>
+          <li>
+            <strong>At 68°F (20°C)</strong> — the process slows down, everything
+            stretches out by extra days.
+          </li>
+          <li>
+            <strong>Above 86°F (30°C)</strong> — other bacteria start to
+            dominate, producing more acetic acid; the starter will be sharper and
+            more sour.
+          </li>
+        </ul>
+        <Tip>
+          Don't place the jar near a heater or on a windowsill. You need stable
+          temperature without swings. Kitchen counter, a shelf — great options.
+        </Tip>
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>Today's Checklist</H2>
+        <div className="space-y-1">
+          <CheckItem>Open the jar, look and smell</CheckItem>
+          <CheckItem>Assess the rise over 24 hours (ideally 1.5–2x) and the bubbles</CheckItem>
+          <CheckItem>Feed it: remove half + flour + water</CheckItem>
+          <CheckItem>No signs — warmer (77-82°F / 25-28°C) + whole grain flour + a bit thinner, wait a day</CheckItem>
+          <CheckItem>Check the temperature where the jar sits</CheckItem>
+        </div>
+      </Section>
+
+      <hr className="border-warm-beige my-6" />
+
+      <Section>
+        <H2>Want to Know More?</H2>
+        <p className="text-brown-light text-xs mb-3">
+          For the curious — what's actually happening inside the jar
+        </p>
+
+        <Details title="How acidity is measured">
+          <p>
+            The acidity of a starter and dough is described by two independent
+            parameters: active acidity (pH) and titratable acidity (TTA /
+            degrees). They show fundamentally different things: pH shows the
+            "strength" (the concentration of free hydrogen ions right now), while
+            TTA shows the "quantity" (the total reserve of accumulated acids).
+            More on enzyme activity, dough stickiness, and measuring acidity — on
+            our channel{" "}
+            <a
+              href="https://t.me/levainlab"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-terracotta font-bold hover:underline"
+            >
+              @levainlab
+            </a>
+            .
+          </p>
+        </Details>
+
+        <Details title="Why the smell is sharp right now">
+          <p>
+            In the first days the environment was almost neutral, and the smell
+            came from random "temporary residents." Now the acidity-buildup phase
+            is underway: lactic acid bacteria (especially heterofermentative
+            ones) produce not only lactic but also acetic acid, alcohol, and
+            carbon dioxide. Hence the sour-vinegary and alcoholic notes. But
+            there isn't enough acid yet to clear out the "extra" neighbors — so
+            the smell is still mixed and unpleasant. Once the acidity grows to the
+            right level (see below) and the unwanted microbes die off, the smell
+            will turn pleasant.
+          </p>
+        </Details>
+
+        <Details title="Why “bad” bacteria die at exactly this acidity">
+          <p className="mb-3">
+            Lactic acid bacteria produce lactic and acetic acids, and the pH of
+            the environment drops from nearly neutral (~6) to 3.8–4.0. For most
+            pathogenic and spoilage bacteria this is lethal: they can grow down
+            to about pH 4.0–5.0, but no lower. The conventional safety line in
+            food science is <strong>pH 4.6</strong>: below it, even{" "}
+            <em>Clostridium botulinum</em> — the most dangerous foodborne microbe,
+            which produces botulinum toxin — won't grow. That's why foods below
+            pH 4.6 are considered "high-acid" and safe.
+          </p>
+          <p className="mb-3">
+            But it's not just the pH number. The main weapon is{" "}
+            <strong>the acids themselves in their undissociated (whole) form</strong>.
+            Such a molecule is fat-soluble and easily passes through the
+            bacterium's membrane to the inside. And inside the cell the
+            environment is neutral — there the acid breaks apart and releases a
+            hydrogen ion (H⁺), acidifying the bacterium's insides. The cell is
+            forced to spend all its energy pumping these ions out, its enzymes
+            stall — and it stops growing and dies. The lower the surrounding pH,
+            the more acid there is in this "penetrating" form — which is why
+            acidification works like a mounting press.
+          </p>
+          <p>
+            Yeast and lactic acid bacteria, meanwhile, are adapted to acidity
+            (they create it themselves) — so they thrive in this environment
+            while competitors die out. This is how the starter "sanitizes"
+            itself.
+          </p>
+        </Details>
+
+        <Details title="Why remove half before each feeding">
+          <p>
+            So you don't accumulate a huge amount of starter — the larger its
+            volume, the more food it needs. For raising a starter, it's enough to
+            keep the volume at 70–100 g.
+          </p>
+        </Details>
+      </Section>
+
+      <Section>
+        <p className="text-brown-light text-xs italic text-center">
+          Tomorrow — a third feeding, and we watch the starter gain strength.
+          Later we'll connect the tracker app to keep a feeding history and never
+          forget a feeding.
+        </p>
       </Section>
     </>
   );
