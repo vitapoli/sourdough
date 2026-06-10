@@ -161,7 +161,7 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
         )}
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">{tags}</div>
-          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
+          <img src={photoUrl} alt="" loading="lazy" className="w-14 h-14 object-cover rounded-xl shrink-0" />
         </div>
       </div>
     );
@@ -175,7 +175,7 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
         {titleRow}
         <div className="flex gap-3 mb-1.5">
           <p className="text-sm text-brown-light line-clamp-2 flex-1 min-w-0">{recipe.description}</p>
-          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
+          <img src={photoUrl} alt="" loading="lazy" className="w-14 h-14 object-cover rounded-xl shrink-0" />
         </div>
         {tags}
       </div>
@@ -195,7 +195,7 @@ function RecipeCardContent({ recipe }: { recipe: Recipe }) {
           {tags}
         </div>
         {photoUrl && (
-          <img src={photoUrl} alt="" className="w-14 h-14 object-cover rounded-xl shrink-0" />
+          <img src={photoUrl} alt="" loading="lazy" className="w-14 h-14 object-cover rounded-xl shrink-0" />
         )}
       </div>
     </div>

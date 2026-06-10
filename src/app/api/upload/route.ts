@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -49,15 +50,24 @@ export async function POST(request: Request) {
   const dir = path.join(process.cwd(), "public", "uploads", subdir);
   await mkdir(dir, { recursive: true });
 
-  const EXT_MAP: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
   const urls: string[] = [];
   for (const file of files) {
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const ext = EXT_MAP[file.type] || "jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const inputBuffer = Buffer.from(bytes);
+
+    // Сжимаем и уменьшаем фото перед сохранением:
+    // - макс. сторона 1280px (для показа на телефоне с запасом)
+    // - формат WebP, качество 80 — фото с камеры (2–4 МБ) превращается в ~100–200 КБ
+    // - .rotate() учитывает поворот из EXIF, иначе фото может лечь набок
+    const outputBuffer = await sharp(inputBuffer, { animated: file.type === "image/gif" })
+      .rotate()
+      .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
     const filepath = path.join(dir, filename);
-    await writeFile(filepath, buffer);
+    await writeFile(filepath, outputBuffer);
     urls.push(`/uploads/${subdir}/${filename}`);
   }
 

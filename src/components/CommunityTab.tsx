@@ -624,6 +624,7 @@ function RecipeCard({
           <img
             src={photoUrl}
             alt={recipe.title}
+            loading="lazy"
             className="w-full h-44 object-cover"
           />
         </button>

@@ -18,6 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://levainlab.ru"),
   title: "Sourdough — трекер закваски",
   description: "Живая закваска — умный трекер. Первое русскоязычное приложение для домашних пекарей.",
   manifest: "/manifest.json",
