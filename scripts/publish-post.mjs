@@ -3,10 +3,13 @@
  * Автопубликация постов в Telegram-канал @levainlab
  *
  * Режимы:
- *   --draft    — отправить черновик админу на проверку (за 24ч до публикации)
- *   --publish  — опубликовать в канал (если админ не прислал правку — берём оригинал)
+ *   --draft     — отправить черновик админу на проверку (за 24ч до публикации)
+ *   --publish   — опубликовать в канал (если админ не прислал правку — берём оригинал)
+ *   --scheduled — запланированные «свои» посты из content/scheduled-posts.json по времени:
+ *                 за 24ч шлёт админу черновик в ЛС, ловит правку и публикует именно её
+ *                 (с форматированием); если правки нет — оригинал. Запускается из cron.
  *
- * Посты берутся последовательно из content/tg-posts.md
+ * Посты для --draft/--publish берутся последовательно из content/tg-posts.md
  * Состояние (какой пост следующий) хранится в content/.publish-state.json
  */
 
@@ -187,6 +190,80 @@ function makeInstagramVersion(tgPost) {
   return text;
 }
 
+// --- Конвертация **жирного** markdown в Telegram entities (offset/length в UTF-16) ---
+function mdToEntities(src) {
+  const entities = [];
+  let out = '';
+  let i = 0;
+  while (i < src.length) {
+    if (src.startsWith('**', i)) {
+      const end = src.indexOf('**', i + 2);
+      if (end !== -1) {
+        const inner = src.slice(i + 2, end);
+        entities.push({ type: 'bold', offset: out.length, length: inner.length });
+        out += inner;
+        i = end + 2;
+        continue;
+      }
+    }
+    out += src[i];
+    i++;
+  }
+  return { text: out, entities };
+}
+
+// --- Человеческая дата по Москве: «сб, 13 июня, 08:00» ---
+function formatWhen(iso) {
+  try {
+    return new Date(iso).toLocaleString('ru-RU', {
+      weekday: 'short', day: 'numeric', month: 'long',
+      hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// --- Публикация запланированного поста: правка админа (с форматированием) или оригинал ---
+function publishScheduledPost(post) {
+  const r = post.edited;
+
+  if (r && r.type === 'photo') {
+    let caption = r.caption || '';
+    let entities = r.caption_entities || [];
+    if (caption.length > 1024) {
+      const cut = caption.lastIndexOf('\n', 1021);
+      caption = caption.substring(0, cut > 0 ? cut : 1021) + '...';
+      entities = entities.filter(e => e.offset + e.length <= caption.length);
+    }
+    tgRequest('sendPhoto', { chat_id: CHANNEL_ID, photo: r.photo, caption, caption_entities: entities });
+    return 'фото с подписью, твоя правка';
+  }
+
+  if (r && r.type === 'document_photo') {
+    tgRequest('sendDocument', {
+      chat_id: CHANNEL_ID, document: r.document,
+      caption: r.caption || '', caption_entities: r.caption_entities || [],
+    });
+    return 'фото-документ, твоя правка';
+  }
+
+  if (r && r.type === 'text') {
+    tgRequest('sendMessage', {
+      chat_id: CHANNEL_ID, text: r.text,
+      entities: r.entities || [], disable_web_page_preview: true,
+    });
+    return 'твоя правка';
+  }
+
+  // Правки не было — оригинал из файла, **жирный** превращаем в настоящий жирный
+  const { text, entities } = mdToEntities(post.text);
+  tgRequest('sendMessage', {
+    chat_id: CHANNEL_ID, text, entities, disable_web_page_preview: true,
+  });
+  return 'оригинал из файла';
+}
+
 // --- Основная логика ---
 const mode = process.argv[2];
 
@@ -350,7 +427,89 @@ if (mode === '--draft') {
     }
   }
 
+} else if (mode === '--scheduled') {
+  // Запланированные «свои» посты (content/scheduled-posts.json). Cron, каждые 5 минут.
+  // Поток:
+  //   1) за LEAD_HOURS до выхода присылаем черновик админу в ЛС на проверку;
+  //   2) ловим присланную админом правку и сохраняем её (с форматированием);
+  //   3) в назначенное время публикуем правку админа, а если её нет — оригинал.
+  const LEAD_HOURS = 24; // за сколько часов до выхода слать черновик на проверку
+
+  const schedPath = resolve(ROOT, 'content/scheduled-posts.json');
+  if (!existsSync(schedPath)) {
+    console.log('Нет файла scheduled-posts.json — нечего публиковать.');
+    process.exit(0);
+  }
+  const scheduled = JSON.parse(readFileSync(schedPath, 'utf-8'));
+  const now = Date.now();
+  let changed = false;
+
+  // 1. Черновик на проверку. Не больше одного поста «на проверке» одновременно —
+  //    иначе непонятно, к какому посту относится ответ админа.
+  const awaitingReview = scheduled.some(p => !p.published && p.reviewSentAt);
+  if (!awaitingReview) {
+    const next = scheduled
+      .filter(p => !p.published && !p.reviewSentAt)
+      .filter(p => {
+        const at = new Date(p.publishAt).getTime();
+        return !Number.isNaN(at) && at - now <= LEAD_HOURS * 3600 * 1000;
+      })
+      .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
+    if (next) {
+      const draft = mdToEntities(next.text);
+      tgRequest('sendMessage', {
+        chat_id: ADMIN_CHAT_ID,
+        text: draft.text,
+        entities: draft.entities,
+        disable_web_page_preview: true,
+      });
+      const info = `📅 Пост на ${formatWhen(next.publishAt)}\n📏 ${next.text.length} символов\n\n` +
+        `Отредактируй и пришли обратно — опубликую именно твою версию с форматированием.\n` +
+        `Не ответишь — в назначенное время выйдет этот оригинал.\n\n` +
+        `── Instagram ──\n${makeInstagramVersion(next.text)}`;
+      sendMessage(ADMIN_CHAT_ID, info);
+      next.reviewSentAt = Math.floor(now / 1000);
+      changed = true;
+      console.log(`Черновик на проверку отправлен: "${next.title}" (выход ${next.publishAt})`);
+    }
+  }
+
+  // 2. Ловим правку админа и сохраняем (пока пост не опубликован).
+  for (const p of scheduled) {
+    if (p.published || !p.reviewSentAt) continue;
+    const response = getAdminResponse(p.reviewSentAt);
+    if (response && JSON.stringify(response) !== JSON.stringify(p.edited || null)) {
+      p.edited = response;
+      changed = true;
+      sendMessage(ADMIN_CHAT_ID, `✏️ Принял твою правку для поста на ${formatWhen(p.publishAt)} — опубликую в назначенное время.`);
+      console.log(`Захвачена правка для "${p.title}"`);
+    }
+  }
+
+  // 3. Публикуем по времени: правку админа, а если её нет — оригинал из файла.
+  let publishedCount = 0;
+  for (const p of scheduled) {
+    if (p.published) continue;
+    const at = new Date(p.publishAt).getTime();
+    if (Number.isNaN(at)) {
+      console.error(`Плохая дата у поста "${p.title || ''}": ${p.publishAt}`);
+      continue;
+    }
+    if (at > now) continue;
+
+    const how = publishScheduledPost(p);
+    p.published = true;
+    p.publishedAt = Math.floor(now / 1000);
+    changed = true;
+    publishedCount++;
+    sendMessage(ADMIN_CHAT_ID, `✅ Опубликован пост на ${formatWhen(p.publishAt)} (${how}).`);
+    console.log(`Опубликован запланированный пост: "${p.title}" — ${how}`);
+  }
+
+  if (changed) writeFileSync(schedPath, JSON.stringify(scheduled, null, 2));
+  if (publishedCount === 0) console.log('Постов к публикации на текущий момент нет.');
+
 } else {
-  console.log('Использование: node publish-post.mjs --draft | --publish | --debug');
+  console.log('Использование: node publish-post.mjs --draft | --publish | --debug | --scheduled');
   process.exit(1);
 }

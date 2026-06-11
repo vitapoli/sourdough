@@ -17,12 +17,15 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
+  // upgrade-insecure-requests заставляет грузить ресурсы по https — ломает
+  // локальную разработку по http, поэтому включаем только в проде
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const securityHeaders = [
-  // Всегда ходить только по HTTPS (2 года), включая поддомены
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  // Всегда ходить только по HTTPS (2 года), включая поддомены — только в проде
+  // (по http этот заголовок браузер всё равно игнорирует, а в dev мешает)
+  ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]),
   // Какие источники контента разрешены (защита от внедрения чужих скриптов)
   { key: "Content-Security-Policy", value: csp },
   // Запрет встраивать сайт в чужие <iframe> (защита от кликджекинга)
@@ -36,7 +39,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.0.24", "192.168.0.76", "192.168.139.3", "192.168.1.180"],
+  allowedDevOrigins: ["192.168.0.24", "192.168.0.76", "192.168.139.3", "192.168.1.180", "192.168.139.224"],
   // Убираем заголовок X-Powered-By: Next.js (не светим, на чём сделан сайт)
   poweredByHeader: false,
   async headers() {
