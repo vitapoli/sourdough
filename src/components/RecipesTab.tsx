@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { PhotoViewer } from "./PhotoViewer";
 import { useT, useLang, translateBuiltInRecipe } from "@/lib/i18n";
+import { track } from "@/lib/metrika";
 
 interface Ingredient {
   name: string;
@@ -1849,6 +1850,7 @@ function RecipeConverter({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      track("add_recipe");
     }
 
     setSaving(false);

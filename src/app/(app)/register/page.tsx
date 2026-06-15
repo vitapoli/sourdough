@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
+import { track } from "@/lib/metrika";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -61,6 +62,7 @@ export default function RegisterPage() {
       return;
     }
 
+    track("signup");
     router.push("/");
   }
 

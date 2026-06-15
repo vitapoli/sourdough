@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "./Icon";
 import { Dropdown } from "./Dropdown";
 import { useT } from "@/lib/i18n";
+import { track } from "@/lib/metrika";
 
 const FLOUR_TYPES = ["Пшеничная", "Ржаная"];
 
@@ -118,6 +119,7 @@ export function FeedingForm({ starterId, defaultFlourType, onFed }: FeedingFormP
       }),
     });
     setLoading(false);
+    track("feed");
     setDone(true);
     setShowExtra(false);
     setPhotoFiles([]);

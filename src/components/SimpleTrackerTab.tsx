@@ -7,6 +7,7 @@ import { Icon } from "./Icon";
 import { getStarterMood } from "@/lib/starterMood";
 import { formatTime } from "@/lib/formatTime";
 import { useT, useLang } from "@/lib/i18n";
+import { track } from "@/lib/metrika";
 
 interface Feeding {
   id: string;
@@ -181,6 +182,7 @@ export function SimpleTrackerTab() {
       }),
     });
     setFeeding(false);
+    track("feed");
     setDone(true);
     setTimeout(() => setDone(false), 2000);
     reload();
