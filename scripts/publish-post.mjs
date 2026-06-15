@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 /**
- * Автопубликация постов в Telegram-канал @levainlab
+ * Автопубликация постов в Telegram-канал @levainlab (режим --scheduled).
  *
- * Режимы:
- *   --draft     — отправить черновик админу на проверку (за 24ч до публикации)
- *   --publish   — опубликовать в канал (если админ не прислал правку — берём оригинал)
- *   --scheduled — запланированные «свои» посты из content/scheduled-posts.json по времени:
- *                 за 24ч шлёт админу черновик в ЛС, ловит правку и публикует именно её
- *                 (с форматированием); если правки нет — оригинал. Запускается из cron.
- *
- * Посты для --draft/--publish берутся последовательно из content/tg-posts.md
- * Состояние (какой пост следующий) хранится в content/.publish-state.json
+ * Источник постов — Google-док (см. content/queue-config.json), разделённый заголовками.
+ * Бот сам ставит даты (по одному посту в день в 08:00 МСК), за 24ч шлёт админу черновик
+ * в ЛС, ловит правку и публикует именно её (с форматированием); если правки нет — оригинал.
+ * Состояние очереди — content/scheduled-posts.json. Пауза — content/bot-state.json.
+ * Команды от админа в ЛС: /stop — остановить публикации, /start — возобновить.
+ * Запускается из GitHub Actions (.github/workflows/scheduled.yml) раз в час.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -34,35 +31,54 @@ const BOT_TOKEN = secrets.TG_BOT_TOKEN;
 const CHANNEL_ID = secrets.TG_CHANNEL_ID;
 const ADMIN_CHAT_ID = secrets.TG_ADMIN_CHAT_ID;
 
-// --- Парсинг постов из markdown ---
-function parsePosts() {
-  const content = readFileSync(resolve(ROOT, 'content/tg-posts.md'), 'utf-8');
-  const posts = [];
-  const sections = content.split(/^## /m).slice(1);
+// --- Состояние паузы бота (content/bot-state.json) ---
+const botStatePath = resolve(ROOT, 'content/bot-state.json');
 
-  for (const section of sections) {
-    const lines = section.trim().split('\n');
-    const title = lines[0].trim();
-    const body = lines.slice(1).join('\n').trim();
-    if (body) {
-      posts.push({ title, body });
+function getBotState() {
+  if (existsSync(botStatePath)) {
+    try { return JSON.parse(readFileSync(botStatePath, 'utf-8')); } catch {}
+  }
+  return { paused: false, lastCmdId: 0 };
+}
+
+function saveBotState(s) {
+  writeFileSync(botStatePath, JSON.stringify(s, null, 2));
+}
+
+// --- Команды от админа: /stop (пауза) и /start (возобновить) ---
+// Возвращает true, если состояние паузы изменилось (нужно сохранить).
+function processCommands(state) {
+  const STOP = ['/stop', '/pause', '/стоп', '/пауза'];
+  const GO = ['/start', '/resume', '/go', '/старт', '/пуск'];
+  let updates;
+  try { updates = tgRequest('getUpdates', { offset: -100 }); } catch { return false; }
+
+  const cmds = [];
+  let maxId = state.lastCmdId || 0;
+  for (const u of updates) {
+    const m = u.message || u.edited_message;
+    if (!m || !m.from || m.from.id.toString() !== ADMIN_CHAT_ID || !m.text) continue;
+    if (u.update_id > maxId) maxId = u.update_id;
+    if (u.update_id <= (state.lastCmdId || 0)) continue;
+    const t = m.text.trim().toLowerCase();
+    if (STOP.includes(t)) cmds.push({ id: u.update_id, pause: true });
+    else if (GO.includes(t)) cmds.push({ id: u.update_id, pause: false });
+  }
+
+  let changed = false;
+  if (maxId !== (state.lastCmdId || 0)) { state.lastCmdId = maxId; changed = true; }
+  if (cmds.length) {
+    cmds.sort((a, b) => a.id - b.id);
+    const wanted = cmds[cmds.length - 1].pause; // действует последняя команда
+    if (state.paused !== wanted) {
+      state.paused = wanted;
+      changed = true;
+      sendMessage(ADMIN_CHAT_ID, wanted
+        ? '⏸ Публикации остановлены. Чтобы возобновить — пришли /start'
+        : '▶️ Публикации возобновлены.');
     }
   }
-  return posts;
-}
-
-// --- Состояние публикации ---
-const statePath = resolve(ROOT, 'content/.publish-state.json');
-
-function getState() {
-  if (existsSync(statePath)) {
-    return JSON.parse(readFileSync(statePath, 'utf-8'));
-  }
-  return { nextPost: 0, pendingDraft: null, draftSentAt: null };
-}
-
-function saveState(state) {
-  writeFileSync(statePath, JSON.stringify(state, null, 2));
+  return changed;
 }
 
 // --- Telegram API (через curl, т.к. Node fetch не проходит по сети) ---
@@ -332,168 +348,22 @@ function publishScheduledPost(post) {
 // --- Основная логика ---
 const mode = process.argv[2];
 
-if (mode === '--draft') {
-  const posts = parsePosts();
-  const state = getState();
-
-  if (state.nextPost >= posts.length) {
-    console.log('Все посты опубликованы!');
-    process.exit(0);
-  }
-
-  const post = posts[state.nextPost];
-
-  // Отправляем чистый текст поста (без обёрток)
-  sendMessage(ADMIN_CHAT_ID, post.body);
-
-  // Отдельным сообщением — номер поста
-  sendMessage(ADMIN_CHAT_ID, `#${state.nextPost + 1} · ${post.title}`);
-
-  state.pendingDraft = post.body;
-  state.draftSentAt = Math.floor(Date.now() / 1000);
-  saveState(state);
-
-  console.log(`Черновик отправлен: "${post.title}"`);
-
-} else if (mode === '--publish') {
-  const state = getState();
-  const posts = parsePosts();
-
-  if (state.nextPost >= posts.length) {
-    console.log('Все посты опубликованы!');
-    process.exit(0);
-  }
-
-  // Защита от повторной публикации: без черновика не публикуем
-  if (!state.draftSentAt) {
-    console.log('⛔ Черновик не отправлялся — сначала запусти --draft');
-    process.exit(1);
-  }
-
-  // Ищем ответ админа (текст или фото с форматированием)
-  let published = false;
-
-  if (state.draftSentAt) {
-    const response = getAdminResponse(state.draftSentAt);
-
-    if (response && response.type === 'photo') {
-      let caption = response.caption;
-      let entities = response.caption_entities;
-
-      // Telegram лимит подписи к фото — 1024 символа
-      if (caption.length > 1024) {
-        console.log(`⚠️ Подпись ${caption.length} символов, обрезаю до 1024`);
-        // Обрезаем по последнему переносу строки до лимита
-        const cut = caption.lastIndexOf('\n', 1021);
-        caption = caption.substring(0, cut > 0 ? cut : 1021) + '...';
-        // Убираем entities, которые выходят за границу
-        entities = entities.filter(e => e.offset + e.length <= caption.length);
-      }
-
-      tgRequest('sendPhoto', {
-        chat_id: CHANNEL_ID,
-        photo: response.photo,
-        caption,
-        caption_entities: entities,
-      });
-      published = true;
-      console.log(`Опубликовано фото с подписью (${caption.length} символов).`);
-
-    } else if (response && response.type === 'document_photo') {
-      // Публикуем документ-фото с подписью
-      tgRequest('sendDocument', {
-        chat_id: CHANNEL_ID,
-        document: response.document,
-        caption: response.caption,
-        caption_entities: response.caption_entities,
-      });
-      published = true;
-      console.log('Опубликовано фото-документ с подписью (отредактированная версия).');
-
-    } else if (response && response.type === 'text') {
-      // Публикуем текст с форматированием
-      tgRequest('sendMessage', {
-        chat_id: CHANNEL_ID,
-        text: response.text,
-        entities: response.entities,
-        disable_web_page_preview: true,
-      });
-      published = true;
-      console.log('Опубликован текст с форматированием (отредактированная версия).');
-    }
-  }
-
-  // Если правок не было — публикуем оригинал из файла
-  if (!published) {
-    let textToPublish = state.pendingDraft;
-    if (!textToPublish) {
-      const post = posts[state.nextPost];
-      if (!post) {
-        console.log('Нет поста для публикации!');
-        process.exit(1);
-      }
-      textToPublish = post.body;
-    }
-    sendMessage(CHANNEL_ID, textToPublish);
-    console.log('Правок не было, опубликован оригинал.');
-  }
-
-  // Уведомляем админа
-  sendMessage(ADMIN_CHAT_ID, '✅ Пост опубликован в канал!');
-
-  // Обновляем состояние
-  state.nextPost++;
-  state.pendingDraft = null;
-  state.draftSentAt = null;
-  saveState(state);
-
-  console.log(`Опубликован пост #${state.nextPost}`);
-
-} else if (mode === '--debug') {
-  // Показать что бот видит в апдейтах, без публикации
-  const state = getState();
-  console.log('=== Текущее состояние ===');
-  console.log(JSON.stringify(state, null, 2));
-  console.log('');
-  console.log('=== Апдейты от Telegram ===');
-  const updates = tgRequest('getUpdates', { offset: -100 });
-  console.log(`Всего апдейтов: ${updates.length}`);
-  for (const update of updates) {
-    const edited = !update.message && !!update.edited_message;
-    const msg = update.message || update.edited_message;
-    if (!msg) {
-      console.log(`  update_id=${update.update_id}: нет message`);
-      continue;
-    }
-    const from = msg.from ? `${msg.from.first_name} (id=${msg.from.id})` : 'unknown';
-    const isAdmin = msg.from && msg.from.id.toString() === ADMIN_CHAT_ID;
-    const afterDraft = msg.date > (state.draftSentAt || 0);
-    console.log(`  update_id=${update.update_id}: ${edited ? '[EDIT] ' : ''}from=${from}, date=${msg.date}, admin=${isAdmin}, afterDraft=${afterDraft}`);
-    if (msg.text) console.log(`    text: "${msg.text.substring(0, 80)}..."`);
-    if (msg.photo) console.log(`    photo: ${msg.photo.length} sizes, file_id=${msg.photo[msg.photo.length-1].file_id.substring(0, 30)}...`);
-    if (msg.caption) console.log(`    caption: "${msg.caption.substring(0, 80)}..."`);
-    if (msg.document) console.log(`    document: ${msg.document.mime_type}, file_id=${msg.document.file_id.substring(0, 30)}...`);
-  }
-
-  // Проверяем, что найдёт getAdminResponse
-  if (state.draftSentAt) {
-    console.log('');
-    console.log('=== Результат поиска ответа админа ===');
-    const response = getAdminResponse(state.draftSentAt);
-    if (response) {
-      console.log(`Найден ответ: type=${response.type}`);
-      console.log(JSON.stringify(response, null, 2));
-    } else {
-      console.log('Ответ админа НЕ НАЙДЕН');
-    }
-  }
-
-} else if (mode === '--scheduled') {
-  // Запланированные «свои» посты (content/scheduled-posts.json). Cron, каждые 5 минут.
+if (mode === '--scheduled') {
+  // Посты из Google-дока (content/scheduled-posts.json). Запускается из GitHub Actions раз в час.
   // Поток:
+  //   0) обрабатываем команды /stop и /start; если на паузе — ничего не делаем;
   //   1) за LEAD_HOURS до выхода присылаем черновик админу в ЛС на проверку;
   //   2) ловим присланную админом правку и сохраняем её (с форматированием);
   //   3) в назначенное время публикуем правку админа, а если её нет — оригинал.
+
+  // 0. Команды паузы от админа (/stop, /start). На паузе — выходим, ничего не публикуя.
+  const botState = getBotState();
+  if (processCommands(botState)) saveBotState(botState);
+  if (botState.paused) {
+    console.log('⏸ Публикации на паузе — пропускаю прогон.');
+    process.exit(0);
+  }
+
   const LEAD_HOURS = 24; // за сколько часов до выхода слать черновик на проверку
 
   const schedPath = resolve(ROOT, 'content/scheduled-posts.json');
@@ -575,6 +445,6 @@ if (mode === '--draft') {
   if (publishedCount === 0) console.log('Постов к публикации на текущий момент нет.');
 
 } else {
-  console.log('Использование: node publish-post.mjs --draft | --publish | --debug | --scheduled');
+  console.log('Использование: node publish-post.mjs --scheduled');
   process.exit(1);
 }
