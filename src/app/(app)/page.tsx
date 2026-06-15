@@ -4,6 +4,8 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { TabBar, Tab } from "@/components/TabBar";
 import { LangSwitch } from "@/components/LangSwitch";
 import { SimpleTrackerTab } from "@/components/SimpleTrackerTab";
+import { GuestGate } from "@/components/GuestGate";
+import { setGuestMode, migrateGuestData } from "@/lib/tracker";
 import { useT } from "@/lib/i18n";
 
 const TrackerTab = lazy(() => import("@/components/TrackerTab").then(m => ({ default: m.TrackerTab })));
@@ -37,11 +39,21 @@ export default function Home() {
   });
   const [recipesListKey, setRecipesListKey] = useState(0);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me").then(r => {
-      if (!r.ok) window.location.href = "/login";
-      else setAuthChecked(true);
+    fetch("/api/auth/me").then(async (r) => {
+      if (r.ok) {
+        // Вошедший пользователь: переносим закваску, которую гость мог
+        // натыкать в этом браузере до регистрации, и работаем с сервером.
+        setGuestMode(false);
+        await migrateGuestData();
+      } else {
+        // Гость: не выбрасываем на логин — даём попробовать приложение.
+        setGuestMode(true);
+        setIsGuest(true);
+      }
+      setAuthChecked(true);
     });
   }, []);
 
@@ -75,7 +87,7 @@ export default function Home() {
           </h1>
           <p className="text-xs text-brown-light mt-0.5">{t("app.subtitle")}</p>
         </div>
-        <a href="/profile" className="w-8 h-8 flex items-center justify-center rounded-full bg-warm-beige/50 text-brown-light hover:text-terracotta hover:bg-terracotta/10 transition-all">
+        <a href={isGuest ? "/login" : "/profile"} className="w-8 h-8 flex items-center justify-center rounded-full bg-warm-beige/50 text-brown-light hover:text-terracotta hover:bg-terracotta/10 transition-all">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="9" cy="6" r="3.5" />
             <path d="M2.5 16.5c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6" />
@@ -83,8 +95,37 @@ export default function Home() {
         </a>
       </header>
 
-      {/* Переключатель режима трекера */}
-      {activeTab === "tracker" && (
+      {/* Плашка гостевого режима */}
+      {isGuest && (
+        <div className="mx-4 mb-2 flex items-center justify-between gap-2 rounded-2xl bg-golden/10 border border-golden/30 px-3.5 py-2">
+          <p className="text-xs text-brown-dark leading-tight">{t("guest.banner")}</p>
+          <a
+            href="/register"
+            className="shrink-0 px-3 py-1.5 rounded-xl bg-terracotta text-white text-xs font-bold hover:bg-terracotta-light active:scale-95 transition-all"
+          >
+            {t("guest.bannerCta")}
+          </a>
+        </div>
+      )}
+
+      {/* Подсказка про подробный режим (для гостя на вкладке трекера) */}
+      {isGuest && activeTab === "tracker" && (
+        <a
+          href="/register"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-2xl bg-card border border-warm-beige/60 px-3.5 py-2 card-shadow hover:border-terracotta/40 transition-all"
+        >
+          <span className="shrink-0 text-terracotta">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="9" r="7" />
+              <path d="M9 5v4l2.5 1.5" />
+            </svg>
+          </span>
+          <span className="text-xs text-brown-dark leading-tight">{t("guest.detailedHint")}</span>
+        </a>
+      )}
+
+      {/* Переключатель режима трекера (только для вошедших) */}
+      {activeTab === "tracker" && !isGuest && (
         <div className="flex justify-center gap-1 px-4 pb-2">
           <button
             onClick={() => setTrackerMode("simple")}
@@ -112,11 +153,11 @@ export default function Home() {
       {/* Контент вкладки */}
       <main className="flex-1 pb-20 animate-fade-up">
         <Suspense fallback={<div className="flex items-center justify-center min-h-[40vh]"><p className="text-brown-light">{t("loading")}</p></div>}>
-          {activeTab === "tracker" && trackerMode === "simple" && <SimpleTrackerTab />}
-          {activeTab === "tracker" && trackerMode === "detailed" && <TrackerTab />}
+          {activeTab === "tracker" && (isGuest || trackerMode === "simple") && <SimpleTrackerTab />}
+          {activeTab === "tracker" && !isGuest && trackerMode === "detailed" && <TrackerTab />}
           {activeTab === "calculator" && <CalculatorTab />}
-          {activeTab === "recipes" && <RecipesTab goToListSignal={recipesListKey} />}
-          {activeTab === "community" && <CommunityTab />}
+          {activeTab === "recipes" && (isGuest ? <GuestGate titleKey="guest.gate.recipesTitle" /> : <RecipesTab goToListSignal={recipesListKey} />)}
+          {activeTab === "community" && (isGuest ? <GuestGate titleKey="guest.gate.communityTitle" /> : <CommunityTab />)}
         </Suspense>
       </main>
 

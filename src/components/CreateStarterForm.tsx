@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Dropdown } from "./Dropdown";
 import { useT } from "@/lib/i18n";
 import { track } from "@/lib/metrika";
+import { createStarter } from "@/lib/tracker";
 
 interface CreateStarterFormProps {
   onCreated: () => void;
@@ -36,13 +37,9 @@ export function CreateStarterForm({ onCreated }: CreateStarterFormProps) {
     }
 
     setLoading(true);
-    const res = await fetch("/api/starters", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), flour }),
-    });
+    const created = await createStarter({ name: name.trim(), flour });
     setLoading(false);
-    if (res.ok) track("create_starter");
+    if (created) track("create_starter");
     setName("");
     onCreated();
   }

@@ -84,6 +84,16 @@ const translations: Record<string, { ru: string; en: string }> = {
   "tab.recipes": { ru: "Рецепты", en: "Recipes" },
   "tab.community": { ru: "Пекари", en: "Bakers" },
 
+  // --- Гостевой режим (проба без регистрации) ---
+  "guest.banner": { ru: "Демо-режим — закваска живёт только в этом браузере", en: "Demo mode — your starter lives only in this browser" },
+  "guest.bannerCta": { ru: "Сохранить", en: "Save" },
+  "guest.detailedHint": { ru: "Есть подробный режим: настройка подъёма закваски и таймер кормления — откроется после регистрации →", en: "There's a detailed mode: starter rise tracking and a feeding timer — unlocks after sign up →" },
+  "guest.login": { ru: "Уже есть аккаунт? Войти", en: "Already have an account? Log in" },
+  "guest.gate.recipesTitle": { ru: "Рецепты — после регистрации", en: "Recipes — after sign up" },
+  "guest.gate.communityTitle": { ru: "Лента пекарей — после регистрации", en: "Bakers' feed — after sign up" },
+  "guest.gate.desc": { ru: "Зарегистрируйтесь бесплатно, чтобы открыть рецепты, ленту пекарей и сохранить свою закваску.", en: "Sign up free to unlock recipes, the bakers' feed and save your starter." },
+  "guest.gate.cta": { ru: "Создать аккаунт", en: "Create account" },
+
   // --- Трекер ---
   "tracker.hello": { ru: "Привет, пекарь!", en: "Hello, baker!" },
   "tracker.createFirst": { ru: "Давай создадим твою первую закваску", en: "Let's create your first starter" },

@@ -8,6 +8,7 @@ import { getStarterMood } from "@/lib/starterMood";
 import { formatTime } from "@/lib/formatTime";
 import { useT, useLang } from "@/lib/i18n";
 import { track } from "@/lib/metrika";
+import { listStarters, getStarter, addFeeding, updateFeeding, deleteFeeding, pauseResume } from "@/lib/tracker";
 
 interface Feeding {
   id: string;
@@ -140,16 +141,14 @@ export function SimpleTrackerTab() {
   }, []);
 
   const loadStarters = useCallback(async () => {
-    const res = await fetch("/api/starters");
-    const data = await res.json();
+    const data = await listStarters();
     setStarters(data);
     setLoading(false);
     return data;
   }, []);
 
   const loadDetail = useCallback(async (id: string) => {
-    const res = await fetch(`/api/starters/${id}`);
-    const data = await res.json();
+    const data = await getStarter(id);
     setDetail(data);
   }, []);
 
@@ -171,15 +170,11 @@ export function SimpleTrackerTab() {
   async function handleFeed() {
     if (!detail) return;
     setFeeding(true);
-    await fetch("/api/feedings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        starterId: detail.id,
-        starterAmount: parseFloat(starterAmount) || 10,
-        flourAmount: parseFloat(flourAmount) || 20,
-        waterAmount: parseFloat(waterAmount) || 30,
-      }),
+    await addFeeding({
+      starterId: detail.id,
+      starterAmount: parseFloat(starterAmount) || 10,
+      flourAmount: parseFloat(flourAmount) || 20,
+      waterAmount: parseFloat(waterAmount) || 30,
     });
     setFeeding(false);
     track("feed");
@@ -190,7 +185,7 @@ export function SimpleTrackerTab() {
 
   async function handleDelete(id: string) {
     setDeletingId(id);
-    await fetch(`/api/feedings?id=${id}`, { method: "DELETE" });
+    await deleteFeeding(id);
     setDeletingId(null);
     reload();
   }
@@ -203,15 +198,11 @@ export function SimpleTrackerTab() {
   }
 
   async function saveEdit(id: string) {
-    await fetch("/api/feedings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        starterAmount: parseFloat(editSa) || null,
-        flourAmount: parseFloat(editFa) || null,
-        waterAmount: parseFloat(editWa) || null,
-      }),
+    await updateFeeding({
+      id,
+      starterAmount: parseFloat(editSa) || null,
+      flourAmount: parseFloat(editFa) || null,
+      waterAmount: parseFloat(editWa) || null,
     });
     setEditingId(null);
     reload();
@@ -222,16 +213,12 @@ export function SimpleTrackerTab() {
     const [h, m] = addTime.split(":").map(Number);
     const date = new Date(selectedDate);
     date.setHours(h || 12, m || 0, 0, 0);
-    await fetch("/api/feedings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        starterId: detail.id,
-        starterAmount: parseFloat(addSa) || 10,
-        flourAmount: parseFloat(addFa) || 20,
-        waterAmount: parseFloat(addWa) || 30,
-        fedAt: date.toISOString(),
-      }),
+    await addFeeding({
+      starterId: detail.id,
+      starterAmount: parseFloat(addSa) || 10,
+      flourAmount: parseFloat(addFa) || 20,
+      waterAmount: parseFloat(addWa) || 30,
+      fedAt: date.toISOString(),
     });
     setAddingForDate(false);
     reload();
@@ -362,15 +349,10 @@ export function SimpleTrackerTab() {
             <button
               onClick={async () => {
                 const action = isPaused ? "resume" : "pause";
-                await fetch(`/api/starters/${detail.id}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ action }),
-                });
-                const res = await fetch(`/api/starters/${detail.id}`);
-                if (res.ok) setDetail(await res.json());
-                const listRes = await fetch("/api/starters");
-                if (listRes.ok) setStarters(await listRes.json());
+                await pauseResume(detail.id, action);
+                const d = await getStarter(detail.id);
+                if (d) setDetail(d);
+                setStarters(await listStarters());
               }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-terracotta text-white shadow-sm transition-all active:scale-95"
               title={isPaused ? t("tracker.resume") : t("tracker.pause")}
