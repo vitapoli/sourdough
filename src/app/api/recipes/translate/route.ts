@@ -77,7 +77,10 @@ export async function POST(request: Request) {
 Массив для перевода:
 ${JSON.stringify(texts)}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // На сервере в РФ Gemini блокируется — ходим через прокси (GEMINI_BASE_URL).
+    // Локально переменной нет → идём напрямую.
+    const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
+    const geminiUrl = `${base}/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

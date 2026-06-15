@@ -53,7 +53,10 @@ export async function POST(request: Request) {
 ВАЖНО: гидратация = (сумма ВСЕХ жидкостей) / (сумма ВСЕЙ муки) * 100. Жидкости: вода, кипяток, молоко, кефир, сливки, пахта, сыворотка, сок, йогурт, какао (жидкое), чай, квас, газировка, газированная вода, чайный гриб (комбуча). Сухое молоко, сухие сливки, сухое какао — НЕ жидкость!
 Если на фото нет рецепта, верни: {"error": "Не удалось распознать рецепт"}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // На сервере в РФ Gemini блокируется — ходим через прокси (GEMINI_BASE_URL).
+    // Локально переменной нет → идём напрямую.
+    const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
+    const geminiUrl = `${base}/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
