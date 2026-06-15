@@ -62,6 +62,7 @@ interface Recipe {
   ingredients: string | null;
   hydrationCalc: string | null;
   steps: string;
+  translations: string | null;
   photos: string | null;
   isBuiltIn: boolean;
   pinned: boolean;
@@ -486,6 +487,14 @@ function DraggableRecipeList({
   );
 }
 
+interface TranslatedFields {
+  title: string;
+  description: string | null;
+  flour: string;
+  ingredients: string | null;
+  steps: string;
+}
+
 function RecipeDetail({
   recipe,
   onBack,
@@ -502,22 +511,71 @@ function RecipeDetail({
   onSelectVariant: (r: Recipe) => void;
 }) {
   const t = useT();
+  const { lang } = useLang();
   const [deleting, setDeleting] = useState(false);
   const [viewPhotos, setViewPhotos] = useState<string[] | null>(null);
   const [viewPhotoIndex, setViewPhotoIndex] = useState(0);
   const [printWithPhotos, setPrintWithPhotos] = useState(true);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
 
+  // Перевод рецепта (DeepL). Встроенные рецепты переводятся отдельно (в списке),
+  // поэтому к моменту показа их название уже на нужном языке — кнопка не появится.
+  const origLang = /[а-яё]/i.test(recipe.title) ? "ru" : "en";
+  const needsTranslation = origLang !== lang;
+
+  // Сохранённый в БД перевод (если есть) — читаем при рендере, без useEffect
+  const savedTranslation: TranslatedFields | null = recipe.translations
+    ? (JSON.parse(recipe.translations) as Record<string, TranslatedFields>)[lang] ?? null
+    : null;
+
+  // Свежий перевод по кнопке + переключатель «оригинал» привязаны к рецепту+языку
+  // через viewKey: при смене рецепта или языка состояние само сбрасывается.
+  const viewKey = `${recipe.id}:${lang}`;
+  const [fresh, setFresh] = useState<{ key: string; tr: TranslatedFields } | null>(null);
+  const [origToggle, setOrigToggle] = useState<{ key: string; on: boolean } | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  const translation = fresh?.key === viewKey ? fresh.tr : savedTranslation;
+  const showOriginal = origToggle?.key === viewKey ? origToggle.on : false;
+  const active = needsTranslation && !showOriginal ? translation : null;
+  const dTitle = active?.title ?? recipe.title;
+  const dDescription = active ? active.description : recipe.description;
+  const dFlour = active?.flour ?? recipe.flour;
+  const dIngredients = active?.ingredients ?? recipe.ingredients;
+  const dSteps = active?.steps ?? recipe.steps;
+
+  async function handleTranslate() {
+    setTranslating(true);
+    try {
+      const res = await fetch("/api/recipes/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: recipe.id, targetLang: lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(t("recipes.translateError") + ": " + (data.error || ""));
+        return;
+      }
+      setFresh({ key: viewKey, tr: data });
+      setOrigToggle({ key: viewKey, on: false });
+    } catch (e) {
+      alert(t("recipes.translateError") + ": " + String(e));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   function handleSharePdf() {
-    const recipeSteps: string[] = JSON.parse(recipe.steps);
-    const ings: Ingredient[] = recipe.ingredients ? JSON.parse(recipe.ingredients) : [];
+    const recipeSteps: string[] = JSON.parse(dSteps);
+    const ings: Ingredient[] = dIngredients ? JSON.parse(dIngredients) : [];
 
     const photoUrls: string[] = recipe.photos ? JSON.parse(recipe.photos) : [];
     const photoHtml = printWithPhotos && photoUrls.length > 0
       ? `<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">${photoUrls.map(u => `<img src="${u}" style="width:120px;height:120px;object-fit:cover;border-radius:12px">`).join("")}</div>`
       : "";
 
-    let html = `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>${recipe.title}</title>
+    let html = `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"><title>${dTitle}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Nunito',system-ui,sans-serif;background:#FDF8F3;color:#5C4033;padding:32px 24px;max-width:500px;margin:0 auto}
@@ -537,17 +595,17 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
 @media print{body{padding:16px}@page{margin:10mm}}
 </style></head><body>`;
 
-    html += `<h1>${recipe.title}</h1>`;
-    if (recipe.description) html += `<p class="desc">${recipe.description}</p>`;
+    html += `<h1>${dTitle}</h1>`;
+    if (dDescription) html += `<p class="desc">${dDescription}</p>`;
     html += `<div class="tags">
-      <span class="tag">${recipe.flour}</span>
-      <span class="tag"><svg style="display:inline-block;vertical-align:middle;margin-right:3px" width="12" height="12" viewBox="0 0 24 24" fill="#C67B5C"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z"/></svg>Гидратация ${recipe.hydration}%</span>
-      <span class="tag">Закваска ${recipe.starterPct}%</span>
+      <span class="tag">${dFlour}</span>
+      <span class="tag"><svg style="display:inline-block;vertical-align:middle;margin-right:3px" width="12" height="12" viewBox="0 0 24 24" fill="#C67B5C"><path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z"/></svg>${t("recipes.hydration")} ${recipe.hydration}%</span>
+      <span class="tag">${t("recipes.starter")} ${recipe.starterPct}%</span>
     </div>`;
     html += photoHtml;
 
     if (ings.length > 0) {
-      html += `<div class="section"><div class="section-title">Ингредиенты</div>`;
+      html += `<div class="section"><div class="section-title">${t("recipes.ingredients")}</div>`;
       ings.forEach(ing => {
         html += `<div class="ing"><span class="ing-name">${ing.name}</span><span class="ing-amount">${ing.amount}${ing.unit}</span></div>`;
       });
@@ -555,7 +613,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
     }
 
     if (recipeSteps.length > 0) {
-      html += `<div class="section"><div class="section-title">Приготовление</div>`;
+      html += `<div class="section"><div class="section-title">${t("recipes.directions")}</div>`;
       recipeSteps.forEach((s, i) => {
         html += `<div class="step"><span class="step-num">${i + 1}</span><span class="step-text">${s}</span></div>`;
       });
@@ -586,24 +644,24 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
 
   const [showDetailCalc, setShowDetailCalc] = useState(false);
   const savedStarterHydration = (() => {
-    if (!recipe.ingredients) return 100;
-    const ings = JSON.parse(recipe.ingredients) as Ingredient[];
+    if (!dIngredients) return 100;
+    const ings = JSON.parse(dIngredients) as Ingredient[];
     const starter = ings.find(ing => getRole(ing) === "starter");
     return starter?.hydration || 100;
   })();
   const [starterHydrationStr, setStarterHydrationStr] = useState(String(savedStarterHydration));
   const starterHydration = parseInt(starterHydrationStr) || 100;
   const [starterHydrationChanged, setStarterHydrationChanged] = useState(false);
-  const steps: string[] = JSON.parse(recipe.steps);
+  const steps: string[] = JSON.parse(dSteps);
 
   // Расчёт гидратации: вычислить из ингредиентов с учётом закваски
   const calcData: HydrationCalc | null = (() => {
-    if (!recipe.ingredients) {
+    if (!dIngredients) {
       if (recipe.hydrationCalc) return JSON.parse(recipe.hydrationCalc) as HydrationCalc;
       return null;
     }
 
-    const ings = JSON.parse(recipe.ingredients) as Ingredient[];
+    const ings = JSON.parse(dIngredients) as Ingredient[];
     const flourItems: string[] = [];
     const liquidItems: string[] = [];
     let totalFlour = 0;
@@ -670,7 +728,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
 
       <div className="bg-card rounded-2xl p-5 card-shadow border border-warm-beige/60">
         <div className="flex items-start justify-between mb-2">
-          <h2 className="text-xl font-extrabold text-brown-dark">{recipe.title}</h2>
+          <h2 className="text-xl font-extrabold text-brown-dark">{dTitle}</h2>
           <div className="flex gap-1">
             <button
               onClick={() => setShowPrintOptions(!showPrintOptions)}
@@ -701,6 +759,29 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           </div>
         </div>
 
+        {needsTranslation && (
+          <div className="mb-3">
+            {translation ? (
+              <button
+                onClick={() => setOrigToggle({ key: viewKey, on: !showOriginal })}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-terracotta hover:underline"
+              >
+                <Icon name="globe" size={14} />
+                {showOriginal ? t("recipes.showTranslation") : t("recipes.showOriginal")}
+              </button>
+            ) : (
+              <button
+                onClick={handleTranslate}
+                disabled={translating}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-warm-beige/50 text-brown rounded-xl text-xs font-bold hover:bg-warm-beige transition-colors disabled:opacity-50"
+              >
+                <Icon name="globe" size={14} />
+                {translating ? t("recipes.translating") : t("recipes.translate")}
+              </button>
+            )}
+          </div>
+        )}
+
         {showPrintOptions && (
           <div className="bg-warm-beige/30 rounded-xl p-3 mb-3 flex items-center justify-between animate-fade-up">
             {recipe.photos && (
@@ -724,8 +805,8 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           </div>
         )}
 
-        {recipe.description && (
-          <p className="text-brown-light mb-4">{recipe.description}</p>
+        {dDescription && (
+          <p className="text-brown-light mb-4">{dDescription}</p>
         )}
 
         {recipe.photos && (() => {
@@ -749,7 +830,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
         <div className="flex gap-3 flex-wrap mb-5">
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light">{t("recipes.flour")}</p>
-            <p className="text-sm font-bold text-brown">{recipe.flour}</p>
+            <p className="text-sm font-bold text-brown">{dFlour}</p>
           </div>
           <div className="bg-warm-beige/50 rounded-xl px-4 py-2 text-center">
             <p className="text-xs text-brown-light flex items-center gap-1 justify-center">
@@ -757,11 +838,10 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
             </p>
             <p className="text-sm font-bold text-brown">{recipe.starterPct}%</p>
           </div>
-          {recipe.ingredients && (() => {
-            const ings = JSON.parse(recipe.ingredients) as Ingredient[];
-            const flourKeywords = ["мука", "солод"];
+          {dIngredients && (() => {
+            const ings = JSON.parse(dIngredients) as Ingredient[];
             const totalFlour = ings
-              .filter(ing => flourKeywords.some(k => ing.name.toLowerCase().includes(k)))
+              .filter(ing => getRole(ing) === "flour")
               .reduce((sum, ing) => sum + (parseFloat(ing.amount) || 0), 0);
             const pinned = ings.filter(ing => ing.pinned);
             return pinned.map((ing, i) => {
@@ -826,8 +906,8 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
           </div>
         )}
 
-        {recipe.ingredients && (() => {
-          const ings = JSON.parse(recipe.ingredients) as Ingredient[];
+        {dIngredients && (() => {
+          const ings = JSON.parse(dIngredients) as Ingredient[];
           const recipePhases = [...new Set(ings.map(ing => ing.phase).filter(Boolean))] as string[];
           const noPhase = ings.filter(ing => !ing.phase);
           // Считаем разницу воды при смене гидратации закваски

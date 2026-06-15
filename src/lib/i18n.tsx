@@ -183,6 +183,11 @@ const translations: Record<string, { ru: string; en: string }> = {
   // --- Рецепты ---
   "recipes.builtin": { ru: "Базовый", en: "Built-in" },
   "recipes.by": { ru: "от", en: "by" },
+  "recipes.translate": { ru: "Перевести", en: "Translate" },
+  "recipes.translating": { ru: "Перевод…", en: "Translating…" },
+  "recipes.showOriginal": { ru: "Показать оригинал", en: "Show original" },
+  "recipes.showTranslation": { ru: "Показать перевод", en: "Show translation" },
+  "recipes.translateError": { ru: "Не удалось перевести", en: "Translation failed" },
   "recipes.roleFlour": { ru: "Мука", en: "Flour" },
   "recipes.roleLiquid": { ru: "Жидкость", en: "Liquid" },
   "recipes.roleStarter": { ru: "Закваска", en: "Starter" },

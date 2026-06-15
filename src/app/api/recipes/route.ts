@@ -107,6 +107,7 @@ export async function PUT(request: Request) {
         steps: body.steps || "[]",
         photos: body.photos || null,
         previewHidden: body.previewHidden || null,
+        translations: null, // содержимое изменилось — старый перевод сбрасываем
         ...(typeof body.isPublic === "boolean" ? { isPublic: body.isPublic } : {}),
       },
     });

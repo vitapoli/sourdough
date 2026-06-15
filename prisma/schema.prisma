@@ -93,6 +93,7 @@ model Recipe {
   ingredients   String?  // Все ингредиенты (JSON: [{name, amount, unit, phase?}])
   hydrationCalc String?  // Расчёт гидратации (JSON: {totalFlour, flourItems, totalLiquid, liquidItems, formula})
   steps       String   // Шаги приготовления (JSON)
+  translations String? // Переводы рецепта (JSON: {en|ru: {title, description, flour, ingredients, steps}})
   photos      String?  // Фото рецепта (JSON массив URL, макс. 3)
   previewHidden String?  // Скрытые поля превью (JSON: ["flour","starter","hydration"])
   isBuiltIn   Boolean  @default(false) // Встроенный рецепт или пользовательский
