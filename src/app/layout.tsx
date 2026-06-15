@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://levainlab.ru"),
   title: "Sourdough — трекер закваски",
   description: "Живая закваска — умный трекер. Первое русскоязычное приложение для домашних пекарей.",
+  // Подтверждение прав на сайт в Яндекс.Вебмастере и Google Search Console
+  verification: {
+    yandex: "c9d8405bd3c8a7c6",
+    google: "CKIpDsvSdCah2oLACToRVp1KvRTfz9bYVsx0X7PsQj8",
+  },
   manifest: "/manifest.json",
   icons: {
     apple: "/apple-touch-icon.png",
