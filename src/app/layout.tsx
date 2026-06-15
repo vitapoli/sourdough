@@ -81,13 +81,13 @@ export default function RootLayout({
               m[i].l=1*new Date();
               for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
               k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109647327','ym');
-            ym(109647327,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});
+            })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109856355','ym');
+            ym(109856355,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});
           `}
         </Script>
         <noscript>
           <div>
-            <img src="https://mc.yandex.ru/watch/109647327" style={{position:'absolute',left:'-9999px'}} alt="" />
+            <img src="https://mc.yandex.ru/watch/109856355" style={{position:'absolute',left:'-9999px'}} alt="" />
           </div>
         </noscript>
       </body>

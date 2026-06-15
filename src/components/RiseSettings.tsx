@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { UserObservation } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
-import { useT } from "@/lib/i18n";
+import { useT, useLang } from "@/lib/i18n";
 
 interface RiseSettingsProps {
   starterId: string;
@@ -52,6 +52,8 @@ export function RiseSettings({
   refreshKey,
 }: RiseSettingsProps) {
   const t = useT();
+  const { lang } = useLang();
+  const h = t("rise.h"); // единица «часы» для таблицы
   const [open, setOpen] = useState(false);
   const [feedingsWithObs, setFeedingsWithObs] = useState<FeedingWithObs[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -115,7 +117,7 @@ export function RiseSettings({
         </button>
         <span className="text-brown-light/30">|</span>
         <a
-          href="/fermentation.html"
+          href={lang === "en" ? "/fermentation-en.html" : "/fermentation.html"}
           target="_blank"
           className="text-xs text-terracotta hover:underline transition-colors"
         >
@@ -166,9 +168,9 @@ export function RiseSettings({
         <p className="text-xs text-brown-light">
           {useCustom
             ? selectedCount === 1
-              ? "Расчёт по одному наблюдению"
-              : `Расчёт усредняет ${selectedCount} выбранных наблюдений`
-            : "Средние значения из пекарских источников"}
+              ? t("rise.calcOne")
+              : t("rise.calcAvg").replace("{n}", String(selectedCount))
+            : t("rise.calcGeneral")}
         </p>
       </div>
 
@@ -176,58 +178,58 @@ export function RiseSettings({
       {!useCustom && (
         <details className="group">
           <summary className="text-xs text-terracotta hover:underline font-medium cursor-pointer list-none">
-            На чём основан расчёт?
+            {t("rise.basedOn")}
           </summary>
           <div className="bg-warm-beige/20 rounded-xl p-3.5 mt-2 space-y-3 text-sm text-brown animate-fade-up">
 
           <div>
-            <p className="font-medium text-xs text-brown-dark mb-1">Время до пика при 22°C:</p>
+            <p className="font-medium text-xs text-brown-dark mb-1">{t("rise.peakAt22")}</p>
             <div className="grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs">
-              <span className="text-brown-light">Соотношение</span>
-              <span className="font-bold text-brown-light">Пшеничная</span>
-              <span className="font-bold text-brown-light">Ржаная</span>
+              <span className="text-brown-light">{t("rise.ratio")}</span>
+              <span className="font-bold text-brown-light">{t("create.wheat")}</span>
+              <span className="font-bold text-brown-light">{t("create.rye")}</span>
               <span className="text-brown-light">1:1:1</span>
-              <span className="font-bold">~5 ч</span>
-              <span className="font-bold">~3.5 ч</span>
+              <span className="font-bold">~5 {h}</span>
+              <span className="font-bold">~3.5 {h}</span>
               <span className="text-brown-light">1:2:2</span>
-              <span className="font-bold">~7 ч</span>
-              <span className="font-bold">~5 ч</span>
+              <span className="font-bold">~7 {h}</span>
+              <span className="font-bold">~5 {h}</span>
               <span className="text-brown-light">1:3:3</span>
-              <span className="font-bold">~9 ч</span>
-              <span className="font-bold">~7 ч</span>
+              <span className="font-bold">~9 {h}</span>
+              <span className="font-bold">~7 {h}</span>
               <span className="text-brown-light">1:5:5</span>
-              <span className="font-bold">~12 ч</span>
-              <span className="font-bold">~9 ч</span>
+              <span className="font-bold">~12 {h}</span>
+              <span className="font-bold">~9 {h}</span>
               <span className="text-brown-light">1:10:10</span>
-              <span className="font-bold">~17 ч</span>
-              <span className="font-bold">~14 ч</span>
+              <span className="font-bold">~17 {h}</span>
+              <span className="font-bold">~14 {h}</span>
             </div>
-            <p className="text-[10px] text-brown-light/70 mt-1">Ржаная на 20-25% быстрее за счёт большего содержания свободных сахаров и активных ферментов</p>
+            <p className="text-[10px] text-brown-light/70 mt-1">{t("rise.ryeFaster")}</p>
           </div>
 
           <div>
-            <p className="font-medium text-xs text-brown-dark mb-1">Визуальный подъём:</p>
+            <p className="font-medium text-xs text-brown-dark mb-1">{t("rise.visualRise")}</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-              <span className="text-brown-light">Пшеничная</span>
+              <span className="text-brown-light">{t("create.wheat")}</span>
               <span className="font-bold">x2.8</span>
-              <span className="text-brown-light">Ржаная</span>
+              <span className="text-brown-light">{t("create.rye")}</span>
               <span className="font-bold">x2.0</span>
             </div>
-            <p className="text-[10px] text-brown-light/70 mt-1">Пшеничная поднимается выше за счёт глютеновой сетки. Ржаная ниже — газ удерживают пентозаны, а не глютен</p>
+            <p className="text-[10px] text-brown-light/70 mt-1">{t("rise.wheatHigher")}</p>
           </div>
 
           <div>
-            <p className="font-medium text-xs text-brown-dark mb-1">Влияние температуры:</p>
+            <p className="font-medium text-xs text-brown-dark mb-1">{t("rise.tempEffect")}</p>
             <p className="text-xs text-brown-light">
-              Каждые +5.5°C время сокращается вдвое. При 28°C пшеничная 1:2:2 достигнет пика за ~3.5 ч, при 16°C — за ~14 ч.
+              {t("rise.tempDesc")}
             </p>
           </div>
 
           <div className="border-t border-warm-beige pt-2">
-            <p className="font-medium text-xs text-brown-dark mb-1">Источники:</p>
+            <p className="font-medium text-xs text-brown-dark mb-1">{t("rise.sources")}</p>
             <ul className="text-[11px] text-brown-light space-y-1">
               <li>
-                <span className="font-medium text-brown">The Sourdough Journey</span> — эксперимент с CO₂-датчиком, сравнение пшеничной и ржаной муки при 20°C
+                <span className="font-medium text-brown">The Sourdough Journey</span> — {t("rise.sourceJourney")}
               </li>
               <li>
                 <span className="font-medium text-brown">Hsu et al.</span> (2013) «Comparing fermentation gas production using the Risograph» — <span className="italic">Journal of Food Research</span>
@@ -243,7 +245,7 @@ export function RiseSettings({
               </li>
             </ul>
             <p className="text-[10px] text-brown-light/70 mt-1.5">
-              Эмпирические данные: King Arthur Baking (2025), Brod & Taylor, The Bread Code, Weekend Bakery, Catchymeals
+              {t("rise.empirical")}
             </p>
           </div>
 
@@ -257,15 +259,15 @@ export function RiseSettings({
         onClick={() => setShowHelp(!showHelp)}
         className="text-xs text-terracotta hover:underline font-medium"
       >
-        {showHelp ? "Скрыть подсказку" : "Как добавить свои данные?"}
+        {showHelp ? t("rise.hideHelp") : t("rise.howToAdd")}
       </button>
 
       {showHelp && (
         <div className="bg-golden/10 rounded-xl p-4 text-sm text-brown animate-fade-up space-y-1.5">
-          <p>1. Покормите закваску и запишите кормление</p>
-          <p>2. Когда закваска достигнет пика — откройте это кормление в истории</p>
-          <p>3. Укажите время до пика и во сколько раз она поднялась</p>
-          <p>4. Данные появятся здесь — чем больше наблюдений, тем точнее расчёт</p>
+          <p>1. {t("rise.step1")}</p>
+          <p>2. {t("rise.step2")}</p>
+          <p>3. {t("rise.step3")}</p>
+          <p>4. {t("rise.step4")}</p>
         </div>
       )}
 
@@ -286,7 +288,7 @@ export function RiseSettings({
             const wa = f.waterAmount || 50;
             const ratio = `1:${(fa / sa).toFixed(1)}:${(wa / sa).toFixed(1)}`;
             const date = new Date(f.fedAt);
-            const dateStr = date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+            const dateStr = date.toLocaleDateString(lang === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "short" });
 
             return (
               <div
@@ -312,12 +314,12 @@ export function RiseSettings({
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <span className="font-medium text-brown">
-                        {ratio} при {f.temperature || 22}°C
+                        {ratio} {t("rise.at")} {f.temperature || 22}°C
                       </span>
                       <span className="text-brown-light text-xs shrink-0 ml-1">{dateStr}</span>
                     </div>
                     <div className="flex gap-4 mt-0.5 text-xs text-brown-light">
-                      <span>Пик: {formatHours(f.peakTimeHours)}</span>
+                      <span>{t("history.peak")} {formatHours(f.peakTimeHours, lang)}</span>
                       <span>x{f.peakMultiplier}</span>
                     </div>
                   </div>

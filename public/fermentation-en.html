@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sourdough fermentation — the complete guide</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #FDF8F3;
+      color: #3D2C1E;
+      line-height: 1.7;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #5C4033;
+      text-align: center;
+      margin: 30px 0 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #8B7355;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 22px;
+      color: #D4763A;
+      margin: 35px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #F0E4D7;
+    }
+
+    h3 {
+      font-size: 17px;
+      color: #5C4033;
+      margin: 25px 0 10px;
+    }
+
+    p { margin: 10px 0; font-size: 15px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 15px 0;
+      box-shadow: 0 2px 12px rgba(61,44,30,0.08);
+      border: 1px solid #F0E4D7;
+    }
+
+    .card-accent {
+      border-left: 4px solid #D4763A;
+    }
+
+    .card-green {
+      border-left: 4px solid #7BA05B;
+    }
+
+    .card-blue {
+      border-left: 4px solid #78909C;
+    }
+
+    .emoji { font-size: 24px; margin-right: 8px; }
+
+    .microbe-frame {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #F0E4D7;
+      box-shadow: 0 2px 6px rgba(61,44,30,0.12);
+      flex-shrink: 0;
+      margin-right: 10px;
+    }
+
+    .microbe-frame img {
+      width: 300%;
+      height: 300%;
+      object-fit: cover;
+      margin-left: -100%;
+      margin-top: -100%;
+    }
+
+    .microbe-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .microbe-header h3 {
+      margin: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    th {
+      background: #D4763A;
+      color: white;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    th:first-child { border-radius: 10px 0 0 0; }
+    th:last-child { border-radius: 0 10px 0 0; }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #F0E4D7;
+    }
+
+    tr:nth-child(even) { background: #FDF8F3; }
+    tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+    tr:last-child td:last-child { border-radius: 0 0 10px 0; }
+
+    .highlight {
+      background: #FFF3E0;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-weight: 600;
+      color: #D4763A;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px;
+    }
+
+    .tag-bacteria { background: #E8F5E9; color: #2E7D32; }
+    .tag-yeast { background: #FFF3E0; color: #E65100; }
+    .tag-enzyme { background: #E3F2FD; color: #1565C0; }
+    .tag-compound { background: #F3E5F5; color: #6A1B9A; }
+
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+      margin: 20px 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, #D4763A, #E8A838, #7BA05B);
+      border-radius: 3px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin: 20px 0;
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(61,44,30,0.06);
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -25px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #D4763A;
+      border: 3px solid #FDF8F3;
+    }
+
+    .timeline-time {
+      font-size: 12px;
+      font-weight: 700;
+      color: #D4763A;
+      text-transform: uppercase;
+    }
+
+    .formula {
+      background: #F5F0EB;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      margin: 10px 0;
+      text-align: center;
+      color: #5C4033;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 12px; }
+      h1 { font-size: 22px; }
+    }
+
+    .sources {
+      font-size: 13px;
+      color: #8B7355;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #F0E4D7;
+    }
+
+    .sources a { color: #D4763A; text-decoration: none; }
+    .sources a:hover { text-decoration: underline; }
+    .sources li { margin: 6px 0; }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #D4763A;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<a href="/" class="back-link">&larr; Back to the app</a>
+
+<h1>Sourdough fermentation</h1>
+<p class="subtitle">The complete guide: microbiology, enzymes, chemistry and the physics of dough rise</p>
+
+<!-- ==================== THE CAST ==================== -->
+
+<h2>1. Who lives in a sourdough starter</h2>
+
+<p>A starter is a symbiosis of two groups of microorganisms that work as a pair:</p>
+
+<div class="grid-2">
+  <div class="card card-green">
+    <div class="microbe-header">
+      <div class="microbe-frame"><img src="/lactobacillus.jpg" alt="Lactobacillus under the microscope" style="margin-left: -90%; margin-top: -40%;"></div>
+      <h3>Lactic acid bacteria (LAB)</h3>
+    </div>
+    <p>The main residents of a starter. There are 10-100 times more of them than yeast.</p>
+    <p><span class="tag tag-bacteria">Lactobacillus sanfranciscensis</span> <span class="tag tag-bacteria">L. plantarum</span> <span class="tag tag-bacteria">L. brevis</span> <span class="tag tag-bacteria">Leuconostoc</span></p>
+    <p><strong>What they do:</strong> produce <span class="highlight">lactic acid</span> and <span class="highlight">acetic acid</span>, which give flavor and aroma and protect against mold.</p>
+  </div>
+  <div class="card card-accent">
+    <div class="microbe-header">
+      <div class="microbe-frame"><img src="/yeast.jpg" alt="Saccharomyces cerevisiae under the microscope" style="margin-left: -130%; margin-top: -130%;"></div>
+      <h3>Yeast</h3>
+    </div>
+    <p>Responsible for the rise — they produce CO₂ (the gas that inflates the dough).</p>
+    <p><span class="tag tag-yeast">Kazachstania humilis</span> <span class="tag tag-yeast">Saccharomyces cerevisiae</span> <span class="tag tag-yeast">Candida milleri</span></p>
+    <p><strong>What they do:</strong> ferment sugars into <span class="highlight">CO₂</span> + <span class="highlight">ethanol</span>. The gas lifts the dough; the alcohol evaporates during baking.</p>
+  </div>
+</div>
+
+<div class="card card-blue">
+  <h3>Why do they get along?</h3>
+  <p>LAB and yeast don't compete for food — they eat different things. <em>L. sanfranciscensis</em> feeds on <strong>maltose</strong> (a disaccharide from flour), but when it breaks it down it releases <strong>glucose</strong>, which it doesn't use itself — the yeast picks it up. This is called <strong>cross-feeding</strong> — mutual feeding <sup>[4][6]</sup>.</p>
+  <p>On top of that, the acidic environment (pH 3.5–4.5) created by the bacteria suppresses pathogenic microbes and commercial yeast, while the "native" yeast is adapted to it <sup>[5]</sup>.</p>
+</div>
+
+<!-- ==================== ENZYMES ==================== -->
+
+<h2>2. Enzymes — the invisible workers</h2>
+
+<p>Enzymes are catalyst proteins. They aren't alive, but nothing works without them. Enzymes are present in the flour itself and are also produced by the microorganisms:</p>
+
+<table>
+  <tr>
+    <th>Enzyme</th>
+    <th>Source</th>
+    <th>What it does</th>
+    <th>Result</th>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Amylase</span></td>
+    <td>Flour</td>
+    <td>Breaks down starch → maltose + glucose</td>
+    <td>Food for bacteria and yeast</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Protease</span></td>
+    <td>Flour + bacteria</td>
+    <td>Breaks down gluten proteins → amino acids</td>
+    <td>Soft crumb, aroma during baking (Maillard reaction)</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Phytase</span></td>
+    <td>Bacteria + flour</td>
+    <td>Breaks down phytic acid</td>
+    <td>Minerals (iron, zinc, magnesium) become absorbable</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Xylanase</span></td>
+    <td>Flour (especially rye)</td>
+    <td>Breaks down pentosans (arabinoxylans)</td>
+    <td>Affects crumb structure and water retention</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-enzyme">Lipase</span></td>
+    <td>Flour</td>
+    <td>Breaks down fats → fatty acids</td>
+    <td>Aroma, but in excess — rancidity</td>
+  </tr>
+</table>
+
+<div class="card card-accent">
+  <p><strong>Important:</strong> enzyme activity depends on <strong>temperature</strong> and <strong>acidity</strong>. Amylase works best at 60-70°C (during baking!), and protease at 35-45°C. In a starter at 22-28°C the enzymes work slowly but steadily — this gives long fermentation and deep flavor <sup>[6]</sup>.</p>
+</div>
+
+<!-- ==================== CHEMISTRY ==================== -->
+
+<h2>3. The chemistry of fermentation</h2>
+
+<h3>The main reactions</h3>
+
+<div class="card">
+  <p><strong>Alcoholic fermentation</strong> (yeast):</p>
+  <div class="formula">
+    C₆H₁₂O₆ (glucose) → 2 C₂H₅OH (ethanol) + 2 CO₂ ↑
+  </div>
+  <p>It is the CO₂ that lifts the dough. The gluten network (in wheat flour) or pentosans (in rye) hold the gas inside.</p>
+</div>
+
+<div class="card">
+  <p><strong>Homofermentative lactic acid fermentation</strong> (L. plantarum and others):</p>
+  <div class="formula">
+    C₆H₁₂O₆ → 2 CH₃CHOHCOOH (lactic acid)
+  </div>
+  <p>A mild, creamy, slightly tangy flavor. Dominates at <strong>high temperature</strong> (30°C+).</p>
+</div>
+
+<div class="card">
+  <p><strong>Heterofermentative lactic acid fermentation</strong> (L. sanfranciscensis, L. brevis):</p>
+  <div class="formula">
+    C₆H₁₂O₆ → CH₃CHOHCOOH + C₂H₅OH + CO₂ ↑
+  </div>
+  <p>Produces lactic acid, ethanol and CO₂ alike. Gives a more complex, vinegary flavor. Dominates at <strong>low temperature</strong> (18-22°C) <sup>[4][5]</sup>.</p>
+</div>
+
+<div class="card card-blue">
+  <h3>The acid ratio = the bread's flavor</h3>
+  <p><strong>QF (Quotient of Fermentation)</strong> — the ratio of lactic acid to acetic acid:</p>
+  <table>
+    <tr><th>QF</th><th>Flavor</th><th>How to get it</th></tr>
+    <tr><td>QF &gt; 5</td><td>Mild, milky</td><td>Warm fermentation (28-32°C), liquid starter</td></tr>
+    <tr><td>QF 2-5</td><td>Balanced</td><td>Medium temperature (22-26°C)</td></tr>
+    <tr><td>QF &lt; 2</td><td>Sharp, vinegary</td><td>Cold fermentation (4-18°C), stiff starter</td></tr>
+  </table>
+  <p><sup>[4][5]</sup></p>
+</div>
+
+<!-- ==================== PHASES ==================== -->
+
+<h2>4. The phases of a starter's rise</h2>
+
+<div class="timeline">
+  <div class="timeline-item">
+    <div class="timeline-time">Phase 1: Lag phase (0 — 1.5 h)</div>
+    <p>The microorganisms "wake up" and adapt to the fresh portion of flour. The flour's enzymes (amylase) begin breaking starch down into simple sugars. There is almost no visible rise.</p>
+    <p><span class="tag tag-enzyme">Amylase</span> starch → maltose → <span class="tag tag-bacteria">L. sanfranciscensis</span> starts feeding</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Phase 2: Exponential growth (1.5 h — 70% of peak)</div>
+    <p>Yeast and bacteria multiply rapidly. CO₂ production ramps up. The dough starts to grow noticeably. The first bubbles appear. Acidity drops the pH from ~6 to ~4.5.</p>
+    <p><span class="tag tag-yeast">Yeast</span> sugars → CO₂ + ethanol &nbsp; <span class="tag tag-bacteria">LAB</span> maltose → lactic acid + glucose</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Phase 3: Peak (70% — 100%)</div>
+    <p>Maximum volume. The starter is full of bubbles, the dome is rounded. The sugar reserve runs out, acidity reaches pH 3.5-4.0. Protease begins to break down gluten — the structure weakens.</p>
+    <p><strong>Ready to use:</strong> it's best to use it at 80% of the rise (before the peak), when the microbes are still active but the gluten isn't broken down yet <sup>[3]</sup>.</p>
+  </div>
+
+  <div class="timeline-item">
+    <div class="timeline-time">Phase 4: Decline (after the peak)</div>
+    <p>The sugars are gone. The yeast slows down. Acidity keeps rising. Protease breaks down the gluten network — the gas escapes and the starter falls. Liquid (hooch) appears on the surface — alcohol + water.</p>
+    <p>The starter is still alive but weakened — bread made from it will turn out flat and too sour.</p>
+  </div>
+</div>
+
+<!-- ==================== WHEAT VS RYE ==================== -->
+
+<h2>5. Wheat vs rye: what's the difference</h2>
+
+<p>The type of flour dramatically affects how a starter behaves — and it's not just about speed:</p>
+
+<table>
+  <tr>
+    <th>Parameter</th>
+    <th>Wheat</th>
+    <th>Rye</th>
+  </tr>
+  <tr>
+    <td><strong>Dough structure</strong></td>
+    <td>Gluten network holds the gas</td>
+    <td>Pentosans (arabinoxylans) hold gas and water</td>
+  </tr>
+  <tr>
+    <td><strong>Enzyme activity</strong></td>
+    <td>Moderate</td>
+    <td>High — more amylase, faster starch breakdown</td>
+  </tr>
+  <tr>
+    <td><strong>Fermentation speed</strong></td>
+    <td>Baseline</td>
+    <td>20-25% faster <sup>[1][3]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Gas production (CO₂)</strong></td>
+    <td>High (100%)</td>
+    <td>Low (~55% of wheat) <sup>[1][2]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Visual rise</strong></td>
+    <td>x2.5–3.0</td>
+    <td>x1.7–2.2 <sup>[1][3]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Peak duration</strong></td>
+    <td>60-90 minutes</td>
+    <td>30-60 minutes (falls faster)</td>
+  </tr>
+  <tr>
+    <td><strong>Main bacteria</strong></td>
+    <td>L. sanfranciscensis, L. plantarum</td>
+    <td>L. sanfranciscensis, L. pontis, L. reuteri <sup>[5]</sup></td>
+  </tr>
+  <tr>
+    <td><strong>Flavor profile</strong></td>
+    <td>Mild, milky</td>
+    <td>More pronounced, with vinegary notes</td>
+  </tr>
+</table>
+
+<div class="card card-accent">
+  <h3>Why is rye faster but lower?</h3>
+  <p><strong>Faster</strong> — because rye flour contains more free sugars and active enzymes. The microbes don't need to "warm up" for long — the food is available right away <sup>[6]</sup>.</p>
+  <p><strong>Lower</strong> — because rye flour has no full-fledged gluten. Instead of an elastic gluten network, the gas is held by <span class="highlight">pentosans</span> — water-soluble polysaccharides. They form a viscous gel structure that holds CO₂ less well, so the gas escapes sooner. The visual rise of a rye starter is partly deceptive — it "swells" thanks to the water retention of the pentosans, not because of gas <sup>[1][2]</sup>.</p>
+</div>
+
+<h3>Time to peak at 22°C</h3>
+
+<table>
+  <tr>
+    <th>Ratio</th>
+    <th>Wheat</th>
+    <th>Rye</th>
+  </tr>
+  <tr><td>1:1:1</td><td>~5 h</td><td>~3.5 h</td></tr>
+  <tr><td>1:2:2</td><td>~7 h</td><td>~5 h</td></tr>
+  <tr><td>1:3:3</td><td>~9 h</td><td>~7 h</td></tr>
+  <tr><td>1:5:5</td><td>~12 h</td><td>~9 h</td></tr>
+  <tr><td>1:10:10</td><td>~17 h</td><td>~14 h</td></tr>
+</table>
+
+<!-- ==================== TEMPERATURE ==================== -->
+
+<h2>6. The effect of temperature</h2>
+
+<div class="card">
+  <p>Temperature is the most powerful lever for controlling fermentation. The rule:</p>
+  <div class="formula">
+    Every +5.5°C halves the time to peak
+  </div>
+  <p>This relates to the Arrhenius rule — the rate of biochemical reactions doubles for roughly every 10°C increase, and for a starter the coefficient is even steeper <sup>[4]</sup>.</p>
+</div>
+
+<table>
+  <tr>
+    <th>Temperature</th>
+    <th>Wheat 1:2:2</th>
+    <th>What happens</th>
+  </tr>
+  <tr><td>16°C</td><td>~14 h</td><td>Slow, more acetic acid, complex flavor</td></tr>
+  <tr><td>22°C</td><td>~7 h</td><td>Balanced flavor, the standard</td></tr>
+  <tr><td>28°C</td><td>~3.5 h</td><td>Fast, more lactic acid, mild flavor</td></tr>
+  <tr><td>35°C</td><td>~1.5 h</td><td>Very fast, risk of over-acidity, bacteria dominate</td></tr>
+  <tr><td>4°C (fridge)</td><td>Paused</td><td>Fermentation almost stops, but enzymes keep working</td></tr>
+</table>
+
+<div class="card card-green">
+  <h3>Temperature and flavor</h3>
+  <p><strong>Warm (28-32°C):</strong> homofermentative LAB dominate → more <span class="highlight">lactic acid</span> → mild, yogurt-like flavor.</p>
+  <p><strong>Cold (18-22°C):</strong> heterofermentative LAB dominate → more <span class="highlight">acetic acid</span> → sharp, complex, the "real" sourdough flavor <sup>[4][5]</sup>.</p>
+  <p><strong>Fridge (4°C):</strong> the microbes sleep, but the enzymes (protease, amylase) keep working. That's why a cold proof improves the flavor and texture of the bread without the risk of over-acidity.</p>
+</div>
+
+<!-- ==================== RATIO ==================== -->
+
+<h2>7. The effect of the feeding ratio</h2>
+
+<div class="card">
+  <p>The starter:flour:water ratio determines how much "food" the microbes get and how fast they eat it:</p>
+  <ul style="padding-left: 20px; margin: 10px 0;">
+    <li><strong>1:1:1</strong> — many microbes, little food → fast peak (3-5 h), fast decline. Good for baking in 4-6 hours.</li>
+    <li><strong>1:2:2</strong> — the standard. A balance of speed and strength. Peak in 5-7 h.</li>
+    <li><strong>1:5:5</strong> — few microbes, lots of food → slow growth, high peak. For an overnight cycle (9-12 h).</li>
+    <li><strong>1:10:10</strong> — "for the weekend". Very slow (14-17 h). The starter holds its peak longer.</li>
+  </ul>
+</div>
+
+<div class="card card-blue">
+  <h3>How the ratio affects flavor</h3>
+  <p>More flour = longer fermentation = more time for the enzymes to work = a more complex flavor. A 1:5:5 starter at 20°C will give more aromatic bread than 1:1:1 at 30°C, even though both will be at their peak <sup>[3][4]</sup>.</p>
+</div>
+
+<!-- ==================== HYDRATION ==================== -->
+
+<h2>8. The effect of hydration</h2>
+
+<div class="card">
+  <p><strong>Starter hydration</strong> — the ratio of water to flour as a percentage:</p>
+  <table>
+    <tr><th>Hydration</th><th>Consistency</th><th>Effect</th></tr>
+    <tr><td>50-60%</td><td>Stiff (like dough)</td><td>More acetic acid, slower, sharper flavor</td></tr>
+    <tr><td>100%</td><td>Standard (like thick sour cream)</td><td>Balance of lactic and acetic</td></tr>
+    <tr><td>125-150%</td><td>Liquid</td><td>More lactic acid, milder, faster</td></tr>
+  </table>
+  <p>The reason: in a stiff medium it's harder for bacteria to move, CO₂ diffuses worse, and the heterofermentative LAB (which produce acetic acid) gain the advantage <sup>[5]</sup>.</p>
+</div>
+
+<!-- ==================== USEFUL COMPOUNDS ==================== -->
+
+<h2>9. What else happens during fermentation</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <h3><span class="emoji">🛡️</span> Protection against mold</h3>
+    <p>LAB produce <span class="tag tag-compound">bacteriocins</span> and <span class="tag tag-compound">organic acids</span> that suppress the growth of mold and pathogenic bacteria. Sourdough bread keeps longer than yeast bread <sup>[5]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">🧬</span> Gluten breakdown</h3>
+    <p>Bacterial protease partly breaks down gluten during long fermentation. Sourdough doesn't make bread gluten-free, but it can lower its reactivity for people with mild sensitivity <sup>[4]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">⚡</span> Mineral bioavailability</h3>
+    <p><span class="tag tag-enzyme">Phytase</span> breaks down phytic acid — the "trap" for minerals. In ordinary bread iron, zinc and calcium are bound and poorly absorbed. In sourdough they are free <sup>[4][6]</sup>.</p>
+  </div>
+  <div class="card">
+    <h3><span class="emoji">🍞</span> Maillard reaction</h3>
+    <p>Amino acids (from protease) + sugars (from amylase) produce the <span class="highlight">Maillard reaction</span> during baking — a brown crust and hundreds of aromatic compounds. The longer the fermentation, the more "raw material" there is for Maillard <sup>[6]</sup>.</p>
+  </div>
+</div>
+
+<!-- ==================== SOURCES ==================== -->
+
+<div class="sources">
+  <h2>Sources</h2>
+
+  <h3>Rise kinetics and gas production</h3>
+  <ol>
+    <li><strong>[1]</strong> The Sourdough Journey — <a href="https://thesourdoughjourney.com/white-wheat-or-rye-what-is-the-best-flour-to-feed-your-starter/">"White, Wheat, or Rye? What is the best flour to feed your starter?"</a> — CO₂-sensor experiment, 20°C, 1:1:1, 36 h of observation</li>
+    <li><strong>[2]</strong> Ya-Hsuan Hsu et al. — "Comparing fermentation gas production between wheat and apple sourdough starters using the Risograph", <em>Journal of Food Research</em>, 2013. <a href="https://www.sciencedirect.com/science/article/abs/pii/S2212429213000333">DOI</a></li>
+    <li><strong>[3]</strong> Weekend Bakery — <a href="https://www.weekendbakery.com/posts/rye-sourdough-starter-in-easy-steps/">"Rye sourdough starter in easy steps"</a>; Catchymeals — <a href="https://catchymeals.com/sourdough-starter-feeding-guide-ratios-peak-times/">"Sourdough Starter Feeding Guide"</a></li>
+  </ol>
+
+  <h3>Microbiology and biochemistry</h3>
+  <ol start="4">
+    <li><strong>[4]</strong> Arora K. et al. (2021) "Thirty years of knowledge on sourdough fermentation" — <em>Trends in Food Science & Technology</em>, 108, 71–83</li>
+    <li><strong>[5]</strong> De Vuyst L. et al. (2023) "Sourdough production: fermentation strategies, microbial ecology" — <em>Critical Reviews in Food Science and Nutrition</em>, 63(15), 2447–2479</li>
+    <li><strong>[6]</strong> Gänzle M.G. (2014) "Enzymatic and bacterial conversions during sourdough fermentation" — <em>Food Microbiology</em>, 37, 2–10</li>
+  </ol>
+
+  <h3>Empirical data</h3>
+  <p>King Arthur Baking (2025), Brod & Taylor, The Bread Code</p>
+</div>
+
+<div style="text-align: center; margin: 40px 0 20px; color: #8B7355; font-size: 13px;">
+  Sourdough App — 2026
+</div>
+
+</body>
+</html>
