@@ -35,15 +35,15 @@ export async function POST(request: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
 
-  const apiKey = process.env.DEEPL_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: "DEEPL_API_KEY не настроен" }, { status: 500 });
+    return NextResponse.json({ error: "GEMINI_API_KEY не настроен" }, { status: 500 });
   }
 
   try {
     const { id, targetLang } = await request.json();
     const langKey = targetLang === "ru" ? "ru" : "en";
-    const target = langKey === "ru" ? "RU" : "EN-US";
+    const targetName = langKey === "ru" ? "русский" : "английский";
 
     const recipe = await prisma.recipe.findUnique({ where: { id } });
     if (!recipe) return NextResponse.json({ error: "Рецепт не найден" }, { status: 404 });
@@ -52,11 +52,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
     }
 
-    // Если перевод уже есть — отдаём его, не тратя запрос к DeepL
+    // Если перевод уже есть — отдаём его, не тратя запрос к нейросети
     const existing: Record<string, unknown> = recipe.translations ? JSON.parse(recipe.translations) : {};
     if (existing[langKey]) return NextResponse.json(existing[langKey]);
 
-    // Собираем все строки рецепта в один запрос (так дешевле и быстрее)
+    // Собираем все строки рецепта в один массив (один запрос — дешевле и быстрее)
     const ings: Ingredient[] = recipe.ingredients ? JSON.parse(recipe.ingredients) : [];
     const steps: string[] = recipe.steps ? JSON.parse(recipe.steps) : [];
     const phases = [...new Set(ings.map((i) => i.phase).filter(Boolean))] as string[];
@@ -70,24 +70,42 @@ export async function POST(request: Request) {
     phases.forEach((p) => idx.phases.push(texts.push(p) - 1));
     steps.forEach((s) => idx.steps.push(texts.push(s) - 1));
 
-    // DeepL: бесплатные ключи оканчиваются на ":fx" и используют другой домен
-    const host = apiKey.trim().endsWith(":fx") ? "api-free.deepl.com" : "api.deepl.com";
-    const dRes = await fetch(`https://${host}/v2/translate`, {
+    // Перевод через Gemini (тот же сервис, что и сканирование рецептов)
+    const prompt = `Переведи на ${targetName} язык каждую строку из этого JSON-массива. Это названия, ингредиенты и шаги рецепта хлеба на закваске — используй естественную и правильную пекарскую терминологию.
+Верни ТОЛЬКО JSON-массив строк ТОЙ ЖЕ длины и в ТОМ ЖЕ порядке, без markdown-обёртки и без пояснений. Не объединяй и не разбивай элементы. Числа и единицы измерения оставляй как есть.
+Если строка уже на нужном языке — верни её без изменений.
+Массив для перевода:
+${JSON.stringify(texts)}`;
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const geminiRes = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `DeepL-Auth-Key ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text: texts, target_lang: target }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
     });
 
-    if (!dRes.ok) {
-      const err = await dRes.text();
-      return NextResponse.json({ error: "Ошибка DeepL", details: err }, { status: 502 });
+    if (!geminiRes.ok) {
+      const err = await geminiRes.text();
+      return NextResponse.json({ error: "Ошибка Gemini API", details: err }, { status: 502 });
     }
 
-    const dData = await dRes.json();
-    const out: string[] = (dData.translations || []).map((t: { text: string }) => t.text);
+    const geminiData = await geminiRes.json();
+    // Gemini 2.5 Flash может включать "размышления" — берём последний part без thought:true
+    const parts = geminiData.candidates?.[0]?.content?.parts || [];
+    const responsePart = parts.filter((p: { thought?: boolean }) => !p.thought).pop();
+    const text = responsePart?.text || "";
+
+    // Извлекаем JSON-массив (может быть обёрнут в ```json ... ```)
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) {
+      return NextResponse.json({ error: "Не удалось разобрать перевод", raw: text }, { status: 422 });
+    }
+    const out: string[] = JSON.parse(match[0]);
+    if (!Array.isArray(out) || out.length !== texts.length) {
+      return NextResponse.json({ error: "Перевод вернулся в неверном формате" }, { status: 502 });
+    }
 
     // Перевод названий фаз
     const phaseMap: Record<string, string> = {};
