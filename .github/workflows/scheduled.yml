@@ -1,0 +1,53 @@
+name: Levain Lab — посты из дока
+
+on:
+  schedule:
+    # каждый час в :07 (чтобы не совпадать с publish.yml в :00).
+    # GitHub может сдвинуть запуск на 10–40 минут — для постов раз в день это нормально.
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# не запускать два прогона одновременно — иначе можно задвоить публикацию
+concurrency:
+  group: levain-scheduled
+  cancel-in-progress: false
+
+jobs:
+  scheduled:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Создать файл секретов
+        run: |
+          mkdir -p ~/.secrets
+          printf "TG_BOT_TOKEN=%s\nTG_CHANNEL_ID=%s\nTG_ADMIN_CHAT_ID=%s\n" \
+            "${{ secrets.TG_BOT_TOKEN }}" \
+            "${{ secrets.TG_CHANNEL_ID }}" \
+            "${{ secrets.TG_ADMIN_CHAT_ID }}" \
+            > ~/.secrets/sourdough-tokens
+
+      - name: Опубликовать по расписанию / собрать посты из дока
+        run: node scripts/publish-post.mjs --scheduled
+
+      - name: Сохранить очередь в репозиторий
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f content/scheduled-posts.json
+          if git diff --staged --quiet; then echo "изменений нет"; exit 0; fi
+          git commit -m "очередь постов: обновление состояния"
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "повтор push ($i)"; sleep 5
+          done
+          echo "push не удался"; exit 1

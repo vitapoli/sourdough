@@ -17,6 +17,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { fetchDocHtml, parsePostsFromHeadings } from './doc-queue.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -178,18 +179,6 @@ function getAdminResponse(afterDate) {
   return null;
 }
 
-// --- Генерация Instagram-версии ---
-function makeInstagramVersion(tgPost) {
-  let text = tgPost
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/👉 sourdough\.viosay\.fun/g, '')
-    .replace(/📎 Статья:.*$/gm, '')
-    .replace(/📎.*$/gm, '')
-    .trim();
-  text += '\n\n#хлебназакваске #закваска #sourdough #домашнийхлеб #levainlab #выпечка #хлеб';
-  return text;
-}
-
 // --- Конвертация **жирного** markdown в Telegram entities (offset/length в UTF-16) ---
 function mdToEntities(src) {
   const entities = [];
@@ -224,6 +213,78 @@ function formatWhen(iso) {
   }
 }
 
+// --- Следующий слот публикации: следующий день в 08:00 по Москве после iso ---
+function nextMoscowSlot(iso) {
+  const dt = new Date(iso.slice(0, 10) + 'T00:00:00Z');
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())}T08:00:00+03:00`;
+}
+
+// --- Синхронизация очереди из Google-дока (настройки в content/queue-config.json) ---
+// Посты в доке разделены заголовками. Бот сам ставит даты: по одному в день в 08:00 МСК,
+// по порядку, следом за последним уже запланированным постом.
+// Только добавляем — ничего не удаляем (сбой сети = просто ничего не делаем).
+function syncDocPosts(scheduled) {
+  const cfgPath = resolve(ROOT, 'content/queue-config.json');
+  if (!existsSync(cfgPath)) return false;
+  let cfg;
+  try { cfg = JSON.parse(readFileSync(cfgPath, 'utf-8')); } catch { return false; }
+  if (!cfg.enabled || !cfg.docId) return false;
+
+  let docPosts;
+  try {
+    docPosts = parsePostsFromHeadings(fetchDocHtml(cfg.docId));
+  } catch (e) {
+    console.error('Не удалось прочитать Google-док:', e.message);
+    return false;
+  }
+
+  // берём посты, начиная с cfg.startFrom (всё, что выше в доке, игнорируем),
+  // и, если задан cfg.stopBefore, — до него (этот пост и всё ниже не трогаем)
+  const sIdx = cfg.startFrom ? docPosts.findIndex(p => p.title === cfg.startFrom.trim()) : 0;
+  const eIdx = cfg.stopBefore ? docPosts.findIndex(p => p.title === cfg.stopBefore.trim()) : -1;
+  docPosts = docPosts.slice(sIdx < 0 ? docPosts.length : sIdx, eIdx < 0 ? docPosts.length : eIdx);
+
+  // самый поздний запланированный день — от него продолжаем нумерацию
+  let lastDate = scheduled.reduce((mx, p) => (p.publishAt > mx ? p.publishAt : mx),
+    new Date().toISOString().slice(0, 10) + 'T08:00:00+03:00');
+
+  let changed = false;
+  for (const dp of docPosts) {
+    const existing = scheduled.find(p => p.id === dp.id || p.title === dp.title);
+    if (existing) {
+      // подхватываем правки из дока — только для постов из дока, ещё не вышедших
+      // и не отправленных на проверку (дату не трогаем)
+      if (existing.id.startsWith('doc-') && !existing.published && !existing.reviewSentAt) {
+        const same = existing.text === dp.text &&
+          JSON.stringify(existing.entities || []) === JSON.stringify(dp.entities || []);
+        if (!same) {
+          Object.assign(existing, { title: dp.title, text: dp.text, entities: dp.entities });
+          changed = true;
+          console.log(`Обновил из дока: "${dp.title}"`);
+        }
+      }
+      continue;
+    }
+    let slot = nextMoscowSlot(lastDate);
+    while (new Date(slot).getTime() <= Date.now()) slot = nextMoscowSlot(slot);
+    lastDate = slot;
+    scheduled.push({ id: dp.id, title: dp.title, publishAt: slot, text: dp.text, entities: dp.entities });
+    changed = true;
+    console.log(`Из дока добавлен пост: "${dp.title}" → ${slot}`);
+    // короткая шапка + сам пост с форматированием (чтобы сразу видеть оформление)
+    sendMessage(ADMIN_CHAT_ID, `📥 Взял из дока новый пост, выйдет ${formatWhen(slot)}:`);
+    tgRequest('sendMessage', {
+      chat_id: ADMIN_CHAT_ID,
+      text: dp.text,
+      entities: dp.entities || [],
+      disable_web_page_preview: true,
+    });
+  }
+  return changed;
+}
+
 // --- Публикация запланированного поста: правка админа (с форматированием) или оригинал ---
 function publishScheduledPost(post) {
   const r = post.edited;
@@ -256,8 +317,12 @@ function publishScheduledPost(post) {
     return 'твоя правка';
   }
 
-  // Правки не было — оригинал из файла, **жирный** превращаем в настоящий жирный
-  const { text, entities } = mdToEntities(post.text);
+  // Правки не было — оригинал из файла со своим форматированием (entities из дока),
+  // а если их нет — fallback на **жирный** markdown.
+  const hasEnt = Array.isArray(post.entities) && post.entities.length > 0;
+  const { text, entities } = hasEnt
+    ? { text: post.text, entities: post.entities }
+    : mdToEntities(post.text);
   tgRequest('sendMessage', {
     chat_id: CHANNEL_ID, text, entities, disable_web_page_preview: true,
   });
@@ -277,16 +342,12 @@ if (mode === '--draft') {
   }
 
   const post = posts[state.nextPost];
-  const igVersion = makeInstagramVersion(post.body);
 
   // Отправляем чистый текст поста (без обёрток)
   sendMessage(ADMIN_CHAT_ID, post.body);
 
-  // Отдельным сообщением — номер поста, лимит и инста-версия
-  const charNote = `📏 ${post.body.length} символов` + (post.body.length > 1024 ? ` (лимит подписи к фото — 1024, нужно сократить)` : ` (ок для фото)`);
-  const infoMsg = `#${state.nextPost + 1} · ${post.title}\n${charNote}\n\n── Instagram ──\n${igVersion}`;
-
-  sendMessage(ADMIN_CHAT_ID, infoMsg);
+  // Отдельным сообщением — номер поста
+  sendMessage(ADMIN_CHAT_ID, `#${state.nextPost + 1} · ${post.title}`);
 
   state.pendingDraft = post.body;
   state.draftSentAt = Math.floor(Date.now() / 1000);
@@ -444,6 +505,9 @@ if (mode === '--draft') {
   const now = Date.now();
   let changed = false;
 
+  // 0. Подтянуть новые/обновлённые посты из Google-дока (если включено в queue-config.json)
+  if (syncDocPosts(scheduled)) changed = true;
+
   // 1. Черновик на проверку. Не больше одного поста «на проверке» одновременно —
   //    иначе непонятно, к какому посту относится ответ админа.
   const awaitingReview = scheduled.some(p => !p.published && p.reviewSentAt);
@@ -456,17 +520,18 @@ if (mode === '--draft') {
       })
       .sort((a, b) => new Date(a.publishAt) - new Date(b.publishAt))[0];
     if (next) {
-      const draft = mdToEntities(next.text);
+      // черновик — с форматированием из файла (entities), иначе fallback на **жирный**
+      const hasEnt = Array.isArray(next.entities) && next.entities.length > 0;
+      const draft = hasEnt ? { text: next.text, entities: next.entities } : mdToEntities(next.text);
       tgRequest('sendMessage', {
         chat_id: ADMIN_CHAT_ID,
         text: draft.text,
         entities: draft.entities,
         disable_web_page_preview: true,
       });
-      const info = `📅 Пост на ${formatWhen(next.publishAt)}\n📏 ${next.text.length} символов\n\n` +
-        `Отредактируй и пришли обратно — опубликую именно твою версию с форматированием.\n` +
-        `Не ответишь — в назначенное время выйдет этот оригинал.\n\n` +
-        `── Instagram ──\n${makeInstagramVersion(next.text)}`;
+      const info = `📅 Выйдет в канал: ${formatWhen(next.publishAt)}\n\n` +
+        `Можешь поправить и прислать обратно — опубликую твою версию.\n` +
+        `Не ответишь — выйдет этот вариант.`;
       sendMessage(ADMIN_CHAT_ID, info);
       next.reviewSentAt = Math.floor(now / 1000);
       changed = true;
