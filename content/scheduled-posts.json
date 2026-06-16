@@ -210,7 +210,9 @@
         "length": 4
       }
     ],
-    "reviewSentAt": 1781516646
+    "reviewSentAt": 1781516646,
+    "published": true,
+    "publishedAt": 1781589489
   },
   {
     "id": "bakers-percent-20260617",
