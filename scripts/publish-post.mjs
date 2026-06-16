@@ -7,7 +7,7 @@
  * в ЛС, ловит правку и публикует именно её (с форматированием); если правки нет — оригинал.
  * Состояние очереди — content/scheduled-posts.json. Пауза — content/bot-state.json.
  * Команды от админа в ЛС: /stop — остановить публикации, /start — возобновить.
- * Запускается из GitHub Actions (.github/workflows/scheduled.yml) раз в час.
+ * Запускается из cron на сервере levainlab.ru (см. scripts/publish-cron.sh) раз в N минут.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -349,7 +349,7 @@ function publishScheduledPost(post) {
 const mode = process.argv[2];
 
 if (mode === '--scheduled') {
-  // Посты из Google-дока (content/scheduled-posts.json). Запускается из GitHub Actions раз в час.
+  // Посты из Google-дока (content/scheduled-posts.json). Запускается из cron на сервере раз в N минут.
   // Поток:
   //   0) обрабатываем команды /stop и /start; если на паузе — ничего не делаем;
   //   1) за LEAD_HOURS до выхода присылаем черновик админу в ЛС на проверку;
