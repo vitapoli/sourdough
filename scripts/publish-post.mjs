@@ -3,8 +3,8 @@
  * Автопубликация постов в Telegram-канал @levainlab (режим --scheduled).
  *
  * Источник постов — Google-док (см. content/queue-config.json), разделённый заголовками.
- * Бот сам ставит даты (по одному посту в день в 08:00 МСК), за 24ч шлёт админу черновик
- * в ЛС, ловит правку и публикует именно её (с форматированием); если правки нет — оригинал.
+ * Бот сам ставит даты (по одному посту в день в 08:00 МСК), вечером накануне (за 13 ч) шлёт
+ * админу черновик в ЛС, ловит правку/фото и публикует именно её; если правки нет — оригинал.
  * Состояние очереди — content/scheduled-posts.json. Пауза — content/bot-state.json.
  * Команды от админа в ЛС: /stop — остановить публикации, /start — возобновить.
  * Запускается из cron на сервере levainlab.ru (см. scripts/publish-cron.sh) раз в N минут.
@@ -238,9 +238,13 @@ function nextMoscowSlot(iso) {
 }
 
 // --- Синхронизация очереди из Google-дока (настройки в content/queue-config.json) ---
-// Посты в доке разделены заголовками. Бот сам ставит даты: по одному в день в 08:00 МСК,
-// по порядку, следом за последним уже запланированным постом.
-// Только добавляем — ничего не удаляем (сбой сети = просто ничего не делаем).
+// Док — ИСТОЧНИК ПРАВДЫ для будущих постов. Порядок в доке = расписание: первый ещё не
+// вышедший пост идёт на ближайший день (08:00 МСК), следующий — на день позже и т.д.
+// Правишь / удаляешь / переставляешь посты в доке → очередь повторяет это в точности,
+// ПОКА пост не «заморожен». Заморожены (и потому неизменны) посты:
+//   • уже опубликованные;
+//   • уже отправленные тебе в ЛС на проверку (reviewSentAt) — за час до выхода.
+// Их текст и дату док больше не меняет. Сбой загрузки дока = ничего не трогаем.
 function syncDocPosts(scheduled) {
   const cfgPath = resolve(ROOT, 'content/queue-config.json');
   if (!existsSync(cfgPath)) return false;
@@ -257,48 +261,58 @@ function syncDocPosts(scheduled) {
   }
 
   // берём посты, начиная с cfg.startFrom (всё, что выше в доке, игнорируем),
-  // и, если задан cfg.stopBefore, — до него (этот пост и всё ниже не трогаем)
+  // и, если задан cfg.stopBefore, — до него (этот заголовок-разделитель и всё ниже = «песочница»,
+  // бот не трогает). stopBefore сравнивается как ПРЕФИКС, без учёта регистра — заголовок-
+  // разделитель достаточно начать с этого слова (напр. «ЧЕРНОВИКИ — ниже не публикуется»).
+  const stop = cfg.stopBefore ? cfg.stopBefore.trim().toLowerCase() : '';
   const sIdx = cfg.startFrom ? docPosts.findIndex(p => p.title === cfg.startFrom.trim()) : 0;
-  const eIdx = cfg.stopBefore ? docPosts.findIndex(p => p.title === cfg.stopBefore.trim()) : -1;
+  const eIdx = stop ? docPosts.findIndex(p => p.title.toLowerCase().startsWith(stop)) : -1;
   docPosts = docPosts.slice(sIdx < 0 ? docPosts.length : sIdx, eIdx < 0 ? docPosts.length : eIdx);
 
-  // самый поздний запланированный день — от него продолжаем нумерацию
-  let lastDate = scheduled.reduce((mx, p) => (p.publishAt > mx ? p.publishAt : mx),
-    new Date().toISOString().slice(0, 10) + 'T08:00:00+03:00');
+  // Замороженные посты — опубликованные или уже на проверке. Их не трогаем (ни текст, ни дату).
+  const frozen = scheduled.filter(p => p.published || p.reviewSentAt);
+  const frozenIds = new Set(frozen.map(p => p.id));
+  const frozenTitles = new Set(frozen.map(p => p.title));
 
-  let changed = false;
-  for (const dp of docPosts) {
-    const existing = scheduled.find(p => p.id === dp.id || p.title === dp.title);
-    if (existing) {
-      // подхватываем правки из дока — только для постов из дока, ещё не вышедших
-      // и не отправленных на проверку (дату не трогаем)
-      if (existing.id.startsWith('doc-') && !existing.published && !existing.reviewSentAt) {
-        const same = existing.text === dp.text &&
-          JSON.stringify(existing.entities || []) === JSON.stringify(dp.entities || []);
-        if (!same) {
-          Object.assign(existing, { title: dp.title, text: dp.text, entities: dp.entities });
-          changed = true;
-          console.log(`Обновил из дока: "${dp.title}"`);
-        }
-      }
-      continue;
-    }
-    let slot = nextMoscowSlot(lastDate);
-    while (new Date(slot).getTime() <= Date.now()) slot = nextMoscowSlot(slot);
-    lastDate = slot;
-    scheduled.push({ id: dp.id, title: dp.title, publishAt: slot, text: dp.text, entities: dp.entities });
-    changed = true;
-    console.log(`Из дока добавлен пост: "${dp.title}" → ${slot}`);
-    // короткая шапка + сам пост с форматированием (чтобы сразу видеть оформление)
-    sendMessage(ADMIN_CHAT_ID, `📥 Взял из дока новый пост, выйдет ${formatWhen(slot)}:`);
+  // Будущие посты — из дока, в порядке дока, исключая уже замороженные.
+  const upcomingDoc = docPosts.filter(dp => !frozenIds.has(dp.id) && !frozenTitles.has(dp.title));
+
+  // Базовая дата нумерации: самый поздний замороженный день, но не раньше «вчера»
+  // (чтобы при простое бот не вывалил весь бэклог сразу — максимум один пост «на сегодня»).
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10) + 'T08:00:00+03:00';
+  let cursor = frozen.reduce((mx, p) => (p.publishAt > mx ? p.publishAt : mx), yesterday);
+  const newUpcoming = upcomingDoc.map(dp => {
+    cursor = nextMoscowSlot(cursor); // следующий день в 08:00 МСК
+    return { id: dp.id, title: dp.title, publishAt: cursor, text: dp.text, entities: dp.entities };
+  });
+
+  // Сравниваем «будущую» часть очереди до и после — переписываем только при отличии.
+  const prevUpcoming = scheduled.filter(p => !p.published && !p.reviewSentAt);
+  const norm = p => JSON.stringify({
+    id: p.id, title: p.title, publishAt: p.publishAt, text: p.text, entities: p.entities || [],
+  });
+  const changed = prevUpcoming.length !== newUpcoming.length ||
+    prevUpcoming.some((p, i) => norm(p) !== norm(newUpcoming[i]));
+  if (!changed) return false;
+
+  // Уведомляем в ЛС только про реально НОВЫЕ посты (заголовок, которого раньше не было).
+  const prevTitles = new Set(prevUpcoming.map(p => p.title));
+  for (const np of newUpcoming) {
+    if (prevTitles.has(np.title)) continue;
+    console.log(`Из дока добавлен пост: "${np.title}" → ${np.publishAt}`);
+    sendMessage(ADMIN_CHAT_ID, `📥 Взял из дока новый пост, выйдет ${formatWhen(np.publishAt)}:`);
     tgRequest('sendMessage', {
       chat_id: ADMIN_CHAT_ID,
-      text: dp.text,
-      entities: dp.entities || [],
+      text: np.text,
+      entities: np.entities || [],
       disable_web_page_preview: true,
     });
   }
-  return changed;
+
+  // Пересобираем очередь: замороженные (как были) + заново посчитанные будущие.
+  scheduled.length = 0;
+  scheduled.push(...frozen, ...newUpcoming);
+  return true;
 }
 
 // --- Публикация запланированного поста: правка админа (с форматированием) или оригинал ---
@@ -364,7 +378,10 @@ if (mode === '--scheduled') {
     process.exit(0);
   }
 
-  const LEAD_HOURS = 24; // за сколько часов до выхода слать черновик на проверку
+  const LEAD_HOURS = 13; // за сколько часов до выхода слать черновик на проверку
+  // 13 ч: при выходе в 08:00 черновик приходит ВЕЧЕРОМ НАКАНУНЕ (≈19:00) — весь вечер на
+  // проверку и на фото. До этого момента пост можно править прямо в доке (бот подхватит);
+  // после — он заморожен, но правку/фото можно прислать ответом в ЛС вплоть до 08:00.
 
   const schedPath = resolve(ROOT, 'content/scheduled-posts.json');
   if (!existsSync(schedPath)) {
