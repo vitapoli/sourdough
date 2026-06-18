@@ -107,7 +107,17 @@ function sendMessage(chatId, text) {
   });
 }
 
-// --- Поиск правки от админа (текст, фото с подписью, или два сообщения) ---
+// --- Премиум-эмодзи → обычные ---
+// На телефоне с Telegram Premium обычные смайлики автоматически вставляются как
+// анимированные custom_emoji. Бот не владеет этими эмодзи и не может переслать их в
+// канал — на их месте выходит пустота. Убираем сам entity типа custom_emoji: символ-
+// смайлик в тексте при этом остаётся и публикуется как обычный эмодзи.
+function stripPremiumEmoji(entities) {
+  if (!Array.isArray(entities)) return [];
+  return entities.filter(e => e.type !== 'custom_emoji');
+}
+
+// --- Поиск правки от админа (текст, фото/альбом с подписью, или два сообщения) ---
 function getAdminResponse(afterDate) {
   const updates = tgRequest('getUpdates', { offset: -100 });
   console.log(`getUpdates вернул ${updates.length} апдейтов`);
@@ -126,7 +136,7 @@ function getAdminResponse(afterDate) {
 
   console.log(`Сообщений от админа после черновика: ${adminMessages.length}`);
   for (const msg of adminMessages) {
-    console.log(`  date=${msg.date}, photo=${!!msg.photo}, text=${!!msg.text}, caption=${!!msg.caption}, document=${!!msg.document}`);
+    console.log(`  date=${msg.date}, photo=${!!msg.photo}, mgid=${msg.media_group_id || '-'}, text=${!!msg.text}, caption=${!!msg.caption}, document=${!!msg.document}`);
   }
 
   if (adminMessages.length === 0) {
@@ -134,32 +144,54 @@ function getAdminResponse(afterDate) {
     return null;
   }
 
-  // 1. Фото с подписью в одном сообщении — идеально
-  const photoWithCaption = adminMessages.find(m => m.photo && m.caption);
+  // Все фото-сообщения и последний отдельный текст (длинную подпись админ шлёт отдельно,
+  // т.к. Telegram не даёт подпись длиннее 1024 символов).
+  const photoMsgs = adminMessages.filter(m => m.photo);
+  const textMsg = [...adminMessages].reverse().find(m => m.text); // последний текст
+
+  // 1. Альбом — несколько фото с общим media_group_id.
+  //    Telegram присылает альбом как ОТДЕЛЬНЫЕ сообщения с одинаковым media_group_id;
+  //    подпись (если есть) — только на одном из них (обычно на первом).
+  //    Берём media_group_id ПОСЛЕДНЕГО фото = последнее действие админа.
+  const lastPhoto = photoMsgs[photoMsgs.length - 1];
+  if (lastPhoto && lastPhoto.media_group_id) {
+    const group = photoMsgs.filter(m => m.media_group_id === lastPhoto.media_group_id);
+    const photos = group.map(m => m.photo[m.photo.length - 1].file_id); // по 1 file_id (макс. разрешение)
+    const capMsg = group.find(m => m.caption);
+    // отдельный текст важнее короткой подписи внутри альбома
+    const caption = textMsg ? textMsg.text : (capMsg ? capMsg.caption : '');
+    const entities = textMsg ? (textMsg.entities || []) : (capMsg ? (capMsg.caption_entities || []) : []);
+    return {
+      type: 'album',
+      photos,
+      caption,
+      caption_entities: stripPremiumEmoji(entities),
+    };
+  }
+
+  // 2. Фото с подписью в одном сообщении — идеально
+  const photoWithCaption = photoMsgs.find(m => m.caption);
   if (photoWithCaption) {
     return {
       type: 'photo',
       photo: photoWithCaption.photo[photoWithCaption.photo.length - 1].file_id,
       caption: photoWithCaption.caption,
-      caption_entities: photoWithCaption.caption_entities || [],
+      caption_entities: stripPremiumEmoji(photoWithCaption.caption_entities || []),
     };
   }
 
-  // 2. Фото и текст двумя отдельными сообщениями (в любом порядке)
-  //    Telegram не даёт подпись длиннее 1024 символов, поэтому админ
-  //    отправляет фото отдельно, а текст отдельно
-  const photoMsg = adminMessages.find(m => m.photo);
-  const textMsg = [...adminMessages].reverse().find(m => m.text); // последний текст
+  // 3. Фото и текст двумя отдельными сообщениями (в любом порядке)
+  const photoMsg = photoMsgs[photoMsgs.length - 1];
   if (photoMsg && textMsg) {
     return {
       type: 'photo',
       photo: photoMsg.photo[photoMsg.photo.length - 1].file_id,
       caption: textMsg.text,
-      caption_entities: textMsg.entities || [],
+      caption_entities: stripPremiumEmoji(textMsg.entities || []),
     };
   }
 
-  // 3. Только фото без текста
+  // 4. Только фото без текста
   if (photoMsg) {
     return {
       type: 'photo',
@@ -169,7 +201,7 @@ function getAdminResponse(afterDate) {
     };
   }
 
-  // 4. Документ-картинка (фото отправлено как файл)
+  // 5. Документ-картинка (фото отправлено как файл)
   const docMsg = adminMessages.find(m => m.document && m.document.mime_type && m.document.mime_type.startsWith('image/'));
   if (docMsg) {
     const caption = textMsg ? textMsg.text : (docMsg.caption || '');
@@ -178,16 +210,16 @@ function getAdminResponse(afterDate) {
       type: 'document_photo',
       document: docMsg.document.file_id,
       caption,
-      caption_entities: entities,
+      caption_entities: stripPremiumEmoji(entities),
     };
   }
 
-  // 5. Только текст
+  // 6. Только текст
   if (textMsg) {
     return {
       type: 'text',
       text: textMsg.text,
-      entities: textMsg.entities || [],
+      entities: stripPremiumEmoji(textMsg.entities || []),
     };
   }
 
@@ -318,6 +350,27 @@ function syncDocPosts(scheduled) {
 // --- Публикация запланированного поста: правка админа (с форматированием) или оригинал ---
 function publishScheduledPost(post) {
   const r = post.edited;
+
+  if (r && r.type === 'album') {
+    let caption = r.caption || '';
+    let entities = r.caption_entities || [];
+    if (caption.length > 1024) {
+      const cut = caption.lastIndexOf('\n', 1021);
+      caption = caption.substring(0, cut > 0 ? cut : 1021) + '...';
+      entities = entities.filter(e => e.offset + e.length <= caption.length);
+    }
+    // sendMediaGroup: подпись альбома задаётся только на ПЕРВОМ элементе.
+    const media = r.photos.map((file_id, i) => {
+      const item = { type: 'photo', media: file_id };
+      if (i === 0 && caption) {
+        item.caption = caption;
+        item.caption_entities = entities;
+      }
+      return item;
+    });
+    tgRequest('sendMediaGroup', { chat_id: CHANNEL_ID, media });
+    return `альбом из ${r.photos.length} фото, твоя правка`;
+  }
 
   if (r && r.type === 'photo') {
     let caption = r.caption || '';
