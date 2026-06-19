@@ -309,10 +309,13 @@ function syncDocPosts(scheduled) {
   // Будущие посты — из дока, в порядке дока, исключая уже замороженные.
   const upcomingDoc = docPosts.filter(dp => !frozenIds.has(dp.id) && !frozenTitles.has(dp.title));
 
-  // Базовая дата нумерации: самый поздний замороженный день, но не раньше «вчера»
-  // (чтобы при простое бот не вывалил весь бэклог сразу — максимум один пост «на сегодня»).
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10) + 'T08:00:00+03:00';
-  let cursor = frozen.reduce((mx, p) => (p.publishAt > mx ? p.publishAt : mx), yesterday);
+  // Базовая дата нумерации: самый поздний замороженный день, но не раньше СЕГОДНЯ (по Москве).
+  // Первый новый пост всегда встаёт на ЗАВТРА (nextMoscowSlot от «сегодня») — даже если очередь
+  // долго пустовала. Так всегда остаётся вечер на проверку: бот не поставит пост на «сегодня
+  // 08:00», которое уже прошло, и не опубликует его в тот же прогон без окна на правку.
+  // (+3 ч к UTC → берём именно московскую дату, а не UTC-дату.)
+  const todayMsk = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10) + 'T08:00:00+03:00';
+  let cursor = frozen.reduce((mx, p) => (p.publishAt > mx ? p.publishAt : mx), todayMsk);
   const newUpcoming = upcomingDoc.map(dp => {
     cursor = nextMoscowSlot(cursor); // следующий день в 08:00 МСК
     return { id: dp.id, title: dp.title, publishAt: cursor, text: dp.text, entities: dp.entities };
@@ -327,18 +330,19 @@ function syncDocPosts(scheduled) {
     prevUpcoming.some((p, i) => norm(p) !== norm(newUpcoming[i]));
   if (!changed) return false;
 
-  // Уведомляем в ЛС только про реально НОВЫЕ посты (заголовок, которого раньше не было).
+  // Уведомляем в ЛС про реально НОВЫЕ посты (заголовок, которого раньше не было) — ОДНИМ
+  // списком заголовков с датами, без полного текста. Иначе пачка добавленных постов
+  // превращается в поток сообщений. Полный текст каждого придёт черновиком вечером накануне.
   const prevTitles = new Set(prevUpcoming.map(p => p.title));
-  for (const np of newUpcoming) {
-    if (prevTitles.has(np.title)) continue;
-    console.log(`Из дока добавлен пост: "${np.title}" → ${np.publishAt}`);
-    sendMessage(ADMIN_CHAT_ID, `📥 Взял из дока новый пост, выйдет ${formatWhen(np.publishAt)}:`);
-    tgRequest('sendMessage', {
-      chat_id: ADMIN_CHAT_ID,
-      text: np.text,
-      entities: np.entities || [],
-      disable_web_page_preview: true,
-    });
+  const freshlyAdded = newUpcoming.filter(np => !prevTitles.has(np.title));
+  if (freshlyAdded.length) {
+    for (const np of freshlyAdded) console.log(`Из дока добавлен пост: "${np.title}" → ${np.publishAt}`);
+    const list = freshlyAdded.map(np => `🔸 ${formatWhen(np.publishAt)} — ${np.title}`).join('\n');
+    const head = freshlyAdded.length === 1
+      ? 'Взял из дока новый пост в очередь:'
+      : `Взял из дока ${freshlyAdded.length} новых постов в очередь:`;
+    sendMessage(ADMIN_CHAT_ID,
+      `📥 ${head}\n\n${list}\n\nЧерновик каждого пришлю вечером накануне выхода — там проверишь и добавишь фото.`);
   }
 
   // Пересобираем очередь: замороженные (как были) + заново посчитанные будущие.
