@@ -430,6 +430,26 @@ const translations: Record<string, { ru: string; en: string }> = {
   "mood.msg.happy": { ru: "Я сытая и пузырюсь!", en: "I'm full and bubbly!" },
   "mood.label.hungry": { ru: "Голодная", en: "Hungry" },
   "mood.msg.hungry": { ru: "Пора бы подкрепиться...", en: "Time for a feed..." },
+
+  // --- Живая баночка (LiveJar) ---
+  "livejar.mark.mix": { ru: "замес", en: "start" },
+  "livejar.mark.ready": { ru: "готова", en: "ready" },
+  "livejar.mark.peak": { ru: "пик", en: "peak" },
+  "livejar.mark.now": { ru: "сейчас", en: "now" },
+  "livejar.status.waiting": { ru: "Ожидание кормления", en: "Waiting for feeding" },
+  "livejar.status.fed": { ru: "Покормлена!", en: "Fed!" },
+  "livejar.hint.fed": { ru: "Закваска «просыпается» — бактерии и дрожжи привыкают к свежей муке. Видимого подъёма пока нет, но внутри уже идёт работа.", en: "The starter is “waking up” — bacteria and yeast are adjusting to the fresh flour. No visible rise yet, but the work is already happening inside." },
+  "livejar.status.activeGrowth": { ru: "Активный рост", en: "Active growth" },
+  "livejar.status.bubbling": { ru: "Активно пузырюсь и поднимаюсь", en: "Actively bubbling and rising" },
+  "livejar.status.atPeak": { ru: "На пике!", en: "At peak!" },
+  "livejar.status.pastPeak": { ru: "Прошла пик, опадает", en: "Past peak, falling" },
+  "livejar.forecast": { ru: "Прогноз", en: "Forecast" },
+  "livejar.byMyData": { ru: "по моим данным", en: "my data" },
+  "livejar.generalData": { ru: "общие данные", en: "general data" },
+  "livejar.peakIn": { ru: "Пик через: ", en: "Peak in: " },
+  "livejar.riseLabel": { ru: "Подъём: ", en: "Rise: " },
+  "livejar.tempLabel": { ru: "Темп: ", en: "Temp: " },
+  "livejar.avgNote": { ru: "Время рассчитано по усреднённым данным и может отличаться от реальности. Добавьте свои наблюдения в настройках — прогноз станет точнее.", en: "The time is based on averaged data and may differ from reality. Add your own observations in settings to make the forecast more accurate." },
 };
 
 /* ========== Переводы встроенных рецептов ========== */

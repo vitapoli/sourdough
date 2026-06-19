@@ -7,6 +7,7 @@ import {
   UserObservation,
 } from "@/lib/fermentation";
 import { formatTime } from "@/lib/formatTime";
+import { useT, useLang } from "@/lib/i18n";
 
 interface LiveJarProps {
   starterAmount: number;
@@ -27,6 +28,8 @@ export function LiveJar({
   startTime,
   userObservations,
 }: LiveJarProps) {
+  const t = useT();
+  const { lang } = useLang();
   const [now, setNow] = useState(new Date());
   const [showHint, setShowHint] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
@@ -96,21 +99,21 @@ export function LiveJar({
   // Статус
   let status: { text: string; color: string; hint?: string };
   if (!startTime) {
-    status = { text: "Ожидание кормления", color: "text-brown-light" };
+    status = { text: t("livejar.status.waiting"), color: "text-brown-light" };
   } else if (elapsedHours < result.peakTimeHours * 0.2) {
     status = {
-      text: "Покормлена!",
+      text: t("livejar.status.fed"),
       color: "text-green-happy",
-      hint: "Закваска «просыпается» — бактерии и дрожжи привыкают к свежей муке. Видимого подъёма пока нет, но внутри уже идёт работа.",
+      hint: t("livejar.hint.fed"),
     };
   } else if (elapsedHours < result.readyTimeHours) {
-    status = { text: "Активный рост", color: "text-golden" };
+    status = { text: t("livejar.status.activeGrowth"), color: "text-golden" };
   } else if (elapsedHours < result.peakTimeHours) {
-    status = { text: "Активно пузырюсь и поднимаюсь", color: "text-green-happy" };
+    status = { text: t("livejar.status.bubbling"), color: "text-green-happy" };
   } else if (elapsedHours < result.peakTimeHours * 1.1) {
-    status = { text: "На пике!", color: "text-green-happy" };
+    status = { text: t("livejar.status.atPeak"), color: "text-green-happy" };
   } else {
-    status = { text: "Прошла пик, опадает", color: "text-orange-hungry" };
+    status = { text: t("livejar.status.pastPeak"), color: "text-orange-hungry" };
   }
 
   const showBubbles =
@@ -153,7 +156,7 @@ export function LiveJar({
             style={{ bottom: `${baseHeight}%` }}
           >
             <span className="absolute right-1 bottom-0.5 text-[10px] leading-none text-brown-light bg-cream/80 px-1 rounded">
-              замес
+              {t("livejar.mark.mix")}
             </span>
           </div>
 
@@ -164,7 +167,7 @@ export function LiveJar({
               style={{ bottom: `${readyHeight}%` }}
             >
               <span className="absolute right-1 bottom-0.5 text-[10px] leading-none text-green-happy font-bold bg-cream/80 px-1 rounded">
-                готова
+                {t("livejar.mark.ready")}
               </span>
             </div>
           )}
@@ -176,7 +179,7 @@ export function LiveJar({
               style={{ bottom: `${peakHeight}%` }}
             >
               <span className="absolute right-1 bottom-0.5 text-[10px] leading-none text-golden font-bold bg-cream/80 px-1 rounded">
-                пик
+                {t("livejar.mark.peak")}
               </span>
             </div>
           )}
@@ -188,7 +191,7 @@ export function LiveJar({
               style={{ bottom: `${currentHeight}%` }}
             >
               <span className="text-[10px] text-terracotta font-bold bg-terracotta/10 px-1.5 py-0.5 rounded-r-lg border-l-2 border-terracotta">
-                сейчас
+                {t("livejar.mark.now")}
               </span>
             </div>
           )}
@@ -230,15 +233,15 @@ export function LiveJar({
         <div className="w-full bg-card rounded-2xl p-4 shadow-sm border border-warm-beige">
           <div className="grid grid-cols-2 gap-2 text-center">
             <div>
-              <p className="text-xs text-brown-light">Прошло</p>
+              <p className="text-xs text-brown-light">{t("tracker.elapsed")}</p>
               <p className="text-lg font-bold text-brown">
-                {formatTime(elapsedHours)}
+                {formatTime(elapsedHours, lang)}
               </p>
             </div>
             <div>
-              <p className="text-xs text-brown-light">До пика</p>
+              <p className="text-xs text-brown-light">{t("tracker.toPeak")}</p>
               <p className="text-lg font-bold text-golden">
-                {timeToPeak > 0 ? formatTime(timeToPeak) : "На пике"}
+                {timeToPeak > 0 ? formatTime(timeToPeak, lang) : t("tracker.atPeak")}
               </p>
             </div>
           </div>
@@ -248,36 +251,36 @@ export function LiveJar({
       {/* Прогноз */}
       <div className="w-full bg-card rounded-2xl p-4 shadow-sm border border-warm-beige space-y-2">
         <div className="flex justify-between items-center">
-          <h4 className="font-bold text-sm text-brown-dark">Прогноз</h4>
+          <h4 className="font-bold text-sm text-brown-dark">{t("livejar.forecast")}</h4>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
             result.source === "user"
               ? "bg-green-happy/15 text-green-happy"
               : "bg-warm-beige text-brown-light"
           }`}>
-            {result.source === "user" ? "по моим данным" : "общие данные"}
+            {result.source === "user" ? t("livejar.byMyData") : t("livejar.generalData")}
           </span>
         </div>
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div>
-            <span className="text-brown-light">Пик через: </span>
+            <span className="text-brown-light">{t("livejar.peakIn")}</span>
             <span className="font-bold text-brown">
-              {formatTime(result.peakTimeHours)}
+              {formatTime(result.peakTimeHours, lang)}
             </span>
           </div>
           <div>
-            <span className="text-brown-light">Подъём: </span>
+            <span className="text-brown-light">{t("livejar.riseLabel")}</span>
             <span className="font-bold text-brown">
               x{result.peakMultiplier.toFixed(1)}
             </span>
           </div>
           <div>
-            <span className="text-brown-light">Темп: </span>
+            <span className="text-brown-light">{t("livejar.tempLabel")}</span>
             <span className="font-bold text-brown">{temperature}°C</span>
           </div>
         </div>
         {result.source !== "user" && (
           <p className="text-[11px] text-brown-light/70 leading-snug pt-1">
-            Время рассчитано по усреднённым данным и может отличаться от реальности. Добавьте свои наблюдения в настройках — прогноз станет точнее.
+            {t("livejar.avgNote")}
           </p>
         )}
       </div>
