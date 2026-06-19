@@ -13,8 +13,19 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ru");
 
   useEffect(() => {
+    // 1) Приоритет — сохранённый ручной выбор пользователя.
     const saved = localStorage.getItem("lang") as Lang | null;
-    if (saved === "en" || saved === "ru") setLangState(saved);
+    if (saved === "en" || saved === "ru") {
+      setLangState(saved);
+      return;
+    }
+    // 2) Выбора ещё не было — определяем по языку браузера.
+    //    Русский (ru, ru-RU…) → остаётся русская версия (значение по умолчанию),
+    //    любой другой язык → английская версия.
+    const browserLang = (navigator.language || "").toLowerCase();
+    if (!browserLang.startsWith("ru")) {
+      setLangState("en");
+    }
   }, []);
 
   function setLang(l: Lang) {
