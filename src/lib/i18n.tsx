@@ -103,6 +103,10 @@ const translations: Record<string, { ru: string; en: string }> = {
   "guest.gate.recipesTitle": { ru: "Рецепты — после регистрации", en: "Recipes — after sign up" },
   "guest.gate.communityTitle": { ru: "Лента пекарей — после регистрации", en: "Bakers' feed — after sign up" },
   "guest.gate.desc": { ru: "Зарегистрируйтесь бесплатно, чтобы открыть рецепты, ленту пекарей и сохранить свою закваску.", en: "Sign up free to unlock recipes, the bakers' feed and save your starter." },
+
+  // --- Страница пекаря ---
+  "baker.notFound": { ru: "Пекарь не найден", en: "Baker not found" },
+  "baker.noRecipes": { ru: "У этого пекаря пока нет публичных рецептов", en: "This baker has no public recipes yet" },
   "guest.gate.cta": { ru: "Создать аккаунт", en: "Create account" },
 
   // --- Трекер ---
@@ -191,7 +195,7 @@ const translations: Record<string, { ru: string; en: string }> = {
   "calc.hydrPct": { ru: "Гидр, %", en: "Hydr, %" },
   "calc.targetHydration": { ru: "Нужная гидратация", en: "Target hydration" },
   "calc.specifyAmount": { ru: "Указать кол-во закваски", en: "Specify starter amount" },
-  "calc.amountG": { ru: "Кол-во закваски, г", en: "Starter amount, g" },
+  "calc.amountG": { ru: "Сколько нужно получить, г", en: "How much you need, g" },
   "calc.enterData": { ru: "Введи данные закваски выше", en: "Enter starter data above" },
   "calc.alreadyMatch": { ru: "Гидратация уже совпадает!", en: "Hydration already matches!" },
   "calc.add": { ru: "Добавь", en: "Add" },
@@ -199,6 +203,8 @@ const translations: Record<string, { ru: string; en: string }> = {
   "calc.flour": { ru: "муки", en: "flour" },
   "calc.total": { ru: "Итого", en: "Total" },
   "calc.remove": { ru: "Убери", en: "Remove" },
+  "calc.starterGen": { ru: "закваски", en: "of starter" },
+  "calc.targetReached": { ru: "Уже то, что нужно!", en: "Already what you need!" },
   "calc.eg100": { ru: "напр. 100", en: "e.g. 100" },
 
   // --- Рецепты ---

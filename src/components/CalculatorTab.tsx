@@ -77,6 +77,32 @@ export function CalculatorTab() {
   const resultWater = needMoreWater ? currentWater + Math.max(0, addWater) : currentWater;
   const resultTotal = resultFlour + resultWater;
 
+  // --- Режим "хочу получить N г закваски" ---
+  // Сравниваем РЕАЛЬНУЮ текущую закваску (шаг 1) с целью (N г при нужной гидратации).
+  const sAmount = parseFloat(starterAmount) || 0;
+  const amountActive = showStarterCalc && sAmount > 0;
+
+  const W1 = currentFlour + currentWater;          // текущий общий вес
+  const f1frac = W1 > 0 ? currentFlour / W1 : 0;   // доля муки в текущей закваске
+  const v1frac = W1 > 0 ? currentWater / W1 : 0;   // доля воды в текущей закваске
+
+  const targetFlour = sAmount / (1 + targetH / 100); // мука в цели
+  const targetWater = sAmount - targetFlour;         // вода в цели
+
+  // Убрать можно только смесь (выбросить закваску целиком), долить — чистую муку/воду.
+  // Выбрасываем столько, чтобы по обоим компонентам не осталось лишнего, остальное доливаем.
+  const discardRaw = Math.max(
+    0,
+    f1frac > 0 ? (currentFlour - targetFlour) / f1frac : 0,
+    v1frac > 0 ? (currentWater - targetWater) / v1frac : 0
+  );
+  const discard = Math.min(discardRaw, W1);
+  const discardFlour = discard * f1frac;
+  const discardWater = discard * v1frac;
+  const addFlourAmt = Math.max(0, targetFlour - (currentFlour - discardFlour));
+  const addWaterAmt = Math.max(0, targetWater - (currentWater - discardWater));
+  const amountDone = discard < 0.5 && addFlourAmt < 0.5 && addWaterAmt < 0.5;
+
   const inputClass =
     "w-full px-3 py-2 border-2 border-warm-beige rounded-xl bg-cream text-base font-bold text-brown-dark focus:outline-none focus:border-terracotta transition-colors";
 
@@ -203,6 +229,31 @@ export function CalculatorTab() {
           <div className="text-center">
             {currentFlour <= 0 || targetH <= 0 ? (
               <p className="text-base font-bold">{t("calc.enterData")}</p>
+            ) : amountActive ? (
+              amountDone ? (
+                <p className="text-base font-bold">{t("calc.targetReached")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {discard >= 0.5 && (
+                    <p className="text-base">
+                      {t("calc.remove")} <span className="text-2xl font-extrabold">{Math.round(discard)}г</span> {t("calc.starterGen")}
+                      <span className="block text-xs opacity-80">
+                        ({Math.round(discardFlour)}г {t("calc.flour")} + {Math.round(discardWater)}г {t("calc.water")})
+                      </span>
+                    </p>
+                  )}
+                  {addFlourAmt >= 0.5 && (
+                    <p className="text-base">
+                      {t("calc.add")} <span className="text-xl font-extrabold">{Math.round(addFlourAmt)}г</span> {t("calc.flour")}
+                    </p>
+                  )}
+                  {addWaterAmt >= 0.5 && (
+                    <p className="text-base">
+                      {t("calc.add")} <span className="text-xl font-extrabold">{Math.round(addWaterAmt)}г</span> {t("calc.water")}
+                    </p>
+                  )}
+                </div>
+              )
             ) : hydrationMatches ? (
               <p className="text-base font-bold">{t("calc.alreadyMatch")}</p>
             ) : needMoreWater ? (
@@ -218,66 +269,17 @@ export function CalculatorTab() {
           <div className="bg-white/20 rounded-xl py-2 px-3 flex justify-around">
             <div className="text-center">
               <p className="text-xs opacity-70">{t("tracker.flour")}</p>
-              <p className="text-base font-bold">{resultFlour.toFixed(1)}г</p>
+              <p className="text-base font-bold">{(amountActive ? targetFlour : resultFlour).toFixed(1)}г</p>
             </div>
             <div className="text-center">
               <p className="text-xs opacity-70">{t("tracker.water")}</p>
-              <p className="text-base font-bold">{resultWater.toFixed(1)}г</p>
+              <p className="text-base font-bold">{(amountActive ? targetWater : resultWater).toFixed(1)}г</p>
             </div>
             <div className="text-center">
               <p className="text-xs opacity-70">{t("calc.total")}</p>
-              <p className="text-base font-bold">{resultTotal.toFixed(1)}г</p>
+              <p className="text-base font-bold">{(amountActive ? sAmount : resultTotal).toFixed(1)}г</p>
             </div>
           </div>
-          {/* Подсказка по закваске */}
-          {showStarterCalc && (() => {
-            const sAmount = parseFloat(starterAmount) || 0;
-            if (sAmount <= 0 || currentH <= 0 || targetH <= 0) return null;
-
-            // Текущая закваска: sAmount г при currentH%
-            const curFlour = sAmount / (1 + currentH / 100);
-            const curWater = sAmount - curFlour;
-
-            // Целевая: та же масса при targetH%
-            const tgtFlour = sAmount / (1 + targetH / 100);
-            const tgtWater = sAmount - tgtFlour;
-
-            const flourDiff = tgtFlour - curFlour;
-            const waterDiff = tgtWater - curWater;
-
-            // Практический совет: убрать закваску, добавить муку или воду
-            // Убираем R г закваски и добавляем R г муки (или воды)
-            // чтобы итого осталось sAmount г
-            const waterFrac = currentH / (100 + currentH);
-            let removeAmount = 0;
-            let addWhat = "";
-            if (Math.abs(currentH - targetH) < 0.5) {
-              // Гидратация совпадает
-            } else if (targetH < currentH) {
-              // Нужно суше — убираем закваску, добавляем муку
-              removeAmount = Math.abs(waterDiff) / waterFrac;
-              addWhat = t("calc.flour");
-            } else {
-              // Нужно влажнее — убираем закваску, добавляем воду
-              const flourFrac = 100 / (100 + currentH);
-              removeAmount = Math.abs(flourDiff) / flourFrac;
-              addWhat = t("calc.water");
-            }
-
-            return (
-              <div className="bg-white/20 rounded-xl py-2 px-3 space-y-1 text-sm">
-                <p className="opacity-70 text-xs">{sAmount}г: {currentH}% → {targetH}%</p>
-                <p>{t("tracker.flour")}: <span className="font-bold">{Math.round(curFlour)}г → {Math.round(tgtFlour)}г</span></p>
-                <p>{t("tracker.water")}: <span className="font-bold">{Math.round(curWater)}г → {Math.round(tgtWater)}г</span></p>
-                {Math.abs(currentH - targetH) >= 0.5 && (
-                  <p className="font-bold">→ {t("calc.remove")} {Math.round(removeAmount)}г, {t("calc.add").toLowerCase()} {Math.round(removeAmount)}г {addWhat}</p>
-                )}
-                {Math.abs(currentH - targetH) < 0.5 && (
-                  <p className="font-bold">✓ {t("calc.alreadyMatch")}</p>
-                )}
-              </div>
-            );
-          })()}
         </div>
       </div>
     </div>
