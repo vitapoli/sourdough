@@ -19,7 +19,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://levainlab.ru"),
-  title: "Sourdough — трекер закваски",
+  title: "Levain Lab — трекер закваски",
   description: "Живая закваска — умный трекер. Первое русскоязычное приложение для домашних пекарей.",
   // Подтверждение прав на сайт в Яндекс.Вебмастере и Google Search Console
   verification: {
@@ -33,19 +33,19 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Sourdough",
+    title: "Levain Lab",
   },
   openGraph: {
-    title: "Sourdough — трекер закваски",
+    title: "Levain Lab — трекер закваски",
     description: "Живая закваска — умный трекер. Рецепты и калькулятор для домашних пекарей.",
     url: "https://levainlab.ru",
-    siteName: "Sourdough",
+    siteName: "Levain Lab",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Sourdough — трекер закваски для домашних пекарей",
+        alt: "Levain Lab — трекер закваски для домашних пекарей",
       },
     ],
     locale: "ru_RU",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sourdough — трекер закваски",
+    title: "Levain Lab — трекер закваски",
     description: "Живая закваска — умный трекер. Рецепты и калькулятор для домашних пекарей.",
     images: ["/og-image.png"],
   },

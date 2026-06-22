@@ -47,8 +47,10 @@ export async function POST(request: Request) {
 
     const recipe = await prisma.recipe.findUnique({ where: { id } });
     if (!recipe) return NextResponse.json({ error: "Рецепт не найден" }, { status: 404 });
-    // Переводить можно только свои рецепты (встроенные уже переведены вручную)
-    if (recipe.userId !== session.user.id) {
+    // Переводить можно свои рецепты и любые ПУБЛИЧНЫЕ (например, со страницы пекаря).
+    // Чужой приватный рецепт переводить нельзя. Перевод кэшируется в самом рецепте,
+    // поэтому каждый публичный рецепт переводится на язык один раз — это общий кэш.
+    if (recipe.userId !== session.user.id && !recipe.isPublic) {
       return NextResponse.json({ error: "Нет доступа" }, { status: 403 });
     }
 

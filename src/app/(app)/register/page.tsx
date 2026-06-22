@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
 import { track } from "@/lib/metrika";
+import { setCachedAuth } from "@/lib/authState";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -62,6 +63,7 @@ export default function RegisterPage() {
       return;
     }
 
+    setCachedAuth("user");
     track("signup");
     router.push("/");
   }
@@ -73,7 +75,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[8vh]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-brown-dark">Sourdough</h1>
+          <h1 className="text-3xl font-extrabold text-brown-dark">Levain Lab</h1>
           <p className="text-brown-light mt-1">{t("auth.registerTitle")}</p>
         </div>
 

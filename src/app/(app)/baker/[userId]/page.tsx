@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
+import { useT, useLang } from "@/lib/i18n";
 
 interface BakerRecipe {
   id: string;
@@ -15,14 +16,31 @@ interface BakerRecipe {
   likesCount: number;
   commentsCount: number;
   isLikedByMe: boolean;
+  translations: string | null;
+}
+
+// Поля рецепта, которые видны на карточке пекаря (их и переводим).
+// /api/recipes/translate возвращает больше полей, но здесь нужны только эти.
+interface TranslatedFields {
+  title: string;
+  description: string | null;
+  flour: string;
 }
 
 export default function BakerPage() {
   const { userId } = useParams<{ userId: string }>();
+  const t = useT();
+  const { lang } = useLang();
   const [name, setName] = useState("");
   const [recipes, setRecipes] = useState<BakerRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Перевод по кнопке и переключатель «оригинал» — храним по id рецепта,
+  // потому что на странице сразу несколько карточек.
+  const [fresh, setFresh] = useState<Record<string, TranslatedFields>>({});
+  const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch(`/api/baker/${userId}`)
@@ -70,10 +88,35 @@ export default function BakerPage() {
     }
   };
 
+  async function handleTranslate(id: string) {
+    setTranslating((s) => ({ ...s, [id]: true }));
+    try {
+      const res = await fetch("/api/recipes/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, targetLang: lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(t("recipes.translateError") + ": " + (data.error || ""));
+        return;
+      }
+      setFresh((s) => ({
+        ...s,
+        [id]: { title: data.title, description: data.description, flour: data.flour },
+      }));
+      setShowOriginal((s) => ({ ...s, [id]: false }));
+    } catch (e) {
+      alert(t("recipes.translateError") + ": " + String(e));
+    } finally {
+      setTranslating((s) => ({ ...s, [id]: false }));
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <span className="text-brown-light">Загрузка...</span>
+        <span className="text-brown-light">{t("loading")}</span>
       </div>
     );
   }
@@ -83,12 +126,24 @@ export default function BakerPage() {
       <div className="min-h-screen bg-background p-6">
         <a href="/" className="flex items-center gap-1 text-brown-light mb-6">
           <Icon name="back" size={20} />
-          <span className="text-sm">На главную</span>
+          <span className="text-sm">{t("back")}</span>
         </a>
-        <p className="text-center text-brown-light">Пекарь не найден</p>
+        <p className="text-center text-brown-light">{t("baker.notFound")}</p>
       </div>
     );
   }
+
+  // Склонение слова «рецепт» по числу
+  const recipeWord =
+    lang === "en"
+      ? recipes.length === 1
+        ? "recipe"
+        : "recipes"
+      : recipes.length === 1
+      ? "рецепт"
+      : recipes.length < 5
+      ? "рецепта"
+      : "рецептов";
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,7 +151,7 @@ export default function BakerPage() {
         {/* Шапка */}
         <a href="/" className="flex items-center gap-1 text-brown-light mb-4">
           <Icon name="back" size={20} />
-          <span className="text-sm">Назад</span>
+          <span className="text-sm">{t("back")}</span>
         </a>
 
         {/* Профиль */}
@@ -106,20 +161,13 @@ export default function BakerPage() {
           </div>
           <h1 className="text-xl font-bold text-brown-dark">{name}</h1>
           <p className="text-sm text-brown-light">
-            {recipes.length}{" "}
-            {recipes.length === 1
-              ? "рецепт"
-              : recipes.length < 5
-              ? "рецепта"
-              : "рецептов"}
+            {recipes.length} {recipeWord}
           </p>
         </div>
 
         {/* Рецепты */}
         {recipes.length === 0 ? (
-          <p className="text-center text-brown-light py-8">
-            У этого пекаря пока нет публичных рецептов
-          </p>
+          <p className="text-center text-brown-light py-8">{t("baker.noRecipes")}</p>
         ) : (
           <div className="space-y-4">
             {recipes.map((recipe) => {
@@ -134,6 +182,19 @@ export default function BakerPage() {
                   })()
                 : null;
 
+              // Перевод: нужен, если язык рецепта не совпадает с языком интерфейса.
+              // Берём свежий перевод (по кнопке) или уже сохранённый в БД.
+              const origLang = /[а-яё]/i.test(recipe.title) ? "ru" : "en";
+              const needsTr = origLang !== lang;
+              const saved: TranslatedFields | null = recipe.translations
+                ? (JSON.parse(recipe.translations) as Record<string, TranslatedFields>)[lang] ?? null
+                : null;
+              const tr = fresh[recipe.id] ?? saved;
+              const active = needsTr && !showOriginal[recipe.id] ? tr : null;
+              const dTitle = active?.title ?? recipe.title;
+              const dDescription = active ? active.description : recipe.description;
+              const dFlour = active?.flour ?? recipe.flour;
+
               return (
                 <div
                   key={recipe.id}
@@ -142,22 +203,22 @@ export default function BakerPage() {
                   {photoUrl && (
                     <img
                       src={photoUrl}
-                      alt={recipe.title}
+                      alt={dTitle}
                       className="w-full h-48 object-cover object-center"
                     />
                   )}
                   <div className="p-4">
                     <h3 className="font-bold text-brown-dark text-base mb-1">
-                      {recipe.title}
+                      {dTitle}
                     </h3>
-                    {recipe.description && (
+                    {dDescription && (
                       <p className="text-sm text-brown-light mb-2 line-clamp-2">
-                        {recipe.description}
+                        {dDescription}
                       </p>
                     )}
                     <div className="flex gap-1.5 flex-wrap mb-3">
                       <span className="text-[11px] bg-warm-beige/70 text-brown px-2 py-0.5 rounded-md font-medium">
-                        {recipe.flour}
+                        {dFlour}
                       </span>
                       <span className="text-[11px] bg-warm-beige/70 text-brown px-2 py-0.5 rounded-md font-medium inline-flex items-center gap-0.5">
                         <Icon name="drop" size={10} />
@@ -192,6 +253,33 @@ export default function BakerPage() {
                           {recipe.commentsCount || ""}
                         </span>
                       </span>
+
+                      {/* Перевод рецепта */}
+                      {needsTr &&
+                        (tr ? (
+                          <button
+                            onClick={() =>
+                              setShowOriginal((s) => ({ ...s, [recipe.id]: !s[recipe.id] }))
+                            }
+                            className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-terracotta hover:underline"
+                          >
+                            <Icon name="globe" size={14} />
+                            {showOriginal[recipe.id]
+                              ? t("recipes.showTranslation")
+                              : t("recipes.showOriginal")}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleTranslate(recipe.id)}
+                            disabled={translating[recipe.id]}
+                            className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-brown-light hover:text-terracotta transition-colors disabled:opacity-50"
+                          >
+                            <Icon name="globe" size={14} />
+                            {translating[recipe.id]
+                              ? t("recipes.translating")
+                              : t("recipes.translate")}
+                          </button>
+                        ))}
                     </div>
                   </div>
                 </div>

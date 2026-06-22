@@ -150,6 +150,18 @@ function EditFeedingForm({
   const [notes, setNotes] = useState(feeding.notes ?? "");
   const [saving, setSaving] = useState(false);
 
+  // Внутри храним русское значение из БД, на экране показываем перевод (как в форме добавления)
+  const flourLabelMap: Record<string, string> = {
+    "Пшеничная": t("create.wheat"),
+    "Ржаная": t("create.rye"),
+  };
+  const flourLabelToValue: Record<string, string> = {};
+  for (const [val, label] of Object.entries(flourLabelMap)) {
+    flourLabelToValue[label] = val;
+  }
+  const flourLabels = Object.keys(flourLabelMap).map((ft) => flourLabelMap[ft]);
+  const flourDisplayValue = flourLabelMap[flourType] || flourType;
+
   const existingPhotos: string[] = feeding.photos ? JSON.parse(feeding.photos) : [];
   const [keepPhotos, setKeepPhotos] = useState<string[]>(existingPhotos);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -234,9 +246,9 @@ function EditFeedingForm({
         <div>
           <label className="text-xs font-medium text-brown">{t("history.flourType")}</label>
           <Dropdown
-            value={flourType}
-            options={[t("create.rye"), t("create.wheat")]}
-            onChange={setFlourType}
+            value={flourDisplayValue}
+            options={flourLabels}
+            onChange={(label) => setFlourType(flourLabelToValue[label] || label)}
             placeholder="—"
             allowCustom
           />

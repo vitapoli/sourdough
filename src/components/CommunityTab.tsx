@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "./Icon";
-import { useT } from "@/lib/i18n";
+import { useT, useLang } from "@/lib/i18n";
 
 interface CommunityRecipe {
   id: string;
@@ -14,12 +14,23 @@ interface CommunityRecipe {
   salt: number | null;
   ingredients: string | null;
   steps: string;
+  translations: string | null;
   photos: string | null;
   createdAt: string;
   user: { id: string; name: string } | null;
   likesCount: number;
   commentsCount: number;
   isLikedByMe: boolean;
+}
+
+// Перевод рецепта, как его отдаёт /api/recipes/translate.
+// ingredients и steps — это JSON-строки (тот же формат, что в самом рецепте).
+interface RecipeTranslation {
+  title: string;
+  description: string | null;
+  flour: string;
+  ingredients: string | null;
+  steps: string;
 }
 
 interface CommentData {
@@ -47,6 +58,7 @@ function timeAgo(dateStr: string, t: (k: string) => string): string {
 
 export function CommunityTab() {
   const t = useT();
+  const { lang } = useLang();
   const [recipes, setRecipes] = useState<CommunityRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortMode>("new");
@@ -62,6 +74,11 @@ export function CommunityTab() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Перевод открытого рецепта: свежий по кнопке + переключатель «оригинал».
+  // Привязаны к рецепту+языку через ключ, чтобы при смене рецепта/языка сбрасываться.
+  const [freshTr, setFreshTr] = useState<{ key: string; tr: RecipeTranslation } | null>(null);
+  const [showOrigTr, setShowOrigTr] = useState<{ key: string; on: boolean } | null>(null);
+  const [translating, setTranslating] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -283,18 +300,65 @@ export function CommunityTab() {
     loadComments(recipe.id);
   };
 
+  // Перевести открытый рецепт. Рецепты в ленте публичные — API это разрешает,
+  // перевод кэшируется в самом рецепте (общий кэш для всех).
+  const handleTranslate = async () => {
+    if (!selected) return;
+    const key = `${selected.id}:${lang}`;
+    setTranslating(true);
+    try {
+      const res = await fetch("/api/recipes/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selected.id, targetLang: lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(t("recipes.translateError") + ": " + (data.error || ""));
+        return;
+      }
+      setFreshTr({ key, tr: data });
+      setShowOrigTr({ key, on: false });
+    } catch (e) {
+      alert(t("recipes.translateError") + ": " + String(e));
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // --- Детальный вид рецепта ---
   if (selected) {
+    // Перевод: нужен, если язык рецепта ≠ языку интерфейса. Берём свежий перевод
+    // (по кнопке) или уже сохранённый в БД, плюс переключатель «оригинал».
+    const viewKey = `${selected.id}:${lang}`;
+    const origLang = /[а-яё]/i.test(selected.title) ? "ru" : "en";
+    const needsTranslation = origLang !== lang;
+    let savedTranslation: RecipeTranslation | null = null;
+    try {
+      savedTranslation = selected.translations
+        ? (JSON.parse(selected.translations) as Record<string, RecipeTranslation>)[lang] ?? null
+        : null;
+    } catch { /* */ }
+    const translation = freshTr?.key === viewKey ? freshTr.tr : savedTranslation;
+    const showOriginal = showOrigTr?.key === viewKey ? showOrigTr.on : false;
+    const active = needsTranslation && !showOriginal ? translation : null;
+
+    const dTitle = active?.title ?? selected.title;
+    const dDescription = active ? active.description : selected.description;
+    const dFlour = active?.flour ?? selected.flour;
+    const dIngredients = active?.ingredients ?? selected.ingredients;
+    const dSteps = active?.steps ?? selected.steps;
+
     const photos: string[] = selected.photos
       ? JSON.parse(selected.photos)
       : [];
     let ingredients: { name: string; amount: string; unit: string; phase?: string }[] = [];
     try {
-      ingredients = selected.ingredients ? JSON.parse(selected.ingredients) : [];
+      ingredients = dIngredients ? JSON.parse(dIngredients) : [];
     } catch { /* */ }
     let steps: { text: string }[] = [];
     try {
-      const parsed = JSON.parse(selected.steps);
+      const parsed = JSON.parse(dSteps);
       steps = Array.isArray(parsed) ? parsed : [];
     } catch { /* */ }
 
@@ -314,7 +378,7 @@ export function CommunityTab() {
           <div className="rounded-2xl overflow-hidden mb-4">
             <img
               src={photos[0]}
-              alt={selected.title}
+              alt={dTitle}
               className="w-full h-48 object-cover"
             />
           </div>
@@ -322,18 +386,18 @@ export function CommunityTab() {
 
         {/* Заголовок */}
         <h2 className="text-xl font-bold text-brown-dark mb-1">
-          {selected.title}
+          {dTitle}
         </h2>
-        {selected.description && (
+        {dDescription && (
           <p className="text-sm text-brown-light mb-3">
-            {selected.description}
+            {dDescription}
           </p>
         )}
 
         {/* Теги */}
         <div className="flex gap-2 flex-wrap mb-4">
           <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium">
-            {selected.flour}
+            {dFlour}
           </span>
           <span className="text-xs bg-warm-beige/70 text-brown px-2.5 py-1 rounded-lg font-medium inline-flex items-center gap-1">
             <Icon name="drop" size={12} />
@@ -344,6 +408,30 @@ export function CommunityTab() {
             {selected.starterPct}%
           </span>
         </div>
+
+        {/* Перевод рецепта */}
+        {needsTranslation && (
+          <div className="mb-4">
+            {translation ? (
+              <button
+                onClick={() => setShowOrigTr({ key: viewKey, on: !showOriginal })}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-terracotta hover:underline"
+              >
+                <Icon name="globe" size={14} />
+                {showOriginal ? t("recipes.showTranslation") : t("recipes.showOriginal")}
+              </button>
+            ) : (
+              <button
+                onClick={handleTranslate}
+                disabled={translating}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-warm-beige/50 text-brown rounded-xl text-xs font-bold hover:bg-warm-beige transition-colors disabled:opacity-50"
+              >
+                <Icon name="globe" size={14} />
+                {translating ? t("recipes.translating") : t("recipes.translate")}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Автор + лайк + сохранение */}
         <div className="flex items-center justify-between mb-5 py-3 border-y border-warm-beige/60">
@@ -605,6 +693,48 @@ function RecipeCard({
   isOwn?: boolean;
 }) {
   const t = useT();
+  const { lang } = useLang();
+  const [freshTr, setFreshTr] = useState<RecipeTranslation | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [translating, setTranslating] = useState(false);
+
+  // Перевод видимых полей карточки (заголовок, описание, мука) в язык интерфейса.
+  const origLang = /[а-яё]/i.test(recipe.title) ? "ru" : "en";
+  const needsTr = origLang !== lang;
+  let savedTr: RecipeTranslation | null = null;
+  try {
+    savedTr = recipe.translations
+      ? (JSON.parse(recipe.translations) as Record<string, RecipeTranslation>)[lang] ?? null
+      : null;
+  } catch { /* */ }
+  const tr = freshTr ?? savedTr;
+  const active = needsTr && !showOriginal ? tr : null;
+  const dTitle = active?.title ?? recipe.title;
+  const dDescription = active ? active.description : recipe.description;
+  const dFlour = active?.flour ?? recipe.flour;
+
+  async function translateCard() {
+    setTranslating(true);
+    try {
+      const res = await fetch("/api/recipes/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: recipe.id, targetLang: lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(t("recipes.translateError") + ": " + (data.error || ""));
+        return;
+      }
+      setFreshTr(data);
+      setShowOriginal(false);
+    } catch (err) {
+      alert(t("recipes.translateError") + ": " + String(err));
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   const photoUrl = recipe.photos
     ? (() => {
         try {
@@ -623,7 +753,7 @@ function RecipeCard({
         <button onClick={onOpen} className="block w-full">
           <img
             src={photoUrl}
-            alt={recipe.title}
+            alt={dTitle}
             loading="lazy"
             className="w-full h-44 object-cover"
           />
@@ -634,20 +764,20 @@ function RecipeCard({
         {/* Название */}
         <button onClick={onOpen} className="text-left w-full">
           <h3 className="font-bold text-brown-dark text-base mb-1 leading-snug">
-            {recipe.title}
+            {dTitle}
           </h3>
         </button>
 
-        {recipe.description && (
+        {dDescription && (
           <p className="text-sm text-brown-light mb-2 line-clamp-2">
-            {recipe.description}
+            {dDescription}
           </p>
         )}
 
         {/* Теги */}
         <div className="flex gap-1.5 flex-wrap mb-3">
           <span className="text-[11px] bg-warm-beige/70 text-brown px-2 py-0.5 rounded-md font-medium">
-            {recipe.flour}
+            {dFlour}
           </span>
           <span className="text-[11px] bg-warm-beige/70 text-brown px-2 py-0.5 rounded-md font-medium inline-flex items-center gap-0.5">
             <Icon name="drop" size={10} />
@@ -658,6 +788,30 @@ function RecipeCard({
             {recipe.starterPct}%
           </span>
         </div>
+
+        {/* Перевод рецепта */}
+        {needsTr && (
+          <div className="mb-3 -mt-1">
+            {tr ? (
+              <button
+                onClick={() => setShowOriginal((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs font-bold text-terracotta hover:underline"
+              >
+                <Icon name="globe" size={13} />
+                {showOriginal ? t("recipes.showTranslation") : t("recipes.showOriginal")}
+              </button>
+            ) : (
+              <button
+                onClick={translateCard}
+                disabled={translating}
+                className="inline-flex items-center gap-1 text-xs font-bold text-brown-light hover:text-terracotta transition-colors disabled:opacity-50"
+              >
+                <Icon name="globe" size={13} />
+                {translating ? t("recipes.translating") : t("recipes.translate")}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Футер: автор + лайк + комментарии + сохранение */}
         <div className="flex items-center justify-between pt-2 border-t border-warm-beige/40">

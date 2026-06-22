@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: "Первая закваска за 7 дней — бесплатный мини-курс",
     description: "Пошаговый курс для начинающих: выведи свою первую закваску с нуля.",
     url: "https://levainlab.ru/course",
-    siteName: "Sourdough",
+    siteName: "Levain Lab",
     locale: "ru_RU",
     type: "website",
   },

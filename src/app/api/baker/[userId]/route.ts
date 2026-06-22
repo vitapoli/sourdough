@@ -38,6 +38,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ userId:
     ingredients: r.ingredients,
     steps: r.steps,
     salt: r.salt,
+    translations: r.translations,
     createdAt: r.createdAt,
     likesCount: r._count.likes,
     commentsCount: r._count.comments,

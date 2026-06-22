@@ -620,7 +620,7 @@ h1{font-size:22px;font-weight:800;color:#3D2C1E;margin-bottom:6px}
       html += `</div>`;
     }
 
-    html += `<div class="footer">Sourdough — трекер закваски</div>`;
+    html += `<div class="footer">Levain Lab — трекер закваски</div>`;
     html += `</body></html>`;
 
     const w = window.open("", "_blank");

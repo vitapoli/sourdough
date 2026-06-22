@@ -7,13 +7,13 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   await resend.emails.send({
-    from: "Sourdough <noreply@viosay.fun>",
+    from: "Levain Lab <noreply@viosay.fun>",
     to: email,
-    subject: "Сброс пароля — Sourdough",
+    subject: "Сброс пароля — Levain Lab",
     html: `
       <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #3d2c1e;">Сброс пароля</h2>
-        <p style="color: #5a4a3a;">Кто-то запросил сброс пароля для вашего аккаунта в Sourdough.</p>
+        <p style="color: #5a4a3a;">Кто-то запросил сброс пароля для вашего аккаунта в Levain Lab.</p>
         <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #c4956a; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; margin: 16px 0;">
           Сбросить пароль
         </a>

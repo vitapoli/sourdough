@@ -52,6 +52,12 @@ function writeAll(list: GuestStarter[]) {
   localStorage.setItem(KEY, JSON.stringify(list));
 }
 
+// Есть ли у гостя закваски, которые нужно перенести в аккаунт после входа.
+// Нужно главной странице, чтобы решить, можно ли показывать UI оптимистично.
+export function hasGuestStarters(): boolean {
+  return readAll().length > 0;
+}
+
 const sortByFedDesc = (a: GuestFeeding, b: GuestFeeding) => b.fedAt.localeCompare(a.fedAt);
 
 // --- Операции (одинаковый интерфейс для гостя и для сервера) ---
@@ -65,7 +71,9 @@ export async function listStarters(): Promise<any[]> {
       .map((s) => ({ ...s, feedings: [...s.feedings].sort(sortByFedDesc).slice(0, 1) }));
   }
   const res = await fetch("/api/starters");
-  return res.json();
+  if (!res.ok) return [];
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +84,7 @@ export async function getStarter(id: string): Promise<any> {
     return { ...s, feedings: [...s.feedings].sort(sortByFedDesc) };
   }
   const res = await fetch(`/api/starters/${id}`);
+  if (!res.ok) return null;
   return res.json();
 }
 

@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
     salt: r.salt,
     ingredients: r.ingredients,
     steps: r.steps,
+    translations: r.translations,
     photos: r.photos,
     createdAt: r.createdAt,
     user: r.user,

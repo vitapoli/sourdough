@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
+import { setCachedAuth } from "@/lib/authState";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
@@ -25,6 +26,7 @@ export default function ProfilePage() {
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    setCachedAuth("guest");
     router.push("/login");
   }
 
@@ -43,6 +45,7 @@ export default function ProfilePage() {
       setDeleting(false);
       return;
     }
+    setCachedAuth("guest");
     router.push("/login");
   }
 

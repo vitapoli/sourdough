@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
+import { setCachedAuth } from "@/lib/authState";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -32,6 +33,7 @@ export default function LoginPage() {
       return;
     }
 
+    setCachedAuth("user");
     router.push("/");
   }
 
@@ -42,7 +44,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-cream flex items-start justify-center px-4 pt-[12vh]">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-brown-dark">Sourdough</h1>
+          <h1 className="text-3xl font-extrabold text-brown-dark">Levain Lab</h1>
           <p className="text-brown-light mt-1">{t("auth.loginTitle")}</p>
         </div>
 

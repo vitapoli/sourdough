@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     description:
       "Step-by-step course for beginners: grow your first sourdough starter from scratch.",
     url: "https://levainlab.ru/course/en",
-    siteName: "Sourdough",
+    siteName: "Levain Lab",
     locale: "en_US",
     type: "website",
   },

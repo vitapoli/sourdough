@@ -5,7 +5,8 @@ import { TabBar, Tab } from "@/components/TabBar";
 import { LangSwitch } from "@/components/LangSwitch";
 import { SimpleTrackerTab } from "@/components/SimpleTrackerTab";
 import { GuestGate } from "@/components/GuestGate";
-import { setGuestMode, migrateGuestData } from "@/lib/tracker";
+import { setGuestMode, migrateGuestData, hasGuestStarters } from "@/lib/tracker";
+import { getCachedAuth, setCachedAuth } from "@/lib/authState";
 import { useT } from "@/lib/i18n";
 
 const TrackerTab = lazy(() => import("@/components/TrackerTab").then(m => ({ default: m.TrackerTab })));
@@ -42,20 +43,60 @@ export default function Home() {
   const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
+    // 1) Мгновенный показ по сохранённому состоянию — без ожидания сети.
+    // Делаем это в эффекте (после гидратации), чтобы не разойтись с серверным
+    // HTML. Пропускаем кэш, если в браузере есть гостевые закваски: их нужно
+    // сначала перенести в аккаунт (ниже), иначе трекер успеет показать пустоту.
+    const cached = getCachedAuth();
+    if (cached && !hasGuestStarters()) {
+      const guest = cached === "guest";
+      setGuestMode(guest);
+      setIsGuest(guest);
+      setAuthChecked(true);
+    }
+
+    // 2) Фоновая проверка — поправит состояние, если оно изменилось
+    // (вышел/зашёл на другом устройстве, истекла сессия).
     fetch("/api/auth/me").then(async (r) => {
       if (r.ok) {
         // Вошедший пользователь: переносим закваску, которую гость мог
         // натыкать в этом браузере до регистрации, и работаем с сервером.
         setGuestMode(false);
+        setIsGuest(false);
+        setCachedAuth("user");
         await migrateGuestData();
       } else {
         // Гость: не выбрасываем на логин — даём попробовать приложение.
         setGuestMode(true);
         setIsGuest(true);
+        setCachedAuth("guest");
       }
       setAuthChecked(true);
     });
   }, []);
+
+  // Предзагрузка JS остальных вкладок в простое — переключение без мигания.
+  useEffect(() => {
+    if (!authChecked) return;
+    const prefetch = () => {
+      import("@/components/CalculatorTab");
+      if (!isGuest) {
+        import("@/components/TrackerTab");
+        import("@/components/RecipesTab");
+        import("@/components/CommunityTab");
+      }
+    };
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(prefetch);
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const timer = setTimeout(prefetch, 1500);
+    return () => clearTimeout(timer);
+  }, [authChecked, isGuest]);
 
   function handleTabChange(tab: Tab) {
     if (tab === "recipes" && activeTab === "recipes") {
@@ -70,7 +111,7 @@ export default function Home() {
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center gap-3">
-        <h1 className="text-3xl font-extrabold text-brown-dark tracking-tight">Sourdough</h1>
+        <h1 className="text-3xl font-extrabold text-brown-dark tracking-tight">Levain Lab</h1>
         <div className="w-6 h-6 border-2 border-terracotta/30 border-t-terracotta rounded-full animate-spin" />
       </div>
     );
@@ -83,7 +124,7 @@ export default function Home() {
         <div className="w-8" />
         <div className="text-center">
           <h1 className="text-2xl font-extrabold text-brown-dark tracking-tight leading-none flex items-center justify-center gap-1.5">
-            Sourdough <LangSwitch />
+            Levain Lab <LangSwitch />
           </h1>
           <p className="text-xs text-brown-light mt-0.5">{t("app.subtitle")}</p>
         </div>
