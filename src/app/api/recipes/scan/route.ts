@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { geminiGenerate } from "@/lib/gemini";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -53,28 +54,19 @@ export async function POST(request: Request) {
 ВАЖНО: гидратация = (сумма ВСЕХ жидкостей) / (сумма ВСЕЙ муки) * 100. Жидкости: вода, кипяток, молоко, кефир, сливки, пахта, сыворотка, сок, йогурт, какао (жидкое), чай, квас, газировка, газированная вода, чайный гриб (комбуча). Сухое молоко, сухие сливки, сухое какао — НЕ жидкость!
 Если на фото нет рецепта, верни: {"error": "Не удалось распознать рецепт"}`;
 
-    // На сервере в РФ Gemini блокируется — ходим через прокси (GEMINI_BASE_URL).
-    // Локально переменной нет → идём напрямую.
-    const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
-    const geminiUrl = `${base}/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-    const geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              ...imageParts,
-            ],
-          },
-        ],
-      }),
+    // Запрос к Gemini с автоповтором при перегрузке (503/429).
+    const geminiRes = await geminiGenerate(apiKey, {
+      contents: [{ parts: [{ text: prompt }, ...imageParts] }],
     });
 
     if (!geminiRes.ok) {
       const err = await geminiRes.text();
+      if (geminiRes.status === 503 || geminiRes.status === 429) {
+        return NextResponse.json(
+          { error: "Сервис распознавания сейчас перегружен. Попробуйте через минуту." },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { error: "Ошибка Gemini API", details: err },
         { status: 502 }

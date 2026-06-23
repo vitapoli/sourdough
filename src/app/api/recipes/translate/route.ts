@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { geminiGenerate } from "@/lib/gemini";
 import { NextResponse } from "next/server";
 
 // Определение роли ингредиента (копия логики из RecipesTab).
@@ -79,20 +80,19 @@ export async function POST(request: Request) {
 Массив для перевода:
 ${JSON.stringify(texts)}`;
 
-    // На сервере в РФ Gemini блокируется — ходим через прокси (GEMINI_BASE_URL).
-    // Локально переменной нет → идём напрямую.
-    const base = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com";
-    const geminiUrl = `${base}/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+    // Запрос к Gemini с автоповтором при перегрузке (503/429).
+    const geminiRes = await geminiGenerate(apiKey, {
+      contents: [{ parts: [{ text: prompt }] }],
     });
 
     if (!geminiRes.ok) {
       const err = await geminiRes.text();
+      if (geminiRes.status === 503 || geminiRes.status === 429) {
+        return NextResponse.json(
+          { error: "Сервис перевода сейчас перегружен. Попробуйте через минуту." },
+          { status: 503 }
+        );
+      }
       return NextResponse.json({ error: "Ошибка Gemini API", details: err }, { status: 502 });
     }
 
